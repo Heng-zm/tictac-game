@@ -48,8 +48,14 @@ export function MatchmakingScreen({
   );
 
   useEffect(() => {
+    // A dropped socket removes the player from the server queue. Clear the
+    // guard while offline so reconnecting starts a fresh search automatically.
+    if (connection !== 'online') {
+      autoJoined.current = false;
+      return;
+    }
     if (autoJoined.current) return;
-    if (busy || connection !== 'online' || queue) {
+    if (busy || queue) {
       if (queue) autoJoined.current = true;
       return;
     }

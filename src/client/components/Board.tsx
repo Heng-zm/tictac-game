@@ -78,7 +78,7 @@ export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, on
   const winning = new Set(winningLine ?? []);
 
   return (
-    <div className="relative select-none">
+    <div className="game-board-frame relative select-none">
       <div
         role="grid"
         aria-label="Tic Tac Toe board"

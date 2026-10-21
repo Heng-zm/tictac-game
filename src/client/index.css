@@ -117,6 +117,16 @@
   .panel {
     @apply border border-line bg-surface shadow-soft;
   }
+
+  /* The board is square, so its width also sets its height. Cap it against the
+     visible viewport height to keep all nine cells on screen in short Telegram
+     windows (for example wide desktop windows or tablets). */
+  .game-board-frame {
+    width: 100%;
+    max-width: 100%;
+    max-width: min(100%, max(12rem, calc(var(--app-vh, 100dvh) - 13rem)));
+    margin-inline: auto;
+  }
 }
 
 /* Drawn game marks. pathLength=100 in the SVG keeps both X and O timing equal. */
