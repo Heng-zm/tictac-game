@@ -104,7 +104,7 @@ Notes:
 - `DATABASE_URL` is used by Prisma Client at runtime. `DIRECT_URL` is used by the `db:migrate`/`db:migrate:dev` scripts for Prisma Migrate. The pooler on port 6543 cannot run migrations.
 - The migration wrapper (`scripts/prisma-cli.mjs`) automatically points Prisma Migrate at `DIRECT_URL` when it is set, falling back to `DATABASE_URL` for local PostgreSQL.
 - If your network lacks IPv6, use Supabase's session pooler on port 5432 for `DIRECT_URL` (as shown above).
-- Prisma connects with the database role in the URL and does not use Supabase Row Level Security. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, enable RLS first.
+- Prisma connects with the database role in the URL and does not use Supabase Row Level Security policies. The committed Supabase migration enables RLS on all game tables and revokes Data API grants from Supabase's `anon` and `authenticated` roles. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, add explicit RLS policies and grants first.
 - The Telegram login remains server-side `initData` verification; Supabase Auth is not required and is not used.
 
 ## Environment

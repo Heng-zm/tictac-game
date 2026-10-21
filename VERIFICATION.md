@@ -126,6 +126,7 @@ The production smoke test used synthetic Telegram users in the local test databa
 - Prisma uses standard PostgreSQL and applies the committed migration successfully to PostgreSQL 17.11.
 - `DATABASE_URL` is the runtime connection; `DIRECT_URL` is used by the migration wrapper for Supabase's direct/session-pooler connection.
 - The documented Supabase setup uses the transaction pooler with `pgbouncer=true` for runtime and port 5432 for migrations.
+- A dedicated migration enables RLS on every game table and revokes Data API grants from Supabase's `anon`/`authenticated` roles. The server's owner role bypasses RLS, so server queries are unaffected.
 - No Supabase-specific client code or service-role key is used in the browser.
 
 ## Unverified
@@ -159,6 +160,6 @@ Before calling the deployment production-verified:
 ## Known limitations
 
 - Matchmaking queues, Socket.IO rooms, and AI timers are process-local; run one application instance unless a shared adapter and queue are added.
-- Supabase RLS is not used because Prisma connects as the database role and the server is the sole writer. Do not expose the database or a service-role key to the browser.
+- Supabase RLS is enabled by migration and Data API grants are revoked because Prisma connects as the database owner and the server is the sole writer. Do not expose the database or a service-role key to the browser. If you add a Supabase client, add explicit RLS policies and grants first.
 - The in-memory repository is for development only and loses data on restart.
 - No spectator, tournament, payment, or moderation features are included.
