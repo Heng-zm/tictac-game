@@ -9,7 +9,7 @@ import { GameScreen } from './screens/GameScreen';
 import { ProfileScreen } from './screens/ProfileScreen';
 import { LeaderboardScreen } from './screens/LeaderboardScreen';
 import { NotFoundScreen } from './screens/NotFoundScreen';
-import { BottomNav, ConnectionBanner, Page } from './components/Layout';
+import { BottomNav, ConnectionBanner } from './components/Layout';
 import { ToastViewport } from './components/ui';
 
 export default function App() {
@@ -90,15 +90,12 @@ export default function App() {
         : route.name
       : null;
 
+  const showConnectionBanner = route.name !== 'game' && route.name !== 'search';
+
   return (
     <div className="min-h-[var(--app-vh)]">
-      <ConnectionBanner connection={client.connection} onRetry={client.reconnect} />
-      {client.connection === 'shutdown' && client.match?.status === 'ACTIVE' ? (
-        <Page className="pt-[calc(env(safe-area-inset-top)+54px)] pb-0">
-          <p className="rounded-2xl border border-amber-500/25 bg-amber-500/10 p-2.5 text-center text-[11px] font-medium text-muted">
-            The server is restarting. Your active game will be paused and recoverable after reconnecting.
-          </p>
-        </Page>
+      {showConnectionBanner ? (
+        <ConnectionBanner connection={client.connection} onRetry={client.reconnect} />
       ) : null}
       {screen}
       {nav ? <BottomNav active={nav} onNavigate={navigate} /> : null}

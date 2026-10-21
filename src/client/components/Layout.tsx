@@ -27,49 +27,57 @@ export function ConnectionBanner({
   if (hidden) return null;
 
   const shutdown = connection === 'shutdown';
+  const connecting = connection === 'idle' || connection === 'connecting';
   const message = shutdown
-    ? 'Server restarting — your game will be waiting for you.'
+    ? 'Server restarting — your game is safe.'
     : offline
-      ? 'You are offline. Moves will sync when you reconnect.'
-      : 'Reconnecting to the game…';
+      ? 'Offline — moves sync when you reconnect.'
+      : connecting
+        ? 'Connecting to the game…'
+        : 'Reconnecting to the game…';
 
   return (
-    <div
-      className={cn(
-        'pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[calc(env(safe-area-inset-top)+8px)]',
-      )}
-      role="status"
-      aria-live="polite"
-    >
+    <>
+      {/* Keep the fixed status pill from covering the page header. Page already
+          adds the safe-area inset, so this only reserves the pill's own height. */}
+      <div className="h-11" aria-hidden />
       <div
-        className={cn(
-          'pointer-events-auto flex items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold shadow-soft backdrop-blur-md',
-          shutdown || offline
-            ? 'border-danger/30 bg-danger/15 text-danger'
-            : 'border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300',
-        )}
+        className="pointer-events-none fixed inset-x-0 top-0 z-50 flex justify-center px-3 pt-[calc(env(safe-area-inset-top)+8px)]"
+        role="status"
+        aria-live="polite"
       >
-        {shutdown || offline ? (
-          <WifiOff className="h-3.5 w-3.5" aria-hidden />
-        ) : (
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
-          </span>
-        )}
-        <span>{message}</span>
-        {(offline || shutdown) && (
-          <button
-            type="button"
-            onClick={onRetry}
-            className="ml-1 inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50"
-          >
-            <RefreshCw className="h-3 w-3" aria-hidden />
-            Retry
-          </button>
-        )}
+        <div
+          className={cn(
+            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold leading-snug shadow-soft backdrop-blur-md',
+            shutdown || offline
+              ? 'border-danger/30 bg-danger/15 text-danger'
+              : connecting
+                ? 'border-accent/30 bg-accent/10 text-accent'
+                : 'border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300',
+          )}
+        >
+          {shutdown || offline ? (
+            <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
+          ) : (
+            <span className="relative flex h-2 w-2 shrink-0">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-current" />
+            </span>
+          )}
+          <span className="min-w-0">{message}</span>
+          {(offline || shutdown) && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50"
+            >
+              <RefreshCw className="h-3 w-3" aria-hidden />
+              Retry
+            </button>
+          )}
+        </div>
       </div>
-    </div>
+    </>
   );
 }
 

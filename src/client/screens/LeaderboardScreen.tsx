@@ -79,11 +79,13 @@ export function LeaderboardScreen({
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-accent">Your position</p>
-                  <p className="truncate text-sm font-bold text-ink">
-                    {data.currentUserRank ? `Rank #${data.currentUserRank}` : 'Unranked'} · {profile.stats.rating} rating
-                  </p>
+                  <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <p className="text-sm font-bold text-ink">
+                      {data.currentUserRank ? `Rank #${data.currentUserRank}` : 'Unranked'} · {profile.stats.rating} rating
+                    </p>
+                    <Pill tone="accent">{profile.stats.ratingGames} rated</Pill>
+                  </div>
                 </div>
-                <Pill tone="accent">{profile.stats.ratingGames} rated</Pill>
               </div>
             </Card>
           ) : null}

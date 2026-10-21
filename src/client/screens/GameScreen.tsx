@@ -206,7 +206,11 @@ export function GameScreen({
         <Card className="flex flex-col items-center gap-3 p-10">
           <Spinner className="h-7 w-7" />
           <p className="text-sm font-medium text-muted">
-            {connection === 'online' ? 'Opening the board…' : 'Reconnecting to the board…'}
+            {connection === 'online'
+              ? 'Opening the board…'
+              : connection === 'idle' || connection === 'connecting'
+                ? 'Connecting to the board…'
+                : 'Reconnecting to the board…'}
           </p>
         </Card>
       </Page>
@@ -338,7 +342,11 @@ export function GameScreen({
       ) : connection !== 'online' ? (
         <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3">
           <Timer className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-xs font-medium text-ink">Reconnecting… your board and rating are safe.</p>
+          <p className="text-xs font-medium text-ink">
+            {connection === 'idle' || connection === 'connecting'
+              ? 'Connecting… your board and rating are safe.'
+              : 'Reconnecting… your board and rating are safe.'}
+          </p>
         </div>
       ) : null}
 

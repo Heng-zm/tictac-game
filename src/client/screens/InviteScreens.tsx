@@ -8,16 +8,15 @@ import {
   Send,
   ShieldCheck,
   UserPlus,
-  WifiOff,
   X,
 } from 'lucide-react';
 import type { InvitePreview } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { ApiRequestError, cancelInviteRest, errorMessage, fetchInvitePreview } from '../lib/api';
 import { SocketRequestError } from '../lib/socket';
-import { buildInviteDeepLink, isValidInviteToken } from '../lib/invites';
+import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink, isValidInviteToken } from '../lib/invites';
 import { shareInTelegram } from '../lib/telegram';
-import { formatDuration, useCountdown } from '../hooks/use-time';
+import { formatLongDuration, useCountdown } from '../hooks/use-time';
 import { inviteLinkStorageKey } from '../hooks/use-game-client';
 import { Avatar, Button, Card, EmptyState, Pill, ScreenHeader, Spinner } from '../components/ui';
 import { Page } from '../components/Layout';
@@ -40,7 +39,10 @@ export function InviteWaitingScreen({
   const storedLink = pendingInvite
     ? readStoredLink(pendingInvite.id)
     : null;
-  const deepLink = createdInvite?.deepLink ?? storedLink;
+  const rawDeepLink = createdInvite?.deepLink ?? storedLink;
+  const deepLink = rawDeepLink
+    ? alignInviteLinkToCurrentOrigin(rawDeepLink, client.config, window.location.origin)
+    : null;
   const expiresAt = pendingInvite?.expiresAt ?? createdInvite?.expiresAt ?? null;
   const remaining = useCountdown(expiresAt);
   const expired = remaining !== null && remaining <= 0;
@@ -169,18 +171,11 @@ export function InviteWaitingScreen({
                 : 'Send the link below. As soon as your friend opens it, the game starts automatically.'}
             </p>
 
-            {connection !== 'online' ? (
-              <div className="mt-3 flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-3 py-1 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-                <WifiOff className="h-3 w-3" aria-hidden />
-                Reconnecting — your link is safe
-              </div>
-            ) : null}
-
             {pendingInvite ? (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 <Pill tone={expired ? 'danger' : 'accent'}>
                   <Clock3 className="h-3 w-3" aria-hidden />
-                  {expired ? 'Expired' : `${formatDuration(remaining)} left`}
+                  {expired ? 'Expired' : `${formatLongDuration(remaining)} left`}
                 </Pill>
                 <Pill tone="success">
                   <ShieldCheck className="h-3 w-3" aria-hidden />
@@ -439,7 +434,7 @@ export function InviteAcceptScreen({
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 <Pill tone={expired ? 'danger' : preview.status === 'PENDING' ? 'accent' : 'neutral'}>
                   <Clock3 className="h-3 w-3" aria-hidden />
-                  {expired ? 'Expired' : preview.status === 'PENDING' ? `${formatDuration(remaining)} left` : preview.status.toLowerCase()}
+                  {expired ? 'Expired' : preview.status === 'PENDING' ? `${formatLongDuration(remaining)} left` : preview.status.toLowerCase()}
                 </Pill>
                 <Pill>{preview.matchStatus === 'WAITING' ? 'Waiting for you' : preview.matchStatus.toLowerCase()}</Pill>
               </div>

@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Clock,
   Gamepad2,
+  Info,
   Link2,
   Play,
   Sparkles,
@@ -77,8 +78,11 @@ export function HomeScreen({
       </header>
 
       {config?.demoMode ? (
-        <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs font-medium leading-relaxed text-amber-800 dark:text-amber-200">
-          Demo mode: guest login is enabled and data resets when the server restarts.
+        <div className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-medium leading-relaxed text-amber-800 dark:text-amber-200">
+          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+          <p>
+            <span className="font-bold">Demo mode.</span> Guest login is on; data resets when the server restarts.
+          </p>
         </div>
       ) : null}
 

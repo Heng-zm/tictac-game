@@ -28,6 +28,16 @@ export function formatDuration(ms: number | null): string {
   return `${minutes}:${String(seconds).padStart(2, '0')}`;
 }
 
+export function formatLongDuration(ms: number | null): string {
+  if (ms === null) return '--';
+  const totalMinutes = Math.max(0, Math.ceil(ms / 60_000));
+  if (totalMinutes < 1) return '<1m';
+  if (totalMinutes < 60) return `${totalMinutes}m`;
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes === 0 ? `${hours}h` : `${hours}h ${minutes}m`;
+}
+
 export function useElapsed(startedAt: number | null): number {
   const [elapsed, setElapsed] = useState(() => (startedAt ? Date.now() - startedAt : 0));
   useEffect(() => {

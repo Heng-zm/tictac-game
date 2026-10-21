@@ -26,7 +26,8 @@ export function MatchmakingScreen({
   const busy = Boolean(activeMatch || pendingInvite);
   const elapsed = useElapsed(startedAt);
   const fallbackRemaining = useCountdown(queue?.fallbackAt ?? null);
-  const connectionLost = connection !== 'online';
+  const connectionLost =
+    connection === 'reconnecting' || connection === 'offline' || connection === 'shutdown';
 
   const joinNow = useCallback(
     async (fallback = autoFallback) => {
