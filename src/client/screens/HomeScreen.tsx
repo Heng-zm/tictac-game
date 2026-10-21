@@ -2,15 +2,11 @@ import { useState } from 'react';
 import {
   Bot,
   ChevronRight,
-  Clock,
-  Gamepad2,
+  Clock3,
   Info,
   Link2,
   Play,
-  Sparkles,
   Swords,
-  Trophy,
-  Users,
   type LucideIcon,
 } from 'lucide-react';
 import type { AiDifficulty, Side } from '../../shared/game-types';
@@ -18,14 +14,14 @@ import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
 import { modeLabel } from '../lib/game';
 import { cn } from '../lib/cn';
-import { Avatar, Button, Card, Logo, Pill, SegmentedControl, StatTile } from '../components/ui';
+import { Avatar, Button, Card, Logo, Pill, SegmentedControl } from '../components/ui';
 import { Page } from '../components/Layout';
 import { formatDuration } from '../hooks/use-time';
 
-const DIFFICULTIES: Array<{ value: AiDifficulty; label: string; hint: string }> = [
-  { value: 'EASY', label: 'Easy', hint: 'Warm-up' },
-  { value: 'MEDIUM', label: 'Medium', hint: 'Tricky' },
-  { value: 'HARD', label: 'Hard', hint: 'Unbeatable' },
+const DIFFICULTIES: Array<{ value: AiDifficulty; label: string }> = [
+  { value: 'EASY', label: 'Easy' },
+  { value: 'MEDIUM', label: 'Medium' },
+  { value: 'HARD', label: 'Hard' },
 ];
 
 export function HomeScreen({
@@ -59,65 +55,72 @@ export function HomeScreen({
 
   return (
     <Page withNav>
-      <header className="flex items-center justify-between pb-5 pt-1">
-        <div className="flex items-center gap-2.5">
+      <header className="flex items-center justify-between gap-4 pb-5 pt-1">
+        <div className="flex min-w-0 items-center gap-3">
           <Logo />
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-accent">Telegram Mini App</p>
-            <h1 className="text-lg font-black leading-tight tracking-tight text-ink">Tic Tac Toe</h1>
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-bold leading-tight tracking-tight text-ink">Tic Tac Toe</h1>
+            <p className="truncate text-xs text-muted">Hey, {profile.firstName}</p>
           </div>
         </div>
         <button
           type="button"
           onClick={() => navigate('/profile')}
-          className="rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+          className="shrink-0 rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
           aria-label="Open profile"
         >
-          <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="md" ring />
+          <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="md" />
         </button>
       </header>
 
       {config?.demoMode ? (
-        <div className="mb-3 flex items-start gap-2 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] font-medium leading-relaxed text-amber-800 dark:text-amber-200">
+        <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
           <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
           <p>
-            <span className="font-bold">Demo mode.</span> Guest login is on; data resets when the server restarts.
+            <span className="font-semibold">Demo mode.</span> Guest login is on. Data resets when the server restarts.
           </p>
         </div>
       ) : null}
 
-      <section className="mb-4">
-        <p className="text-sm font-medium text-muted">Hey, {profile.firstName}.</p>
-        <h2 className="mt-0.5 text-[28px] font-black leading-[1.12] tracking-tight text-ink">
-          Three in a row.
-          <br />
-          <span className="text-accent">One tap away.</span>
-        </h2>
-      </section>
-
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        <StatTile label="Rating" value={stats.rating} icon={Trophy} accent />
-        <StatTile label="Win rate" value={`${stats.winRate}%`} icon={Sparkles} />
-        <StatTile label="Games" value={stats.gamesPlayed} icon={Gamepad2} />
-      </div>
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Your rating</p>
+            <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-ink">{stats.rating}</p>
+          </div>
+          <Pill tone="accent">{stats.ratingGames} rated</Pill>
+        </div>
+        <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
+          <div>
+            <p className="text-sm font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
+            <p className="mt-0.5 text-[10px] text-muted">Games</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold tabular-nums text-ink">{stats.wins}</p>
+            <p className="mt-0.5 text-[10px] text-muted">Wins</p>
+          </div>
+          <div>
+            <p className="text-sm font-semibold tabular-nums text-ink">{stats.winRate}%</p>
+            <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
+          </div>
+        </div>
+      </Card>
 
       {activeMatch ? (
         <button
           type="button"
           onClick={() => navigate(`/game/${activeMatch.id}`)}
-          className="group mb-3 flex w-full items-center gap-3 rounded-3xl border border-accent/30 bg-accent/10 p-3.5 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
         >
-          <span className="relative flex h-10 w-10 items-center justify-center rounded-2xl bg-accent text-accent-ink">
-            <Play className="h-5 w-5" fill="currentColor" aria-hidden />
-            <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-success" />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+            <Play className="h-4 w-4" fill="currentColor" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-bold uppercase tracking-wide text-accent">Game in progress</span>
-            <span className="block truncate text-sm font-semibold text-ink">
-              {modeLabel(activeMatch.mode)} · tap to resume
-            </span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Game in progress</span>
+            <span className="mt-0.5 block truncate text-sm font-semibold text-ink">{modeLabel(activeMatch.mode)}</span>
           </span>
-          <ChevronRight className="h-5 w-5 text-accent transition group-hover:translate-x-0.5" aria-hidden />
+          <span className="shrink-0 text-xs font-semibold text-accent">Resume</span>
+          <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
         </button>
       ) : null}
 
@@ -125,113 +128,114 @@ export function HomeScreen({
         <button
           type="button"
           onClick={() => navigate('/invite/waiting')}
-          className="group mb-3 flex w-full items-center gap-3 rounded-3xl border border-line bg-elevated/70 p-3.5 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+          className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 text-left transition hover:bg-elevated active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-elevated text-accent">
-            <Clock className="h-5 w-5" aria-hidden />
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
+            <Clock3 className="h-4 w-4" aria-hidden />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="block text-[11px] font-bold uppercase tracking-wide text-muted">Waiting for a friend</span>
-            <span className="block truncate text-sm font-semibold text-ink">Your invitation is still pending</span>
+            <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Invitation pending</span>
+            <span className="mt-0.5 block truncate text-sm font-semibold text-ink">Waiting for a friend</span>
           </span>
-          <ChevronRight className="h-5 w-5 text-muted transition group-hover:translate-x-0.5" aria-hidden />
+          <ChevronRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden />
         </button>
       ) : null}
 
-      <div className="space-y-2.5">
-        <ModeCard
-          icon={Swords}
-          title="Play online"
-          description="Get paired with a random player. Rated."
-          tone="accent"
-          onClick={() => navigate('/search')}
-          disabled={busy}
-        />
-        <ModeCard
-          icon={Link2}
-          title="Invite a friend"
-          description="Share a private link. Only the two of you."
-          tone="danger"
-          onClick={() => navigate('/invite/waiting')}
-          disabled={busy}
-        />
-      </div>
+      <section className="mt-6">
+        <h2 className="mb-2.5 text-sm font-semibold text-ink">Play</h2>
+        <div className="grid grid-cols-2 gap-2.5">
+          <ModeTile
+            icon={Swords}
+            title="Quick match"
+            description="Random player · rated"
+            tone="accent"
+            onClick={() => navigate('/search')}
+            disabled={busy}
+          />
+          <ModeTile
+            icon={Link2}
+            title="Invite a friend"
+            description="Private link · rated"
+            onClick={() => navigate('/invite/waiting')}
+            disabled={busy}
+          />
+        </div>
+        {busy ? (
+          <p className="mt-2.5 px-1 text-[11px] leading-relaxed text-muted">
+            Finish or leave your current {pendingInvite && !activeMatch ? 'invitation' : 'game'} to start another.
+          </p>
+        ) : null}
+      </section>
 
-      {busy ? (
-        <p className="mt-2.5 px-1 text-center text-[11px] leading-relaxed text-muted">
-          Finish or leave your current {pendingInvite && !activeMatch ? 'invitation' : 'game'} to start another.
-        </p>
-      ) : null}
-
-      <Card className="mt-4 p-4">
-        <div className="mb-3 flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-2xl bg-accent/10 text-accent">
-              <Bot className="h-5 w-5" aria-hidden />
-            </span>
-            <div>
-              <h3 className="text-sm font-extrabold text-ink">Play the bot</h3>
-              <p className="text-[11px] text-muted">Hard uses perfect minimax. Good luck.</p>
+      <Card className="mt-5 p-4">
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-ink">
+            <Bot className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-sm font-semibold text-ink">Practice vs bot</h2>
+              <Pill>Unrated</Pill>
             </div>
+            <p className="mt-0.5 text-[11px] text-muted">Choose a difficulty and take the first move.</p>
           </div>
-          <Pill tone="accent">Unrated</Pill>
         </div>
 
-        <SegmentedControl
-          value={difficulty}
-          options={DIFFICULTIES}
-          onChange={setDifficulty}
-          ariaLabel="Bot difficulty"
-          className="grid-cols-3"
-        />
-
-        <div className="mt-2.5 flex items-center gap-2.5">
+        <div className="mt-4">
+          <p className="mb-1.5 text-[11px] font-medium text-muted">Difficulty</p>
           <SegmentedControl
-            value={side}
-            options={[
-              { value: 'X', label: 'Play as X', hint: 'First' },
-              { value: 'O', label: 'Play as O', hint: 'Second' },
-            ]}
-            onChange={setSide}
-            ariaLabel="Your side against the bot"
-            className="flex-1 grid-cols-2"
+            value={difficulty}
+            options={DIFFICULTIES}
+            onChange={setDifficulty}
+            ariaLabel="Bot difficulty"
           />
+        </div>
+
+        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2.5">
+          <div>
+            <p className="mb-1.5 text-[11px] font-medium text-muted">Play as</p>
+            <SegmentedControl
+              value={side}
+              options={[
+                { value: 'X', label: 'X' },
+                { value: 'O', label: 'O' },
+              ]}
+              onChange={setSide}
+              ariaLabel="Your side against the bot"
+              className="grid-cols-2"
+            />
+          </div>
           <Button
-            size="md"
             icon={Play}
             loading={startingBot}
             disabled={busy}
             onClick={() => void startBot()}
-            className="shrink-0 px-4"
           >
             Start
           </Button>
         </div>
       </Card>
 
-      <div className="mt-4 flex items-start gap-2 rounded-2xl border border-line bg-elevated/50 p-3 text-[11px] leading-relaxed text-muted">
-        <Users className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
-        <p>
-          Every move is validated by the server. Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)} so
-          a dropped signal never costs you the game.
-        </p>
-      </div>
+      <p className="mt-4 px-4 text-center text-[11px] leading-relaxed text-muted">
+        Moves are verified by the server. Disconnects pause the clock for{' '}
+        {formatDuration(config?.disconnectGraceMs ?? 0)}.
+      </p>
     </Page>
   );
 }
 
-function ModeCard({
+function ModeTile({
   icon: Icon,
   title,
   description,
-  tone,
+  tone = 'neutral',
   onClick,
   disabled,
 }: {
   icon: LucideIcon;
   title: string;
   description: string;
-  tone: 'accent' | 'danger';
+  tone?: 'accent' | 'neutral';
   onClick: () => void;
   disabled: boolean;
 }) {
@@ -241,31 +245,24 @@ function ModeCard({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'group relative flex w-full items-center gap-3 overflow-hidden rounded-3xl border p-4 text-left transition active:scale-[0.99] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
+        'group flex min-h-[130px] flex-col items-start rounded-2xl border p-4 text-left transition active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
         tone === 'accent'
-          ? 'border-accent/25 bg-gradient-to-br from-accent/15 via-surface to-surface'
-          : 'border-danger/20 bg-gradient-to-br from-danger/10 via-surface to-surface',
+          ? 'border-accent/20 bg-accent/5 hover:border-accent/35'
+          : 'border-line bg-surface hover:border-accent/20 hover:bg-elevated/60',
       )}
     >
       <span
         className={cn(
-          'pointer-events-none absolute -right-8 -top-10 h-28 w-28 rounded-full blur-2xl',
-          tone === 'accent' ? 'bg-accent/20' : 'bg-danger/15',
-        )}
-      />
-      <span
-        className={cn(
-          'relative flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl',
-          tone === 'accent' ? 'bg-accent text-accent-ink shadow-soft' : 'bg-danger text-white shadow-soft',
+          'flex h-10 w-10 items-center justify-center rounded-xl',
+          tone === 'accent' ? 'bg-accent text-accent-ink' : 'bg-elevated text-ink',
         )}
       >
-        <Icon className="h-6 w-6" aria-hidden />
+        <Icon className="h-5 w-5" aria-hidden />
       </span>
-      <span className="relative min-w-0 flex-1">
-        <span className="block text-base font-extrabold text-ink">{title}</span>
-        <span className="mt-0.5 block text-xs leading-relaxed text-muted">{description}</span>
+      <span className="mt-auto pt-5">
+        <span className="block text-sm font-semibold text-ink">{title}</span>
+        <span className="mt-0.5 block text-[11px] leading-relaxed text-muted">{description}</span>
       </span>
-      <ChevronRight className="relative h-5 w-5 shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden />
     </button>
   );
 }

@@ -21,20 +21,19 @@ export function AuthGate({
   const authRequired = phase === 'auth-required';
 
   return (
-    <div className="relative flex min-h-[100dvh] flex-col items-center justify-center overflow-hidden px-6 py-10 text-center">
-      <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-accent/15 blur-3xl" />
+    <div className="flex min-h-[var(--app-vh)] flex-col items-center justify-center px-6 py-10 text-center">
       <Logo size="lg" className="mb-5 animate-pop-in" />
 
       {booting ? (
         <>
-          <h1 className="text-2xl font-black tracking-tight text-ink">Warming up the board</h1>
+          <h1 className="text-xl font-bold tracking-tight text-ink">Opening the board</h1>
           <p className="mt-2 flex items-center gap-2 text-sm text-muted">
             <Spinner className="h-4 w-4" /> Verifying your session…
           </p>
         </>
       ) : (
         <>
-          <h1 className="max-w-sm text-3xl font-black leading-tight tracking-tight text-ink">
+          <h1 className="max-w-sm text-2xl font-bold leading-tight tracking-tight text-ink">
             {authRequired ? 'Play inside Telegram' : 'The board is out of reach'}
           </h1>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">

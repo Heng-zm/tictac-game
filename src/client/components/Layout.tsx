@@ -48,12 +48,12 @@ export function ConnectionBanner({
       >
         <div
           className={cn(
-            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-full border px-3.5 py-1.5 text-xs font-semibold leading-snug shadow-soft backdrop-blur-md',
+            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium leading-snug shadow-soft backdrop-blur-md',
             shutdown || offline
-              ? 'border-danger/30 bg-danger/15 text-danger'
+              ? 'border-danger/25 bg-danger/10 text-danger'
               : connecting
-                ? 'border-accent/30 bg-accent/10 text-accent'
-                : 'border-amber-500/30 bg-amber-500/15 text-amber-700 dark:text-amber-300',
+                ? 'border-accent/25 bg-surface/95 text-accent'
+                : 'border-line bg-surface/95 text-ink',
           )}
         >
           {shutdown || offline ? (
@@ -97,10 +97,10 @@ export function BottomNav({
   ];
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/80 bg-surface/85 backdrop-blur-xl"
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]"
       aria-label="Main navigation"
     >
-      <div className="mx-auto flex max-w-[560px] items-stretch justify-around px-3 pb-[calc(env(safe-area-inset-bottom)+6px)] pt-1.5">
+      <div className="mx-auto flex max-w-[520px] items-stretch gap-1 rounded-2xl border border-line bg-surface/95 p-1.5 shadow-soft backdrop-blur-xl">
         {items.map((item) => {
           const selected = active === item.name;
           const Icon = item.icon;
@@ -111,18 +111,11 @@ export function BottomNav({
               onClick={() => onNavigate(item.path)}
               aria-current={selected ? 'page' : undefined}
               className={cn(
-                'group flex min-w-[76px] flex-col items-center gap-0.5 rounded-2xl px-3 py-1.5 text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
-                selected ? 'text-accent' : 'text-muted hover:text-ink',
+                'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+                selected ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-elevated hover:text-ink',
               )}
             >
-              <span
-                className={cn(
-                  'flex h-7 w-10 items-center justify-center rounded-full transition',
-                  selected && 'bg-accent/10',
-                )}
-              >
-                <Icon className="h-5 w-5" aria-hidden />
-              </span>
+              <Icon className="h-5 w-5" aria-hidden />
               {item.label}
             </button>
           );
@@ -144,8 +137,8 @@ export function Page({
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-[560px] px-4 pt-[calc(env(safe-area-inset-top)+14px)]',
-        withNav ? 'pb-[calc(env(safe-area-inset-bottom)+86px)]' : 'pb-[calc(env(safe-area-inset-bottom)+24px)]',
+        'mx-auto w-full max-w-[520px] px-5 pt-[calc(env(safe-area-inset-top)+16px)]',
+        withNav ? 'pb-[calc(env(safe-area-inset-bottom)+100px)]' : 'pb-[calc(env(safe-area-inset-bottom)+28px)]',
         className,
       )}
     >

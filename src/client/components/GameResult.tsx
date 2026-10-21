@@ -39,7 +39,7 @@ export function GameResult({
       <div className="-mt-1 text-center">
         <div
           className={cn(
-            'mx-auto flex h-16 w-16 items-center justify-center rounded-3xl border shadow-soft',
+            'mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border',
             outcome === 'win'
               ? 'border-success/30 bg-success/15 text-success'
               : outcome === 'draw'
@@ -62,7 +62,7 @@ export function GameResult({
           </Pill>
           {isRatedMatch(match) ? <Pill tone="accent">Rated</Pill> : <Pill>Unrated</Pill>}
         </div>
-        <h2 className="mt-3 text-3xl font-black tracking-tight text-ink">{title}</h2>
+        <h2 className="mt-3 text-2xl font-bold tracking-tight text-ink">{title}</h2>
         <p className="mx-auto mt-1.5 max-w-[19rem] text-sm leading-relaxed text-muted">{finishReasonCopy(match)}</p>
         {opponent ? (
           <p className="mt-2 text-xs font-semibold text-muted">

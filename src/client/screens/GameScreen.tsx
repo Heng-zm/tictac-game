@@ -1,17 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import {
-  ArrowLeft,
-  Bot,
-  Clock3,
-  Flag,
-  History,
-  Home,
-  Loader2,
-  ShieldCheck,
-  Timer,
-  WifiOff,
-  X,
-} from 'lucide-react';
+import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, WifiOff, X } from 'lucide-react';
 import type { Side } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
@@ -26,7 +14,7 @@ import {
 import { cn } from '../lib/cn';
 import { hapticImpact } from '../lib/telegram';
 import { formatDuration, useCountdown } from '../hooks/use-time';
-import { Avatar, Button, Card, EmptyState, IconButton, Modal, Pill, ScreenHeader, Spinner } from '../components/ui';
+import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spinner } from '../components/ui';
 import { Page } from '../components/Layout';
 import { Board } from '../components/Board';
 import { GameResult } from '../components/GameResult';
@@ -277,6 +265,38 @@ export function GameScreen({
   const opponentDisconnected =
     match.opponentConnection === 'disconnected' || Boolean(client.opponentGraceEndsAt);
 
+  const outcome = match.status === 'FINISHED' ? describeOutcome(match) : null;
+  const clockText =
+    match.status === 'FINISHED'
+      ? '—'
+      : match.turnTimerPaused
+        ? 'Paused'
+        : turnRemaining !== null
+          ? formatDuration(turnRemaining)
+          : yourTurn
+            ? 'Your turn'
+            : 'Waiting';
+  const clockLabel =
+    match.status === 'FINISHED'
+      ? 'Finished'
+      : match.turnTimerPaused
+        ? 'Clock paused'
+        : yourTurn
+          ? 'Your turn'
+          : `${match.currentTurn ?? '—'} to move`;
+  const statusText =
+    outcome === 'win'
+      ? 'You won'
+      : outcome === 'loss'
+        ? 'You lost'
+        : outcome === 'draw'
+          ? 'Draw'
+          : yourTurn
+            ? 'Your move'
+            : match.currentTurn
+              ? `${opponent?.displayName ?? 'Opponent'} to move`
+              : 'Waiting';
+
   return (
     <Page className="pb-[calc(env(safe-area-inset-bottom)+20px)]">
       <GameHeader
@@ -287,7 +307,7 @@ export function GameScreen({
         rated={isRatedMatch(match)}
       />
 
-      <div className="mb-3 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+      <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
         <PlayerBadge
           name={you?.displayName ?? 'You'}
           photoUrl={you?.photoUrl}
@@ -297,28 +317,16 @@ export function GameScreen({
           isYou
           isAi={false}
         />
-        <div className="flex flex-col items-center text-center">
-          <span className="text-[10px] font-bold uppercase tracking-widest text-muted">Turn</span>
+        <div className="flex min-w-[68px] flex-col items-center text-center">
           <span
             className={cn(
-              'mt-1 flex h-9 min-w-9 items-center justify-center rounded-full border px-2 text-xs font-extrabold tabular-nums',
-              turnRemaining !== null && turnRemaining <= 5000 && yourTurn
-                ? 'border-danger/40 bg-danger/10 text-danger'
-                : yourTurn
-                  ? 'border-accent/40 bg-accent/10 text-accent'
-                  : 'border-line bg-elevated text-muted',
+              'text-xl font-bold tabular-nums tracking-tight',
+              turnRemaining !== null && turnRemaining <= 5000 && yourTurn ? 'text-danger' : 'text-ink',
             )}
           >
-            {match.status === 'FINISHED'
-              ? '—'
-              : match.turnTimerPaused
-                ? 'Paused'
-                : turnRemaining !== null
-                  ? formatDuration(turnRemaining)
-                  : yourTurn
-                    ? 'You'
-                    : `${match.currentTurn ?? '—'}`}
+            {clockText}
           </span>
+          <span className="mt-0.5 text-[10px] font-medium text-muted">{clockLabel}</span>
         </div>
         <PlayerBadge
           name={opponent?.displayName ?? 'Opponent'}
@@ -332,20 +340,20 @@ export function GameScreen({
       </div>
 
       {opponentDisconnected && match.status === 'ACTIVE' ? (
-        <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3">
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5">
           <WifiOff className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-xs font-medium text-ink">
-            Opponent disconnected. The clock is paused
-            {graceRemaining !== null ? ` — ${formatDuration(graceRemaining)} to reconnect` : ''}.
+          <p className="text-[11px] font-medium leading-relaxed text-ink">
+            Opponent disconnected. Clock paused
+            {graceRemaining !== null ? ` · ${formatDuration(graceRemaining)} to reconnect` : ''}.
           </p>
         </div>
       ) : connection !== 'online' ? (
-        <div className="mb-3 flex items-center gap-2 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3">
-          <Timer className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-xs font-medium text-ink">
+        <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-3 py-2.5">
+          <Timer className="h-4 w-4 shrink-0 text-muted" aria-hidden />
+          <p className="text-[11px] font-medium leading-relaxed text-ink">
             {connection === 'idle' || connection === 'connecting'
-              ? 'Connecting… your board and rating are safe.'
-              : 'Reconnecting… your board and rating are safe.'}
+              ? 'Connecting. Your board and rating are safe.'
+              : 'Reconnecting. Your board and rating are safe.'}
           </p>
         </div>
       ) : null}
@@ -366,61 +374,20 @@ export function GameScreen({
         />
         {pendingCell !== null ? (
           <span className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center">
-            <span className="rounded-full border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-semibold text-muted shadow-soft">
+            <span className="rounded-full border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-medium text-muted shadow-soft">
               Sending move…
             </span>
           </span>
         ) : null}
       </div>
 
-      <div className="mt-5 flex items-center justify-between gap-3 rounded-2xl border border-line bg-elevated/50 px-3.5 py-1.5">
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wide text-muted">You</span>
-          <span
-            className={cn(
-              'flex h-5 w-5 items-center justify-center rounded-md text-[11px] font-black',
-              match.youSide === 'X' ? 'bg-accent/15 text-accent' : 'bg-danger/15 text-danger',
-            )}
-          >
-            {match.youSide}
-          </span>
-          <span className="truncate text-xs text-muted">
-            {match.status === 'FINISHED'
-              ? describeOutcome(match) === 'win'
-                ? 'Victory'
-                : describeOutcome(match) === 'draw'
-                  ? 'Draw'
-                  : 'Defeat'
-              : yourTurn
-                ? 'Your move'
-                : match.currentTurn
-                  ? `${opponent?.displayName ?? 'Opponent'} to move`
-                  : 'Waiting'}
-          </span>
-        </div>
-        <Pill tone="neutral">Turn {match.turnNumber}</Pill>
+      <div className="mt-4 flex items-center justify-between gap-3 px-0.5">
+        <p className="min-w-0 truncate text-sm font-medium text-ink">{statusText}</p>
+        <p className="shrink-0 text-[11px] font-medium text-muted">Turn {match.turnNumber}</p>
       </div>
-
-      <div className="mt-3 flex items-start gap-2 rounded-2xl border border-line bg-elevated/40 p-3 text-[11px] leading-relaxed text-muted">
-        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
-        <p>
-          Server-verified moves. {isRatedMatch(match) ? 'This game affects your ladder rating.' : 'Bot games are unrated.'}{' '}
-          Leaving this screen does not forfeit the game.
-        </p>
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Button variant="secondary" icon={Home} onClick={() => navigate('/')}>
-          Home
-        </Button>
-        <Button
-          variant="secondary"
-          icon={History}
-          onClick={() => navigate('/profile/history')}
-        >
-          History
-        </Button>
-      </div>
+      <p className="mt-1 px-0.5 text-[10px] leading-relaxed text-muted">
+        {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · moves verified by the server · leaving does not forfeit
+      </p>
 
       <GameResult
         match={match}
@@ -469,17 +436,17 @@ function GameHeader({
   rated?: boolean;
 }) {
   return (
-    <header className="flex items-center justify-between gap-3 pb-4 pt-1">
-      <div className="flex min-w-0 items-center gap-2">
+    <header className="flex items-center justify-between gap-3 pb-5 pt-1">
+      <div className="flex min-w-0 items-center gap-2.5">
         <IconButton label="Leave game screen" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </IconButton>
         <div className="min-w-0">
-          <h1 className="truncate text-base font-extrabold leading-tight tracking-tight text-ink">
+          <h1 className="truncate text-base font-semibold leading-tight tracking-tight text-ink">
             {mode ?? 'Tic Tac Toe'}
           </h1>
           {mode ? (
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+            <p className="mt-0.5 text-[10px] font-medium text-muted">
               {rated ? 'Rated match' : 'Casual match'}
             </p>
           ) : null}
@@ -516,14 +483,18 @@ function PlayerBadge({
   return (
     <div
       className={cn(
-        'flex min-w-0 items-center gap-2 rounded-2xl border p-2 transition',
-        active ? 'border-accent/40 bg-accent/10' : 'border-line bg-elevated/40',
+        'flex min-w-0 items-center gap-2.5',
         align === 'right' && 'flex-row-reverse text-right',
       )}
     >
       <div className="relative shrink-0">
         {isAi ? (
-          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-accent/15 text-accent">
+          <span
+            className={cn(
+              'flex h-9 w-9 items-center justify-center rounded-full',
+              active ? 'bg-accent/10 text-accent ring-2 ring-accent/30' : 'bg-elevated text-muted',
+            )}
+          >
             <Bot className="h-4 w-4" aria-hidden />
           </span>
         ) : (
@@ -532,7 +503,7 @@ function PlayerBadge({
         {!isAi ? (
           <span
             className={cn(
-              'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface',
+              'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-app',
               connected ? 'bg-success' : 'bg-muted',
             )}
             aria-label={connected ? 'Connected' : 'Disconnected'}
@@ -540,12 +511,12 @@ function PlayerBadge({
         ) : null}
       </div>
       <div className="min-w-0">
-        <p className="truncate text-xs font-bold text-ink">
+        <p className={cn('truncate text-xs font-semibold', active ? 'text-accent' : 'text-ink')}>
           {isYou ? 'You' : name}
         </p>
-        <p className="flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+        <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-muted">
           <span className={side === 'X' ? 'text-accent' : 'text-danger'}>{side}</span>
-          {isAi ? '· bot' : isYou ? '· you' : ''}
+          <span>· {isAi ? 'Bot' : isYou ? 'You' : 'Opponent'}</span>
         </p>
       </div>
     </div>

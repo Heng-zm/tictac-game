@@ -48,8 +48,7 @@ export function ProfileScreen({
     <Page withNav>
       <ScreenHeader
         title="Profile"
-        subtitle="Your record, your rules"
-        eyebrow="Player card"
+        subtitle="Your stats and match history"
         action={
           <IconButton label="Open leaderboard" onClick={() => navigate('/leaderboard')}>
             <Trophy className="h-4 w-4" aria-hidden />
@@ -57,15 +56,14 @@ export function ProfileScreen({
         }
       />
 
-      <Card className="relative overflow-hidden p-5">
-        <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-accent/10 blur-2xl" />
-        <div className="relative flex items-center gap-4">
-          <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="xl" ring />
+      <Card className="p-4">
+        <div className="flex items-center gap-3.5">
+          <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="lg" ring />
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-xl font-black tracking-tight text-ink">
+            <h2 className="truncate text-lg font-semibold tracking-tight text-ink">
               {profile.firstName} {profile.lastName ?? ''}
             </h2>
-            {profile.username ? <p className="truncate text-sm text-muted">@{profile.username}</p> : null}
+            {profile.username ? <p className="truncate text-xs text-muted">@{profile.username}</p> : null}
             <div className="mt-2 flex flex-wrap gap-1.5">
               <Pill tone="accent">
                 <Trophy className="h-3 w-3" aria-hidden />
@@ -75,23 +73,23 @@ export function ProfileScreen({
             </div>
           </div>
         </div>
-        <div className="relative mt-4 grid grid-cols-3 divide-x divide-line rounded-2xl border border-line bg-elevated/40 py-2.5 text-center">
+        <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
           <div>
-            <p className="text-lg font-black tabular-nums text-ink">{stats.gamesPlayed}</p>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Games</p>
+            <p className="text-base font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
+            <p className="mt-0.5 text-[10px] text-muted">Games</p>
           </div>
           <div>
-            <p className="text-lg font-black tabular-nums text-success">{stats.wins}</p>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Wins</p>
+            <p className="text-base font-semibold tabular-nums text-success">{stats.wins}</p>
+            <p className="mt-0.5 text-[10px] text-muted">Wins</p>
           </div>
           <div>
-            <p className="text-lg font-black tabular-nums text-accent">{stats.winRate}%</p>
-            <p className="text-[10px] font-bold uppercase tracking-wide text-muted">Win rate</p>
+            <p className="text-base font-semibold tabular-nums text-accent">{stats.winRate}%</p>
+            <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
           </div>
         </div>
       </Card>
 
-      <div className="mt-4 grid grid-cols-3 gap-1 rounded-2xl border border-line bg-elevated/40 p-1">
+      <div className="mt-5 flex border-b border-line" role="tablist" aria-label="Profile sections">
         {tabs.map((item) => {
           const Icon = item.icon;
           const selected = item.value === tab;
@@ -99,15 +97,17 @@ export function ProfileScreen({
             <button
               key={item.value}
               type="button"
+              role="tab"
+              aria-selected={selected}
               onClick={() => navigate(item.value === 'overview' ? '/profile' : `/profile/${item.value}`)}
               className={cn(
-                'flex items-center justify-center gap-1.5 rounded-xl px-2 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
-                selected ? 'bg-accent text-accent-ink shadow-sm' : 'text-muted hover:text-ink',
+                'relative flex flex-1 items-center justify-center gap-1.5 pb-2.5 pt-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+                selected ? 'text-accent' : 'text-muted hover:text-ink',
               )}
-              aria-current={selected ? 'page' : undefined}
             >
               <Icon className="h-3.5 w-3.5" aria-hidden />
               {item.label}
+              {selected ? <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" /> : null}
             </button>
           );
         })}

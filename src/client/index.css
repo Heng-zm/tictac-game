@@ -5,50 +5,50 @@
 :root {
   /* Fallback palette for browsers outside Telegram. Telegram theme values are
      applied as inline CSS variables by src/client/lib/telegram.ts. */
-  --app-bg: #f2f4f8;
-  --app-bg-rgb: 242 244 248;
+  --app-bg: #f5f6f8;
+  --app-bg-rgb: 245 246 248;
   --app-surface: #ffffff;
   --app-surface-rgb: 255 255 255;
-  --app-elevated: #f7f9fc;
-  --app-elevated-rgb: 247 249 252;
-  --app-text: #101828;
-  --app-text-rgb: 16 24 40;
-  --app-muted: #667085;
-  --app-muted-rgb: 102 112 133;
-  --app-border: #e2e7ef;
-  --app-border-rgb: 226 231 239;
-  --app-accent: #2f7af8;
-  --app-accent-rgb: 47 122 248;
+  --app-elevated: #f8f9fb;
+  --app-elevated-rgb: 248 249 251;
+  --app-text: #111827;
+  --app-text-rgb: 17 24 39;
+  --app-muted: #6b7280;
+  --app-muted-rgb: 107 114 128;
+  --app-border: #e5e7eb;
+  --app-border-rgb: 229 231 235;
+  --app-accent: #2563eb;
+  --app-accent-rgb: 37 99 235;
   --app-accent-text: #ffffff;
   --app-accent-text-rgb: 255 255 255;
-  --app-danger: #e5484d;
-  --app-danger-rgb: 229 72 77;
-  --app-success: #0f9f6e;
-  --app-success-rgb: 15 159 110;
+  --app-danger: #ef4444;
+  --app-danger-rgb: 239 68 68;
+  --app-success: #10b981;
+  --app-success-rgb: 16 185 129;
   --app-vh: 100dvh;
 }
 
 :root[data-theme='dark'] {
-  --app-bg: #0d1620;
-  --app-bg-rgb: 13 22 32;
-  --app-surface: #16212c;
-  --app-surface-rgb: 22 33 44;
-  --app-elevated: #1d2b39;
-  --app-elevated-rgb: 29 43 57;
-  --app-text: #f1f5f9;
-  --app-text-rgb: 241 245 249;
-  --app-muted: #8fa0b3;
-  --app-muted-rgb: 143 160 179;
-  --app-border: #263545;
-  --app-border-rgb: 38 53 69;
-  --app-accent: #4f8cff;
-  --app-accent-rgb: 79 140 255;
+  --app-bg: #0b1117;
+  --app-bg-rgb: 11 17 23;
+  --app-surface: #121a22;
+  --app-surface-rgb: 18 26 34;
+  --app-elevated: #18222c;
+  --app-elevated-rgb: 24 34 44;
+  --app-text: #f3f4f6;
+  --app-text-rgb: 243 244 246;
+  --app-muted: #94a3b8;
+  --app-muted-rgb: 148 163 184;
+  --app-border: #26313c;
+  --app-border-rgb: 38 49 60;
+  --app-accent: #60a5fa;
+  --app-accent-rgb: 96 165 250;
   --app-accent-text: #07111f;
   --app-accent-text-rgb: 7 17 31;
-  --app-danger: #ff6b6b;
-  --app-danger-rgb: 255 107 107;
-  --app-success: #3ddc97;
-  --app-success-rgb: 61 220 151;
+  --app-danger: #f87171;
+  --app-danger-rgb: 248 113 113;
+  --app-success: #34d399;
+  --app-success-rgb: 52 211 153;
 }
 
 @layer base {
@@ -66,17 +66,11 @@
     margin: 0;
     min-height: var(--app-vh, 100dvh);
     background-color: var(--app-bg);
-    background-image:
-      radial-gradient(
-        54rem 34rem at 108% -8%,
-        rgb(var(--app-accent-rgb) / 0.11),
-        transparent 62%
-      ),
-      radial-gradient(
-        44rem 30rem at -16% 6%,
-        rgb(var(--app-accent-rgb) / 0.07),
-        transparent 58%
-      );
+    background-image: radial-gradient(
+      70rem 42rem at 50% -28%,
+      rgb(var(--app-accent-rgb) / 0.07),
+      transparent 64%
+    );
     background-attachment: fixed;
     color: var(--app-text);
     font-family:
@@ -115,7 +109,8 @@
 
 @layer components {
   .panel {
-    @apply border border-line bg-surface shadow-soft;
+    @apply border border-line bg-surface;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 0.03), 0 18px 40px -36px rgb(0 0 0 / 0.35);
   }
 
   /* The board is square, so its width also sets its height. Cap it against the
@@ -124,7 +119,7 @@
   .game-board-frame {
     width: 100%;
     max-width: 100%;
-    max-width: min(100%, max(12rem, calc(var(--app-vh, 100dvh) - 13rem)));
+    max-width: min(100%, max(12rem, calc(var(--app-vh, 100dvh) - 16rem)));
     margin-inline: auto;
   }
 }

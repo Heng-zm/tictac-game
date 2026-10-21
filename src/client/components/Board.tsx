@@ -103,7 +103,7 @@ export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, on
       <div
         role="grid"
         aria-label="Tic Tac Toe board"
-        className="grid grid-cols-3 gap-2.5 rounded-[28px] border border-line bg-app/40 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+        className="grid grid-cols-3 gap-2"
       >
         {board.map((cell, index) => {
           const isWinning = winning.has(index);
@@ -120,16 +120,16 @@ export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, on
               }}
               onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
-                'group relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border bg-elevated/70 transition duration-150',
+                'group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-surface transition duration-150',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
                 cell === 'X' ? 'text-accent' : cell === 'O' ? 'text-danger' : 'text-ink',
-                cell === null && canPlay && 'cursor-pointer hover:border-accent/40 hover:bg-accent/5 active:scale-[0.97]',
+                cell === null && canPlay && 'cursor-pointer hover:border-accent/30 hover:bg-accent/5 active:scale-[0.98]',
                 !canPlay && 'cursor-default',
-                cell === null ? 'border-line' : 'border-transparent',
+                cell === null ? 'border-line' : 'border-line/60',
                 isWinning &&
                   (isOWin
-                    ? 'border-danger/40 bg-danger/10 shadow-[0_0_30px_-10px_var(--app-danger)]'
-                    : 'border-accent/40 bg-accent/10 shadow-[0_0_30px_-10px_var(--app-accent)]'),
+                    ? 'border-danger/30 bg-danger/5'
+                    : 'border-accent/30 bg-accent/5'),
               )}
             >
               {cell === 'X' ? <XMark /> : null}
@@ -149,7 +149,7 @@ export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, on
       {line ? (
         <svg
           viewBox="0 0 3 3"
-          className="pointer-events-none absolute inset-2.5 z-10 h-[calc(100%-20px)] w-[calc(100%-20px)] overflow-visible"
+          className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
           aria-hidden
         >
           <line

@@ -145,16 +145,15 @@ export function InviteWaitingScreen({
       {activeMatch ? (
         <Card className="p-5 text-center">
           <p className="text-xs font-bold uppercase tracking-wide text-accent">Game in progress</p>
-          <h2 className="mt-2 text-2xl font-black text-ink">Your friend already joined</h2>
+          <h2 className="mt-2 text-xl font-bold text-ink">Your friend already joined</h2>
           <p className="mt-1 text-sm text-muted">The invitation was accepted. Jump back into the board.</p>
           <Button className="mt-4 w-full" onClick={() => navigate(`/game/${activeMatch.id}`)}>
             Open game
           </Button>
         </Card>
       ) : (
-        <Card className="relative overflow-hidden p-5">
-          <div className="pointer-events-none absolute -right-16 -top-20 h-48 w-48 rounded-full bg-accent/10 blur-2xl" />
-          <div className="relative flex flex-col items-center text-center">
+        <Card className="p-5">
+          <div className="flex flex-col items-center text-center">
             <div className="relative">
               <span className="absolute inset-0 rounded-full bg-accent/20 animate-pulse-ring" />
               <Avatar name={profile?.firstName ?? 'You'} photoUrl={profile?.photoUrl} size="xl" ring />
@@ -162,7 +161,7 @@ export function InviteWaitingScreen({
                 <UserPlus className="h-4 w-4" aria-hidden />
               </span>
             </div>
-            <h2 className="mt-4 text-2xl font-black tracking-tight text-ink">
+            <h2 className="mt-4 text-xl font-bold tracking-tight text-ink">
               {creating ? 'Creating your link…' : expired ? 'This invitation expired' : 'Your board is waiting'}
             </h2>
             <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">
@@ -407,9 +406,8 @@ export function InviteAcceptScreen({
         </Card>
       ) : preview ? (
         <>
-          <Card className="relative overflow-hidden p-5">
-            <div className="pointer-events-none absolute -left-16 -top-20 h-48 w-48 rounded-full bg-danger/10 blur-2xl" />
-            <div className="relative flex flex-col items-center text-center">
+          <Card className="p-5">
+            <div className="flex flex-col items-center text-center">
               <Avatar
                 name={preview.inviter.displayName}
                 photoUrl={preview.inviter.photoUrl}
@@ -417,15 +415,15 @@ export function InviteAcceptScreen({
                 ring
               />
               <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-muted">You are invited by</p>
-              <h2 className="mt-1 text-2xl font-black tracking-tight text-ink">{preview.inviter.displayName}</h2>
+              <h2 className="mt-1 text-xl font-bold tracking-tight text-ink">{preview.inviter.displayName}</h2>
               {preview.inviter.username ? (
                 <p className="text-xs text-muted">@{preview.inviter.username}</p>
               ) : null}
 
               <div className="mt-4 flex items-center gap-3 rounded-2xl border border-line bg-elevated/60 px-4 py-2.5">
-                <span className="text-2xl font-black text-accent">X</span>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted">vs</span>
-                <span className="text-2xl font-black text-danger">O</span>
+                <span className="text-xl font-bold text-accent">X</span>
+                <span className="text-[10px] font-medium text-muted">vs</span>
+                <span className="text-xl font-bold text-danger">O</span>
                 <span className="ml-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
                   You play {preview.yourSide}
                 </span>

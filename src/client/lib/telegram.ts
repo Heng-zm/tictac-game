@@ -46,7 +46,7 @@ function setDataTheme(theme: 'light' | 'dark'): void {
   document.documentElement.style.colorScheme = theme;
   const meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (meta) {
-    meta.content = theme === 'dark' ? '#0e1621' : '#f2f4f8';
+    meta.content = theme === 'dark' ? '#0b1117' : '#f5f6f8';
   }
 }
 

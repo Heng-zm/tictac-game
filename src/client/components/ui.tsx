@@ -25,18 +25,17 @@ type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
 type ButtonSize = 'sm' | 'md' | 'lg';
 
 const buttonVariants: Record<ButtonVariant, string> = {
-  primary:
-    'bg-accent text-accent-ink shadow-[0_10px_24px_-12px_var(--app-accent)] hover:brightness-105',
-  secondary: 'bg-elevated text-ink border border-line hover:border-accent/40',
+  primary: 'bg-accent text-accent-ink hover:opacity-90',
+  secondary: 'border border-line bg-surface text-ink hover:bg-elevated',
   ghost: 'text-muted hover:bg-elevated hover:text-ink',
-  danger: 'bg-danger text-white hover:brightness-105',
-  success: 'bg-success text-[#04140b] hover:brightness-105',
+  danger: 'bg-danger text-white hover:opacity-90',
+  success: 'bg-success text-[#04140b] hover:opacity-90',
 };
 
 const buttonSizes: Record<ButtonSize, string> = {
-  sm: 'h-9 px-3 text-sm rounded-xl',
-  md: 'h-11 px-4 text-[15px] rounded-2xl',
-  lg: 'h-12 px-5 text-base rounded-2xl',
+  sm: 'h-9 rounded-xl px-3 text-sm',
+  md: 'h-10 rounded-xl px-4 text-sm',
+  lg: 'h-11 rounded-xl px-5 text-[15px]',
 };
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -89,8 +88,8 @@ export function IconButton({ label, children, className, tone = 'default', type 
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-elevated/80 text-muted backdrop-blur transition hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
-        tone === 'danger' && 'text-danger hover:text-danger',
+        'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:bg-elevated hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
+        tone === 'danger' && 'text-danger hover:bg-danger/5 hover:text-danger',
         className,
       )}
       {...rest}
@@ -102,7 +101,7 @@ export function IconButton({ label, children, className, tone = 'default', type 
 
 export function Card({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('panel rounded-3xl', className)} {...rest}>
+    <div className={cn('panel rounded-2xl', className)} {...rest}>
       {children}
     </div>
   );
@@ -135,9 +134,9 @@ export function Avatar({
   return (
     <span
       className={cn(
-        'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-accent/25 to-accent/5 font-bold text-accent',
+        'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent/10 font-semibold text-accent',
         dimensions,
-        ring && 'ring-2 ring-accent/40 ring-offset-2 ring-offset-app',
+        ring && 'ring-2 ring-accent/30 ring-offset-2 ring-offset-app',
         className,
       )}
       aria-hidden={photoUrl ? undefined : true}
@@ -175,7 +174,7 @@ export function SegmentedControl<T extends string>({
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={cn('grid gap-1 rounded-2xl border border-line bg-app/50 p-1', className)}
+      className={cn('grid gap-1 rounded-xl border border-line bg-elevated p-1', className)}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
       {options.map((option) => {
@@ -188,8 +187,8 @@ export function SegmentedControl<T extends string>({
             aria-checked={selected}
             onClick={() => onChange(option.value)}
             className={cn(
-              'rounded-xl px-2 py-2 text-center text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
-              selected ? 'bg-accent text-accent-ink shadow-sm' : 'text-muted hover:text-ink',
+              'rounded-lg px-2 py-2 text-center text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+              selected ? 'bg-surface text-ink shadow-sm ring-1 ring-line' : 'text-muted hover:text-ink',
             )}
           >
             <span className="block">{option.label}</span>
@@ -225,14 +224,14 @@ export function Toggle({
       disabled={disabled}
       onClick={() => onChange(!checked)}
       className={cn(
-        'relative h-7 w-12 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 disabled:opacity-50',
-        checked ? 'border-accent bg-accent' : 'border-line bg-app',
+        'relative h-6 w-10 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 disabled:opacity-50',
+        checked ? 'border-accent bg-accent' : 'border-line bg-elevated',
       )}
     >
       <span
         className={cn(
-          'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all',
-          checked ? 'left-[26px]' : 'left-0.5',
+          'absolute top-[3px] h-4 w-4 rounded-full bg-white shadow-sm transition-all',
+          checked ? 'left-[21px]' : 'left-[3px]',
         )}
       />
     </button>
@@ -248,7 +247,7 @@ export function Logo({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; cl
   const cell = { sm: 'h-[9px] w-[9px]', md: 'h-[11px] w-[11px]', lg: 'h-3.5 w-3.5' }[size];
   return (
     <span
-      className={cn('inline-grid shrink-0 grid-cols-3 rounded-2xl border border-line bg-elevated shadow-soft', box, className)}
+      className={cn('inline-grid shrink-0 grid-cols-3 rounded-xl border border-line bg-surface', box, className)}
       aria-hidden
     >
       {Array.from({ length: 9 }, (_, index) => (
@@ -283,7 +282,7 @@ export function ScreenHeader({
   eyebrow?: string;
 }) {
   return (
-    <header className="flex items-start justify-between gap-3 pb-4 pt-1">
+    <header className="flex items-start justify-between gap-3 pb-5 pt-1">
       <div className="flex min-w-0 items-center gap-3">
         {onBack ? (
           <IconButton label="Go back" onClick={onBack}>
@@ -292,10 +291,10 @@ export function ScreenHeader({
         ) : null}
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-accent">{eyebrow}</p>
+            <p className="mb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{eyebrow}</p>
           ) : null}
-          <h1 className="truncate text-xl font-extrabold tracking-tight text-ink">{title}</h1>
-          {subtitle ? <p className="mt-0.5 text-sm leading-snug text-muted">{subtitle}</p> : null}
+          <h1 className="truncate text-2xl font-bold tracking-tight text-ink">{title}</h1>
+          {subtitle ? <p className="mt-1 text-sm leading-snug text-muted">{subtitle}</p> : null}
         </div>
       </div>
       {action ? <div className="shrink-0">{action}</div> : null}
@@ -330,7 +329,7 @@ export function ToastViewport({
         return (
           <div
             key={toast.id}
-            className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-line bg-elevated/95 p-3.5 text-left shadow-soft backdrop-blur-md animate-fade-up"
+            className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-xl border border-line bg-surface/95 p-3.5 text-left shadow-soft backdrop-blur-md animate-fade-up"
           >
             <Icon className={cn('mt-0.5 h-5 w-5 shrink-0', style.className)} aria-hidden />
             <div className="min-w-0 flex-1">
@@ -425,7 +424,7 @@ export function Modal({
           aria-modal="true"
           aria-labelledby={title ? titleId : undefined}
           className={cn(
-            'relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-4xl border border-line bg-surface p-5 shadow-soft animate-fade-up sm:rounded-4xl',
+            'relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 shadow-soft animate-fade-up sm:rounded-3xl',
             'pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-5',
             className,
           )}
@@ -468,16 +467,16 @@ export function StatTile({
   return (
     <div
       className={cn(
-        'rounded-2xl border p-3.5',
-        accent ? 'border-accent/25 bg-accent/10' : 'border-line bg-elevated/60',
+        'rounded-xl border p-3',
+        accent ? 'border-accent/20 bg-accent/5' : 'border-line bg-elevated/60',
       )}
     >
       <div className="flex items-center gap-1.5 text-muted">
         {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
-        <span className="text-[11px] font-semibold uppercase tracking-wide">{label}</span>
+        <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">{label}</span>
       </div>
-      <p className={cn('mt-1 text-xl font-extrabold tabular-nums', accent ? 'text-accent' : 'text-ink')}>{value}</p>
-      {hint ? <p className="mt-0.5 text-[11px] text-muted">{hint}</p> : null}
+      <p className={cn('mt-1 text-lg font-bold tabular-nums', accent ? 'text-accent' : 'text-ink')}>{value}</p>
+      {hint ? <p className="mt-0.5 text-[10px] text-muted">{hint}</p> : null}
     </div>
   );
 }
@@ -501,7 +500,7 @@ export function Pill({
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide',
+        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold tracking-wide',
         tones[tone],
         className,
       )}
@@ -523,12 +522,12 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-10 text-center">
-      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-elevated text-muted">
-        <Icon className="h-6 w-6" aria-hidden />
+    <div className="flex flex-col items-center px-6 py-9 text-center">
+      <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-line bg-elevated text-muted">
+        <Icon className="h-5 w-5" aria-hidden />
       </span>
-      <p className="text-base font-bold text-ink">{title}</p>
-      <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">{description}</p>
+      <p className="text-sm font-semibold text-ink">{title}</p>
+      <p className="mt-1 max-w-xs text-xs leading-relaxed text-muted">{description}</p>
       {action ? <div className="mt-4">{action}</div> : null}
     </div>
   );

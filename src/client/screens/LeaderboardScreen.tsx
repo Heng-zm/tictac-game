@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Crown, Medal, RefreshCw, Sparkles, Trophy, UserRound } from 'lucide-react';
+import { Crown, Medal, RefreshCw, Trophy, UserRound } from 'lucide-react';
 import type { LeaderboardEntry, LeaderboardResponse } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage, fetchLeaderboard } from '../lib/api';
@@ -41,8 +41,7 @@ export function LeaderboardScreen({
     <Page withNav>
       <ScreenHeader
         title="Leaderboard"
-        subtitle="The sharpest marks on the board"
-        eyebrow="Ladder"
+        subtitle="Top rated players"
         action={
           <IconButton label="Refresh leaderboard" onClick={() => void load(false)}>
             <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} aria-hidden />
@@ -100,20 +99,17 @@ export function LeaderboardScreen({
               />
             </Card>
           ) : (
-            <div className="space-y-2">
+            <Card className="divide-y divide-line overflow-hidden">
               {data.entries.map((entry) => (
                 <LeaderboardRow key={entry.userId} entry={entry} />
               ))}
-            </div>
+            </Card>
           )}
 
-          <div className="mt-3 flex items-start gap-2 rounded-2xl border border-line bg-elevated/40 p-3 text-[11px] leading-relaxed text-muted">
-            <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
-            <p>
-              Rankings use ladder rating from rated human matches only. Wins add 20, draws add 5, and losses subtract
-              10. Bot games and abandoned games never change your rating.
-            </p>
-          </div>
+          <p className="mt-4 px-4 text-center text-[11px] leading-relaxed text-muted">
+            Rankings use ladder rating from rated human matches only. Wins add 20, draws add 5, and losses subtract 10.
+            Bot and abandoned games never change your rating.
+          </p>
         </>
       ) : null}
     </Page>
@@ -131,38 +127,33 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
           : 'border-line bg-elevated text-muted';
 
   return (
-    <Card
-      className={cn(
-        'flex items-center gap-3 p-3',
-        entry.isYou && 'border-accent/40 bg-accent/5 ring-1 ring-accent/20',
-      )}
-    >
+    <div className={cn('flex items-center gap-3 px-3.5 py-3', entry.isYou && 'bg-accent/5')}>
       <span
         className={cn(
-          'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border text-sm font-black tabular-nums',
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold tabular-nums',
           rankTone,
         )}
         aria-label={`Rank ${entry.rank}`}
       >
-        {entry.rank <= 3 ? <Medal className="h-4 w-4" aria-hidden /> : entry.rank}
+        {entry.rank <= 3 ? <Medal className="h-3.5 w-3.5" aria-hidden /> : entry.rank}
       </span>
 
       <Avatar name={entry.displayName} photoUrl={entry.photoUrl} size="sm" />
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-bold text-ink">{entry.displayName}</p>
+          <p className="truncate text-sm font-semibold text-ink">{entry.displayName}</p>
           {entry.isYou ? <Pill tone="accent">You</Pill> : null}
         </div>
-        <p className="mt-0.5 truncate text-[10px] font-semibold uppercase tracking-wide text-muted">
+        <p className="mt-0.5 truncate text-[10px] text-muted">
           {entry.username ? `@${entry.username}` : 'Player'} · {entry.wins}W {entry.draws}D {entry.losses}L
         </p>
       </div>
 
       <div className="shrink-0 text-right">
-        <p className="text-base font-black tabular-nums text-ink">{entry.rating}</p>
-        <p className="text-[9px] font-bold uppercase tracking-wide text-muted">{entry.ratedGames} rated</p>
+        <p className="text-sm font-semibold tabular-nums text-ink">{entry.rating}</p>
+        <p className="text-[10px] text-muted">{entry.ratedGames} rated</p>
       </div>
-    </Card>
+    </div>
   );
 }

@@ -5,7 +5,6 @@ import { errorMessage } from '../lib/api';
 import { formatDuration, useCountdown, useElapsed } from '../hooks/use-time';
 import { Button, Card, Pill, ScreenHeader, Toggle } from '../components/ui';
 import { Page } from '../components/Layout';
-import { cn } from '../lib/cn';
 
 export function MatchmakingScreen({
   client,
@@ -117,16 +116,15 @@ export function MatchmakingScreen({
   return (
     <Page>
       <ScreenHeader
-        title="Random match"
-        subtitle="Server-matched with another player"
+        title="Quick match"
+        subtitle="Rated · random opponent"
         onBack={() => void cancelAndHome()}
-        action={<Pill tone="accent">Rated</Pill>}
       />
 
       {activeMatch ? (
         <Card className="p-5 text-center">
           <p className="text-xs font-bold uppercase tracking-wide text-accent">You are already playing</p>
-          <h2 className="mt-2 text-2xl font-black text-ink">Finish your current game first</h2>
+          <h2 className="mt-2 text-xl font-bold text-ink">Finish your current game first</h2>
           <p className="mt-1 text-sm text-muted">Only one active game is allowed at a time.</p>
           <div className="mt-4 grid gap-2">
             <Button onClick={() => navigate(`/game/${activeMatch.id}`)}>Resume game</Button>
@@ -138,7 +136,7 @@ export function MatchmakingScreen({
       ) : pendingInvite ? (
         <Card className="p-5 text-center">
           <p className="text-xs font-bold uppercase tracking-wide text-accent">Invitation pending</p>
-          <h2 className="mt-2 text-2xl font-black text-ink">A friend is on the way</h2>
+          <h2 className="mt-2 text-xl font-bold text-ink">A friend is on the way</h2>
           <p className="mt-1 text-sm text-muted">Cancel your invitation before searching for a random game.</p>
           <div className="mt-4 grid gap-2">
             <Button onClick={() => navigate('/invite/waiting')}>View invitation</Button>
@@ -152,7 +150,7 @@ export function MatchmakingScreen({
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-500">
             <Clock3 className="h-8 w-8" aria-hidden />
           </div>
-          <h2 className="mt-3 text-2xl font-black tracking-tight text-ink">
+          <h2 className="mt-3 text-xl font-bold tracking-tight text-ink">
             {queue?.state === 'error' ? 'Search interrupted' : 'No one in the queue'}
           </h2>
           <p className="mx-auto mt-1.5 max-w-xs text-sm leading-relaxed text-muted">
@@ -175,7 +173,7 @@ export function MatchmakingScreen({
           <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-danger/10 text-danger">
             <WifiOff className="h-8 w-8" aria-hidden />
           </div>
-          <h2 className="mt-3 text-2xl font-black text-ink">Connection lost</h2>
+          <h2 className="mt-3 text-xl font-bold text-ink">Connection lost</h2>
           <p className="mt-1 text-sm text-muted">
             Your queue spot was released. Reconnect and start a fresh search — your rating is safe.
           </p>
@@ -190,34 +188,25 @@ export function MatchmakingScreen({
         </Card>
       ) : (
         <>
-          <Card className="relative overflow-hidden p-5">
-            <div className="relative mx-auto flex h-44 w-44 items-center justify-center">
-              <span className="absolute inset-0 rounded-full border border-accent/15" />
-              <span className="absolute inset-5 rounded-full border border-accent/20" />
-              <span className="absolute inset-10 rounded-full border border-accent/25" />
-              <span className="absolute inset-3 rounded-full bg-accent/5 animate-pulse-ring" />
-              <span className="relative flex h-20 w-20 items-center justify-center rounded-full bg-accent text-accent-ink shadow-soft">
-                <Search className="h-9 w-9" aria-hidden />
-              </span>
-              <span className="absolute left-3 top-8 flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-surface text-sm font-black text-danger shadow-soft">
-                O
-              </span>
-              <span className="absolute bottom-8 right-3 flex h-8 w-8 items-center justify-center rounded-xl border border-line bg-surface text-sm font-black text-accent shadow-soft">
-                X
+          <Card className="p-6">
+            <div className="relative mx-auto flex h-28 w-28 items-center justify-center">
+              <span className="absolute inset-0 rounded-full bg-accent/5 animate-pulse-ring" />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/15 bg-accent/5 text-accent">
+                <Search className="h-7 w-7" aria-hidden />
               </span>
             </div>
 
-            <div className="mt-2 text-center">
-              <h2 className="text-2xl font-black tracking-tight text-ink">
-                {queue ? 'Scanning the board…' : 'Joining the queue…'}
+            <div className="mt-4 text-center">
+              <h2 className="text-xl font-bold tracking-tight text-ink">
+                {queue ? 'Finding an opponent' : 'Joining the queue'}
               </h2>
               <p className="mt-1 text-sm text-muted">
-                {joining ? 'Finding a fair match' : `Searching for ${formatDuration(elapsed)}`}
+                {joining ? 'Connecting to matchmaking…' : `Searching for ${formatDuration(elapsed)}`}
               </p>
               <div className="mt-3 flex items-center justify-center gap-2">
-                <Pill tone="accent">
+                <Pill>
                   <Users className="h-3 w-3" aria-hidden />
-                  {queue?.waitingPlayers ?? 1} searching
+                  {queue?.waitingPlayers ?? 1} in queue
                 </Pill>
                 <Pill>
                   <Clock3 className="h-3 w-3" aria-hidden />
@@ -227,41 +216,41 @@ export function MatchmakingScreen({
             </div>
 
             {localError ? (
-              <div className="mt-4 rounded-2xl border border-danger/25 bg-danger/10 p-3 text-center">
+              <div className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-center">
                 <p className="text-xs font-medium text-danger">{localError}</p>
                 <Button size="sm" variant="secondary" className="mt-2" onClick={() => void retry()}>
                   Try again
                 </Button>
               </div>
             ) : null}
+          </Card>
 
-            <div className="mt-5 border-t border-line pt-4">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-ink">Auto-play a bot</p>
-                  <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
-                    After {formatDuration(config?.queueAiTimeoutMs ?? 0)}, start a bot match automatically.
-                  </p>
-                </div>
-                <Toggle
-                  checked={autoFallback}
-                  onChange={(next) => void toggleAutoFallback(next)}
-                  label="Automatically play a bot if no human is found"
-                />
+          <Card className="mt-3 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-medium text-ink">Auto-play a bot</p>
+                <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                  After {formatDuration(config?.queueAiTimeoutMs ?? 0)}, start a bot game automatically.
+                </p>
               </div>
+              <Toggle
+                checked={autoFallback}
+                onChange={(next) => void toggleAutoFallback(next)}
+                label="Automatically play a bot if no human is found"
+              />
             </div>
           </Card>
 
           {fallbackReady ? (
-            <Card className="mt-3 border-accent/25 bg-accent/5 p-4 animate-fade-up">
+            <Card className="mt-3 border-accent/20 bg-accent/[0.03] p-4 animate-fade-up">
               <div className="flex items-start gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent">
-                  <Bot className="h-5 w-5" aria-hidden />
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                  <Bot className="h-4 w-4" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-sm font-extrabold text-ink">No human yet?</p>
+                  <p className="text-sm font-semibold text-ink">No human yet?</p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
-                    Jump into an unrated {config?.aiFallbackDifficulty.toLowerCase() ?? 'medium'} bot game without losing your
+                    Play an unrated {config?.aiFallbackDifficulty.toLowerCase() ?? 'medium'} bot game without losing your
                     place in line.
                   </p>
                 </div>
@@ -277,13 +266,8 @@ export function MatchmakingScreen({
             </Card>
           ) : null}
 
-          <div className="mt-3 flex flex-col items-center gap-2">
-            <Button
-              variant="ghost"
-              icon={X}
-              className={cn('w-full max-w-xs')}
-              onClick={() => void cancelAndHome()}
-            >
+          <div className="mt-4 flex flex-col items-center gap-2">
+            <Button variant="ghost" icon={X} className="w-full max-w-xs" onClick={() => void cancelAndHome()}>
               Cancel search
             </Button>
             <p className="max-w-xs text-center text-[11px] leading-relaxed text-muted">

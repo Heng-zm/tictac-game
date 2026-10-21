@@ -5,6 +5,7 @@
  * changes from being missed. The app is single-instance by design (in-memory
  * matchmaking and Socket.IO rooms), so a startup migration is safe here.
  */
+import 'dotenv/config';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 
@@ -21,7 +22,12 @@ if (!migrationUrl) {
   console.log('Applying Prisma migrations before startup...');
   const migration = spawnSync(process.execPath, [prismaCli, 'migrate', 'deploy'], {
     stdio: 'inherit',
-    env: { ...process.env, DATABASE_URL: migrationUrl },
+    env: {
+      ...process.env,
+      DATABASE_URL: migrationUrl,
+      DIRECT_URL: migrationUrl,
+      PRISMA_SCHEMA_DISABLE_ADVISORY_LOCK: '1',
+    },
   });
 
   if (migration.error) {
