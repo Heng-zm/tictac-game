@@ -103,10 +103,11 @@ This verifies that a first Render deployment starts without dashboard configurat
 
 - `render.yaml` deploys the web service with Supabase PostgreSQL. It sets `DEMO_MODE=false`, `DB_MODE=postgres`, `DEV_AUTH_ENABLED=false`, generates a persistent session secret, derives a Telegram-safe webhook secret, applies migrations before startup, and uses `/health` as the Render health check.
 - `render.postgres.yaml` is the alternative one-click path that provisions Render Postgres and requires only the Telegram bot token and username.
-- `npm run start:prod` runs `prisma migrate deploy` through `DIRECT_URL` (falling back to `DATABASE_URL`) before importing the built server.
+- `npm start` and `npm run start:prod` run `prisma migrate deploy` through `DIRECT_URL` (falling back to `DATABASE_URL`) before importing the built server; memory/demo deployments skip migrations when no database URL is set.
 - `npm run check:prod -- https://...` verifies HTTPS, `/health`, `/ready`, `demoMode=false`, production environment, disabled dev auth, Telegram bot configuration, HSTS, and rejection of `POST /api/auth/dev`.
 - `.github/workflows/ci.yml` runs typecheck, lint, PostgreSQL integration tests, and the production build; the Blueprint waits for checks before auto-deploying.
 - The app derives the Telegram webhook URL from the public Render/custom Mini App origin and registers it at startup. Webhook registration failure is logged but does not prevent the game server from booting.
+- Render startup tolerates dashboard variables that are present but empty, and normalizes a Render-generated base64 webhook secret to Telegram's `A-Za-z0-9_-` alphabet before registering it.
 
 ### Same-origin LAN/custom-domain smoke test
 

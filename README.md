@@ -131,7 +131,7 @@ Notes:
 
 - URL-encode special characters in the database password.
 - Keep `sslmode=require`. Never expose the database URL or a Supabase service-role key to the browser; this app talks to the database only from the server.
-- `DATABASE_URL` is used by Prisma Client at runtime. `DIRECT_URL` is used by the `db:migrate`/`db:migrate:dev` scripts for Prisma Migrate. The pooler on port 6543 cannot run migrations.
+- `DATABASE_URL` is used by Prisma Client at runtime. `DIRECT_URL` is used by Prisma Migrate (`db:migrate`, `start`, `start:prod`). The pooler on port 6543 cannot run migrations.
 - The migration wrapper (`scripts/prisma-cli.mjs`) automatically points Prisma Migrate at `DIRECT_URL` when it is set, falling back to `DATABASE_URL` for local PostgreSQL.
 - If your network lacks IPv6, use Supabase's session pooler on port 5432 for `DIRECT_URL` (as shown above).
 - Prisma connects with the database role in the URL and does not use Supabase Row Level Security policies. The committed Supabase migration enables RLS on all game tables and revokes Data API grants from Supabase's `anon` and `authenticated` roles. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, add explicit RLS policies and grants first.
@@ -157,6 +157,8 @@ Two production Blueprints are included. Both set `DEMO_MODE=false`, `DB_MODE=pos
    ```
 
 The first boot applies the committed migrations through `DIRECT_URL`. Render generates `SESSION_SECRET` once and keeps it across deploys; `TELEGRAM_WEBHOOK_SECRET` is derived from it unless you set one explicitly.
+
+Existing services are handled too: an empty `NODE_ENV` is treated as unset and defaults to `production` on Render, and a Render-generated base64 `TELEGRAM_WEBHOOK_SECRET` is deterministically normalized to a Telegram-safe value at startup.
 
 **Option B — Render Postgres (`render.postgres.yaml`)**
 
@@ -191,18 +193,18 @@ Copy `.env.example` to `.env`. Important variables:
 
 | Variable | Notes |
 | --- | --- |
-| `NODE_ENV` | `development`, `test`, or `production`. |
+| `NODE_ENV` | `development`, `test`, or `production`. Empty values are treated as unset; on Render they default to `production`. |
 | `PORT` | Server port (default `3000`). |
 | `DATABASE_URL` | PostgreSQL URL. Required in production unless `DB_MODE=memory`. For Supabase, use the transaction pooler URL. |
 | `DB_MODE` | `postgres` or `memory`. Defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory` outside production. `memory` in production is explicit and ephemeral. |
 | `DEMO_MODE` | `true` enables guest login without Telegram and allows in-memory data. Render enables it automatically when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. Set `false` to require real configuration. |
-| `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate` and `start:prod`. Required when running migrations with Supabase. |
+| `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate` and the start entrypoint. Required when running migrations with Supabase. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
 | `MINI_APP_URL` | Public HTTPS origin in production. Automatically set from `RENDER_EXTERNAL_URL` on Render when unset. |
 | `TELEGRAM_BOT_TOKEN` | Server-only bot token. Required in production. |
 | `TELEGRAM_BOT_USERNAME` | Bot username without `@`. Required for invite links in production. |
 | `TELEGRAM_WEBHOOK_URL` | Optional. On Render with a bot token, derived automatically from `MINI_APP_URL`; otherwise set it to use a webhook instead of long polling. |
-| `TELEGRAM_WEBHOOK_SECRET` | Required with an explicit webhook URL (16–256 chars; letters, digits, `_`, `-` only). On Render it is derived from `SESSION_SECRET` when unset; set it explicitly to rotate it independently. |
+| `TELEGRAM_WEBHOOK_SECRET` | Required with an explicit webhook URL (16–256 chars; letters, digits, `_`, `-` only). On Render it is derived from `SESSION_SECRET` when unset, and incompatible base64 values are normalized automatically; set a safe explicit value to rotate it independently. |
 | `DEV_AUTH_ENABLED` | Local guest auth. Rejected in production. |
 | `CORS_ORIGINS` | Comma-separated allowed browser origins. `MINI_APP_URL` is added automatically. |
 | `DISCONNECT_GRACE_MS` | Reconnect grace period before a disconnect can forfeit (default 30s). |
@@ -256,7 +258,7 @@ npm run build          # generates Prisma Client, client → dist/client, server
 npm run start:prod     # applies migrations, then starts dist/server/index.js
 ```
 
-`npm run start:prod` is the recommended production entrypoint because it applies committed migrations through `DIRECT_URL` (falling back to `DATABASE_URL`) before boot. If migrations are handled separately, `NODE_ENV=production npm start` runs the server only. Put the process behind a TLS-terminating reverse proxy (Caddy, nginx, a platform load balancer) and set `TRUST_PROXY` appropriately.
+`npm start` and `npm run start:prod` use the same production entrypoint: they apply committed migrations through `DIRECT_URL` (falling back to `DATABASE_URL`) before boot. When neither URL is set (memory/demo mode), migrations are skipped. Put the process behind a TLS-terminating reverse proxy (Caddy, nginx, a platform load balancer) and set `TRUST_PROXY` appropriately.
 
 Minimum production environment:
 
