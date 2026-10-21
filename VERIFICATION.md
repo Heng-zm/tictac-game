@@ -161,5 +161,5 @@ Before calling the deployment production-verified:
 
 - Matchmaking queues, Socket.IO rooms, and AI timers are process-local; run one application instance unless a shared adapter and queue are added.
 - Supabase RLS is enabled by migration and Data API grants are revoked because Prisma connects as the database owner and the server is the sole writer. Do not expose the database or a service-role key to the browser. If you add a Supabase client, add explicit RLS policies and grants first.
-- The in-memory repository is for development only and loses data on restart.
+- The in-memory repository is for development and explicit temporary demos (`DB_MODE=memory`) only; it loses all data on restart and must not be used for real production data.
 - No spectator, tournament, payment, or moderation features are included.

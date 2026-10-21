@@ -35,16 +35,21 @@ export interface GameServerRuntime {
 
 export function createGameServer(options: CreateGameServerOptions): GameServerRuntime {
   const { config, logger } = options;
+  if (config.databaseMode === 'postgres' && !config.databaseUrl) {
+    throw new Error('DB_MODE=postgres requires DATABASE_URL.');
+  }
   const repository =
     options.repository ??
-    (config.databaseUrl
+    (config.databaseMode === 'postgres' && config.databaseUrl
       ? new PrismaGameRepository(createPrismaClient(config.databaseUrl, config.isProduction))
       : new MemoryGameRepository());
 
-  if (!config.databaseUrl && !options.repository && !config.isProduction) {
+  if (!options.repository && config.databaseMode === 'memory') {
     logger.warn(
-      { event: 'memory_repository' },
-      'DATABASE_URL is not set; using an in-memory repository. Data will be lost when the server stops.',
+      { event: 'memory_repository', production: config.isProduction },
+      config.isProduction
+        ? 'DB_MODE=memory is active in production. All users, matches, ratings, and history will be lost when the server restarts.'
+        : 'DATABASE_URL is not set; using an in-memory repository. Data will be lost when the server stops.',
     );
   }
 
@@ -172,7 +177,7 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
         event: 'server_started',
         port: config.port,
         environment: config.nodeEnv,
-        repository: config.databaseUrl ? 'postgresql' : 'memory',
+        repository: config.databaseMode === 'postgres' ? 'postgresql' : 'memory',
       },
       'Tic Tac Toe server is listening',
     );

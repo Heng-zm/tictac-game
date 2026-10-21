@@ -44,6 +44,24 @@ describe('configuration', () => {
     }
   });
 
+  it('allows an explicit in-memory database in production but still requires Telegram auth', () => {
+    const env = { ...PRODUCTION_ENV, DB_MODE: 'memory' };
+    delete env.DATABASE_URL;
+    const config = loadConfig(env);
+    expect(config.databaseMode).toBe('memory');
+    expect(config.databaseUrl).toBeNull();
+
+    const withoutBotToken = { ...env };
+    delete withoutBotToken.TELEGRAM_BOT_TOKEN;
+    expect(() => loadConfig(withoutBotToken)).toThrow(/TELEGRAM_BOT_TOKEN/);
+  });
+
+  it('requires DATABASE_URL when DB_MODE=postgres', () => {
+    expect(() =>
+      loadConfig({ NODE_ENV: 'development', DB_MODE: 'postgres' }),
+    ).toThrow(/Required when DB_MODE=postgres/);
+  });
+
   it('rejects development authentication and placeholder secrets in production', () => {
     expect(() => loadConfig({ ...PRODUCTION_ENV, DEV_AUTH_ENABLED: 'true' })).toThrow(
       /must be disabled in production/,

@@ -10,6 +10,7 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     DATABASE_URL: z.string().url().optional(),
+    DB_MODE: z.enum(['postgres', 'memory']).optional(),
     SESSION_SECRET: z.string().min(32).optional(),
     MINI_APP_URL: z.string().url().optional(),
     TELEGRAM_BOT_TOKEN: z
@@ -41,8 +42,20 @@ const envSchema = z
   .superRefine((value, ctx) => {
     const isProduction = value.NODE_ENV === 'production';
 
-    if (isProduction && !value.DATABASE_URL) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['DATABASE_URL'], message: 'Required in production' });
+    if (!value.DATABASE_URL) {
+      if (value.DB_MODE === 'postgres') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DATABASE_URL'],
+          message: 'Required when DB_MODE=postgres',
+        });
+      } else if (isProduction && value.DB_MODE !== 'memory') {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['DATABASE_URL'],
+          message: 'Required in production unless DB_MODE=memory',
+        });
+      }
     }
     if (isProduction && !value.SESSION_SECRET) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SESSION_SECRET'], message: 'Required in production' });
@@ -122,6 +135,7 @@ export interface AppConfig {
   isProduction: boolean;
   port: number;
   databaseUrl: string | null;
+  databaseMode: 'postgres' | 'memory';
   sessionSecret: string;
   miniAppUrl: string | null;
   telegramBotToken: string | null;
@@ -180,6 +194,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     process.stderr.write('[config] Development authentication is enabled. Never enable it in production.\n');
   }
 
+  const databaseMode = parsed.DB_MODE ?? (parsed.DATABASE_URL ? 'postgres' : 'memory');
+
   const origins = parsed.CORS_ORIGINS.split(',')
     .map((origin) => origin.trim().replace(/\/$/, ''))
     .filter(Boolean);
@@ -189,6 +205,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     isProduction,
     port: parsed.PORT,
     databaseUrl: parsed.DATABASE_URL ?? null,
+    databaseMode,
     sessionSecret,
     miniAppUrl: (parsed.MINI_APP_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
     telegramBotToken: parsed.TELEGRAM_BOT_TOKEN ?? null,

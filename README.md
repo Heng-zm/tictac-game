@@ -109,6 +109,16 @@ Notes:
 - Prisma connects with the database role in the URL and does not use Supabase Row Level Security policies. The committed Supabase migration enables RLS on all game tables and revokes Data API grants from Supabase's `anon` and `authenticated` roles. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, add explicit RLS policies and grants first.
 - The Telegram login remains server-side `initData` verification; Supabase Auth is not required and is not used.
 
+### Temporary in-memory mode
+
+For a demo where you do not want to connect a database yet, set:
+
+```dotenv
+DB_MODE=memory
+```
+
+This keeps users, matches, ratings, and history in process memory. **Everything is lost when the server restarts**, and it only works with one application instance. It is intended for temporary demos, not real production use. Telegram authentication is still required, so `SESSION_SECRET`, `MINI_APP_URL`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_BOT_USERNAME` must still be configured. Omit `DATABASE_URL`/`DIRECT_URL` in this mode.
+
 ## Environment
 
 Copy `.env.example` to `.env`. Important variables:
@@ -117,7 +127,8 @@ Copy `.env.example` to `.env`. Important variables:
 | --- | --- |
 | `NODE_ENV` | `development`, `test`, or `production`. |
 | `PORT` | Server port (default `3000`). |
-| `DATABASE_URL` | PostgreSQL URL. Required in production. For Supabase, use the transaction pooler URL. |
+| `DATABASE_URL` | PostgreSQL URL. Required in production unless `DB_MODE=memory`. For Supabase, use the transaction pooler URL. |
+| `DB_MODE` | `postgres` or `memory`. Defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory` outside production. `memory` in production is explicit and ephemeral. |
 | `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate`. Required when running migrations with Supabase. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
 | `MINI_APP_URL` | Public HTTPS origin in production. |
@@ -188,8 +199,10 @@ Minimum production environment:
 ```dotenv
 NODE_ENV=production
 PORT=3000
+# Either provide DATABASE_URL/DIRECT_URL, or use DB_MODE=memory for an ephemeral demo.
 DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
+# DB_MODE=memory
 SESSION_SECRET=<random 32+ chars>
 MINI_APP_URL=https://your-domain.example
 TELEGRAM_BOT_TOKEN=123456:...

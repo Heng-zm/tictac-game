@@ -14,6 +14,7 @@ export function makeTestConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     isProduction: false,
     port: 0,
     databaseUrl: null,
+    databaseMode: 'memory',
     sessionSecret: TEST_SESSION_SECRET,
     miniAppUrl: 'http://localhost:5173',
     telegramBotToken: null,
