@@ -441,6 +441,15 @@ describe('HTTP API', () => {
     expect(preflight.status).toBe(204);
   });
 
+  it('allows same-host requests from a LAN or custom domain origin', async () => {
+    const response = await request(current.app)
+      .get('/api/config')
+      .set('Host', '192.168.18.11:3000')
+      .set('Origin', 'http://192.168.18.11:3000');
+    expect(response.status).toBe(200);
+    expect(response.headers['access-control-allow-origin']).toBe('http://192.168.18.11:3000');
+  });
+
   it('disables development authentication in production', async () => {
     const productionApp = buildTestApp({
       nodeEnv: 'production',

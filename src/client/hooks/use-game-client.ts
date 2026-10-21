@@ -205,8 +205,17 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
         const initData = tg?.initData;
         try {
           if (initData) {
-            const auth = await authenticateTelegram(initData);
-            user = auth.user;
+            try {
+              const auth = await authenticateTelegram(initData);
+              user = auth.user;
+            } catch (telegramError) {
+              // Development and demo deployments may run without a Telegram
+              // bot token. Keep those usable inside Telegram by falling back
+              // to the guest session when guest auth is enabled.
+              if (!loadedConfig.devAuthEnabled) throw telegramError;
+              const auth = await authenticateDev(getDeviceKey());
+              user = auth.user;
+            }
           } else if (loadedConfig.devAuthEnabled) {
             const auth = await authenticateDev(getDeviceKey());
             user = auth.user;

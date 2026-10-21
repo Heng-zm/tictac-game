@@ -1,6 +1,5 @@
 import compression from 'compression';
 import cookieParser from 'cookie-parser';
-import cors from 'cors';
 import express, {
   type ErrorRequestHandler,
   type NextFunction,
@@ -23,6 +22,7 @@ import {
   setSessionCookie,
 } from './auth/session';
 import { createRequireAuth } from './auth/middleware';
+import { isSameOriginRequest } from './http/origin';
 import type { AppConfig } from './config';
 import { getAllowedOrigins } from './config';
 import type { AppConfigPayload, ApiErrorPayload, LeaderboardResponse } from '../shared/game-types';
@@ -123,22 +123,31 @@ export function createApp(deps: AppDependencies): express.Express {
     }),
   );
   app.use(compression());
-  app.use(
-    cors({
-      origin: (origin, callback) => {
-        if (!origin || allowedOrigins.has(origin)) {
-          callback(null, true);
-          return;
-        }
-        callback(new AppError(403, 'ORIGIN_NOT_ALLOWED', 'Origin is not allowed'));
-      },
-      credentials: true,
-      methods: ['GET', 'POST', 'PATCH', 'OPTIONS'],
-      allowedHeaders: ['Content-Type', 'X-Requested-With'],
-      optionsSuccessStatus: 204,
-      maxAge: 600,
-    }),
-  );
+  app.use((req, res, next) => {
+    const origin = req.headers.origin;
+    if (!origin) {
+      next();
+      return;
+    }
+    if (!allowedOrigins.has(origin) && !isSameOriginRequest(req, origin)) {
+      res.status(403).json(errorBody(req, 'ORIGIN_NOT_ALLOWED', 'Origin is not allowed'));
+      return;
+    }
+
+    res.vary('Origin');
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+
+    if (req.method === 'OPTIONS') {
+      res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PATCH,OPTIONS');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, X-Requested-With');
+      res.setHeader('Access-Control-Max-Age', '600');
+      res.status(204).end();
+      return;
+    }
+
+    next();
+  });
   app.use(express.json({ limit: '32kb', type: ['application/json'] }));
   app.use(cookieParser());
 
@@ -150,7 +159,7 @@ export function createApp(deps: AppDependencies): express.Express {
       return;
     }
     const origin = req.headers.origin;
-    if (origin && !allowedOrigins.has(origin)) {
+    if (origin && !allowedOrigins.has(origin) && !isSameOriginRequest(req, origin)) {
       res.status(403).json(errorBody(req, 'ORIGIN_NOT_ALLOWED', 'Origin is not allowed'));
       return;
     }

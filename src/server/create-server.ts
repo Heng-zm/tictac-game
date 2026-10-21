@@ -5,6 +5,7 @@ import type { ClientToServerEvents, ServerToClientEvents } from '../shared/event
 import { createApp } from './app';
 import { createBotController, type BotController } from './bot/bot';
 import { getAllowedOrigins, type AppConfig } from './config';
+import { isSameOriginRequest } from './http/origin';
 import type { GameRepository } from './database/types';
 import { MemoryGameRepository } from './database/memory-repository';
 import { createPrismaClient, PrismaGameRepository } from './database/prisma-repository';
@@ -54,21 +55,26 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
   }
 
   const httpServer = createServer();
+  const allowedOrigins = getAllowedOrigins(config);
   const io = new SocketServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
     httpServer,
     {
       path: '/socket.io',
       serveClient: false,
       cors: {
-        origin: (origin, callback) => {
-          const allowed = getAllowedOrigins(config);
-          if (!origin || allowed.has(origin)) {
-            callback(null, true);
-            return;
-          }
-          callback(new Error('Origin is not allowed'));
-        },
+        // The CORS headers are permissive; `allowRequest` below performs the
+        // actual origin check and also covers WebSocket handshakes, which are
+        // not subject to browser CORS.
+        origin: true,
         credentials: true,
+      },
+      allowRequest: (req, callback) => {
+        const origin = req.headers.origin;
+        if (!origin || allowedOrigins.has(origin) || isSameOriginRequest(req, origin)) {
+          callback(null, true);
+          return;
+        }
+        callback('Origin is not allowed', false);
       },
       maxHttpBufferSize: 32 * 1024,
       pingInterval: 25_000,

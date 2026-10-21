@@ -32,8 +32,8 @@ No real secrets were committed or used.
 | --- | --- |
 | `npm run typecheck` | Passed (server + client) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 128 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **147 passed / 147** across 14 test files |
+| `npm test` without `TEST_DATABASE_URL` | 138 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **148 passed / 148** across 14 test files |
 | `npm run test:coverage` with PostgreSQL | Passed; **85.89% statements**, 82.42% branches, 89.80% functions |
 | Prisma repository coverage | **91.47% statements** (up from 5.13% before integration tests) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
@@ -94,6 +94,18 @@ The server was also started with `NODE_ENV=production`, `RENDER=true`, and a sim
 
 This verifies that a first Render deployment starts without dashboard configuration. It is a guest demo only; data is lost on restart.
 
+### Same-origin LAN/custom-domain smoke test
+
+The built server was started with `CORS_ORIGINS=http://localhost:5173` and no LAN origin in the allowlist. Requests were sent with `Host: 192.168.18.11:3210`.
+
+| Check | Result |
+| --- | --- |
+| `GET /assets/index-*.css` with `Origin: http://192.168.18.11:3210` | `200`, `text/css` |
+| `GET /api/config` with the same origin | `200` |
+| `GET /assets/index-*.css` with `Origin: http://evil.example` | `403`, `ORIGIN_NOT_ALLOWED` |
+
+This verifies that module assets and API calls work when the app is opened through a LAN IP or custom domain, while cross-origin requests remain blocked. Socket.IO uses the same same-host check for handshakes.
+
 ## Verified behavior
 
 ### Authentication and sessions
@@ -131,7 +143,8 @@ This verifies that a first Render deployment starts without dashboard configurat
 - Helmet CSP allows Telegram framing while restricting other origins.
 - HSTS is enabled in production and disabled in development.
 - CORS uses an explicit allowlist; wildcard origins are rejected in production.
-- API mutations reject disallowed `Origin` headers.
+- Same-host requests are always allowed so LAN IPs and custom domains can load module assets; cross-origin requests remain restricted.
+- API mutations and Socket.IO handshakes reject disallowed `Origin` headers.
 - Rate limits cover auth, HTTP APIs, and socket events.
 - Request bodies and socket buffers are size-limited.
 - Health and readiness endpoints are available.

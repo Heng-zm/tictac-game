@@ -54,6 +54,32 @@ npm run dev
 
 Vite proxies `/api` and `/socket.io` to the server.
 
+### Testing on a phone or inside Telegram
+
+Telegram Mini Apps require HTTPS (localhost is the exception). A plain HTTP LAN address such as `http://192.168.18.11:3000` is not a trustworthy origin: browsers ignore COOP there, and Telegram-specific features may fail.
+
+For phone testing, expose the local server over HTTPS with a tunnel:
+
+```bash
+# Terminal 1: build and run the production server on port 3000
+npm run build
+npm start
+
+# Terminal 2: create an HTTPS tunnel
+cloudflared tunnel --url http://localhost:3000
+# or: ngrok http 3000
+```
+
+Set the tunnel URL in the server environment, then restart:
+
+```dotenv
+MINI_APP_URL=https://your-tunnel-host.example
+CORS_ORIGINS=https://your-tunnel-host.example
+TRUST_PROXY=1
+```
+
+Same-host LAN requests are allowed for ordinary browser testing, but use HTTPS for Telegram. See [Telegram setup](#telegram-setup) for the bot configuration.
+
 ### With PostgreSQL
 
 ```bash
