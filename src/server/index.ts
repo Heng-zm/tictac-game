@@ -1,10 +1,24 @@
 import { loadConfig } from './config';
+import { applyRenderDefaults } from './config/render-defaults';
 import { createGameServer } from './create-server';
 import { createLogger } from './logger';
 
 async function main(): Promise<void> {
+  const renderDefaults = applyRenderDefaults();
   const config = loadConfig();
   const logger = createLogger(config);
+  if (renderDefaults.generatedSessionSecret) {
+    logger.warn(
+      { event: 'render_generated_session_secret' },
+      'SESSION_SECRET was not set; generated an ephemeral one for this Render instance. Set SESSION_SECRET to keep sessions across restarts.',
+    );
+  }
+  if (renderDefaults.demoMode) {
+    logger.warn(
+      { event: 'demo_mode' },
+      'DEMO_MODE is active: guest login is enabled and data is not persistent. Add TELEGRAM_BOT_TOKEN and TELEGRAM_BOT_USERNAME for Telegram login, or set DEMO_MODE=false to require configuration.',
+    );
+  }
   const runtime = createGameServer({ config, logger });
 
   let stopInitiated = false;

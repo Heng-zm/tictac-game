@@ -204,6 +204,7 @@ export interface AppConfigPayload {
   botUsername: string | null;
   miniAppUrl: string | null;
   devAuthEnabled: boolean;
+  demoMode: boolean;
   environment: 'development' | 'test' | 'production';
   queueAiTimeoutMs: number;
   queueMaxWaitMs: number;

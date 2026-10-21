@@ -119,6 +119,17 @@ DB_MODE=memory
 
 This keeps users, matches, ratings, and history in process memory. **Everything is lost when the server restarts**, and it only works with one application instance. It is intended for temporary demos, not real production use. Telegram authentication is still required, so `SESSION_SECRET`, `MINI_APP_URL`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_BOT_USERNAME` must still be configured. Omit `DATABASE_URL`/`DIRECT_URL` in this mode.
 
+### Render zero-config demo
+
+When the app is deployed to Render with **no** `DATABASE_URL` and **no** `TELEGRAM_BOT_TOKEN`, it automatically starts a guest demo:
+
+- `DB_MODE=memory` — no database, data resets on restart.
+- `DEMO_MODE=true` — guest login is enabled; no Telegram bot is required.
+- `MINI_APP_URL` and `CORS_ORIGINS` are derived from `RENDER_EXTERNAL_URL`.
+- A random `SESSION_SECRET` is generated for that instance, so sessions reset on restart.
+
+A **Demo mode** banner appears in the app. To switch to Telegram authentication, add `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`; the app then uses Telegram login and stops using guest auth. To require real configuration and disable the automatic fallback, set `DEMO_MODE=false`.
+
 ## Environment
 
 Copy `.env.example` to `.env`. Important variables:
@@ -129,6 +140,7 @@ Copy `.env.example` to `.env`. Important variables:
 | `PORT` | Server port (default `3000`). |
 | `DATABASE_URL` | PostgreSQL URL. Required in production unless `DB_MODE=memory`. For Supabase, use the transaction pooler URL. |
 | `DB_MODE` | `postgres` or `memory`. Defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory` outside production. `memory` in production is explicit and ephemeral. |
+| `DEMO_MODE` | `true` enables guest login without Telegram and allows in-memory data. Render enables it automatically when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. Set `false` to require real configuration. |
 | `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate`. Required when running migrations with Supabase. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
 | `MINI_APP_URL` | Public HTTPS origin in production. |

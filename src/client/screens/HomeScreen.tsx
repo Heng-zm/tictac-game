@@ -76,6 +76,12 @@ export function HomeScreen({
         </button>
       </header>
 
+      {config?.demoMode ? (
+        <div className="mb-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs font-medium leading-relaxed text-amber-800 dark:text-amber-200">
+          Demo mode: guest login is enabled and data resets when the server restarts.
+        </div>
+      ) : null}
+
       <section className="mb-4">
         <p className="text-sm font-medium text-muted">Hey, {profile.firstName}.</p>
         <h2 className="mt-0.5 text-[28px] font-black leading-[1.12] tracking-tight text-ink">

@@ -56,6 +56,23 @@ describe('configuration', () => {
     expect(() => loadConfig(withoutBotToken)).toThrow(/TELEGRAM_BOT_TOKEN/);
   });
 
+  it('allows guest demo mode in production without Telegram credentials', () => {
+    const env = {
+      ...PRODUCTION_ENV,
+      DEMO_MODE: 'true',
+      DB_MODE: 'memory',
+      DEV_AUTH_ENABLED: 'true',
+    };
+    delete env.DATABASE_URL;
+    delete env.TELEGRAM_BOT_TOKEN;
+    delete env.TELEGRAM_BOT_USERNAME;
+    const config = loadConfig(env);
+    expect(config.demoMode).toBe(true);
+    expect(config.devAuthEnabled).toBe(true);
+    expect(config.databaseMode).toBe('memory');
+    expect(config.telegramBotToken).toBeNull();
+  });
+
   it('requires DATABASE_URL when DB_MODE=postgres', () => {
     expect(() =>
       loadConfig({ NODE_ENV: 'development', DB_MODE: 'postgres' }),

@@ -33,7 +33,7 @@ No real secrets were committed or used.
 | `npm run typecheck` | Passed (server + client) |
 | `npm run lint` | Passed |
 | `npm test` without `TEST_DATABASE_URL` | 128 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **138 passed / 138** across 13 test files |
+| `npm test` with `TEST_DATABASE_URL` | **147 passed / 147** across 14 test files |
 | `npm run test:coverage` with PostgreSQL | Passed; **85.89% statements**, 82.42% branches, 89.80% functions |
 | Prisma repository coverage | **91.47% statements** (up from 5.13% before integration tests) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
@@ -77,6 +77,23 @@ The built server was started with `NODE_ENV=production`, `npm start`, PostgreSQL
 
 The production smoke test used synthetic Telegram users in the local test database. No real Telegram account was involved.
 
+### Render zero-config demo smoke test
+
+The server was also started with `NODE_ENV=production`, `RENDER=true`, and a simulated `RENDER_EXTERNAL_URL`, with no database, no Telegram token, no session secret, and no Mini App URL configured.
+
+| Check | Result |
+| --- | --- |
+| Automatic configuration | `DB_MODE=memory`, `DEMO_MODE=true`, `DEV_AUTH_ENABLED=true`, derived Mini App URL/CORS, generated session secret |
+| Startup warnings | Logged generated secret, demo mode, and in-memory data warnings |
+| `GET /health` | `200` |
+| `GET /ready` | `200` |
+| `GET /api/config` | `demoMode=true`, `devAuthEnabled=true`, production environment |
+| `POST /api/auth/dev` | `200`, guest user created in memory |
+| Guest session cookie | `HttpOnly; Secure; SameSite=None` |
+| `GET /api/me` | `200` |
+
+This verifies that a first Render deployment starts without dashboard configuration. It is a guest demo only; data is lost on restart.
+
 ## Verified behavior
 
 ### Authentication and sessions
@@ -88,7 +105,8 @@ The production smoke test used synthetic Telegram users in the local test databa
 - The bot token is never sent to the browser.
 - Sessions are signed with `SESSION_SECRET`, stored in an HttpOnly cookie, and expire after 7 days.
 - Production cookies use `Secure` and `SameSite=None` for Telegram Web iframe compatibility; local development uses `SameSite=Lax`.
-- Development authentication is rejected in production.
+- Development authentication is rejected in production unless explicit `DEMO_MODE=true` is active.
+- Render zero-config demo mode enables guest authentication and in-memory data when no database or Telegram bot is configured; it logs warnings and shows a demo banner in the client.
 - HTTP and Socket.IO authentication both re-check the user and Telegram ID against the database.
 
 ### Online play and match lifecycle
@@ -162,4 +180,5 @@ Before calling the deployment production-verified:
 - Matchmaking queues, Socket.IO rooms, and AI timers are process-local; run one application instance unless a shared adapter and queue are added.
 - Supabase RLS is enabled by migration and Data API grants are revoked because Prisma connects as the database owner and the server is the sole writer. Do not expose the database or a service-role key to the browser. If you add a Supabase client, add explicit RLS policies and grants first.
 - The in-memory repository is for development and explicit temporary demos (`DB_MODE=memory`) only; it loses all data on restart and must not be used for real production data.
+- Render auto-enables a guest demo when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. Set `DEMO_MODE=false` to disable this fallback and require real production configuration.
 - No spectator, tournament, payment, or moderation features are included.

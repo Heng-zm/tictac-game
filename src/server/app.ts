@@ -217,6 +217,7 @@ export function createApp(deps: AppDependencies): express.Express {
       botUsername: config.telegramBotUsername,
       miniAppUrl: config.miniAppUrl,
       devAuthEnabled: config.devAuthEnabled,
+      demoMode: config.demoMode,
       environment: config.nodeEnv,
       queueAiTimeoutMs: config.queueAiTimeoutMs,
       queueMaxWaitMs: config.queueMaxWaitMs,
@@ -265,14 +266,14 @@ export function createApp(deps: AppDependencies): express.Express {
   });
 
   app.post('/api/auth/dev', authLimiter, async (req, res) => {
-    if (!config.devAuthEnabled || config.isProduction) {
+    if (!config.devAuthEnabled || (config.isProduction && !config.demoMode)) {
       throw new AppError(403, 'DEV_AUTH_DISABLED', 'Development authentication is disabled');
     }
     const parsed = devAuthSchema.parse(req.body);
     const profile = deriveDevProfile(parsed.deviceKey, parsed.displayName);
     const user = await repository.upsertTelegramUser(profile);
     const token = createSessionToken(user, config.sessionSecret);
-    setSessionCookie(res, token, { secure: false });
+    setSessionCookie(res, token, { secure: config.isProduction });
     res.status(200).json({ user: toUserProfile(user) });
   });
 

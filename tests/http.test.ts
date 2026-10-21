@@ -116,6 +116,25 @@ describe('HTTP API', () => {
     return match.id;
   }
 
+  it('allows guest login in production demo mode with a secure cookie', async () => {
+    const demo = buildTestApp({
+      nodeEnv: 'production',
+      isProduction: true,
+      demoMode: true,
+      devAuthEnabled: true,
+      databaseMode: 'memory',
+    });
+    const response = await request(demo.app)
+      .post('/api/auth/dev')
+      .send({ deviceKey: 'demo-device', displayName: 'Demo Player' });
+    expect(response.status).toBe(200);
+    const cookie = (response.headers['set-cookie'] as unknown as string[])[0]!;
+    expect(cookie).toContain('HttpOnly');
+    expect(cookie).toContain('Secure');
+    expect(cookie).toContain('SameSite=None');
+    demo.service.shutdown();
+  });
+
   it('serves health, readiness and public configuration', async () => {
     const health = await request(current.app).get('/health');
     expect(health.status).toBe(200);

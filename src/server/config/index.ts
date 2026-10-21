@@ -11,6 +11,7 @@ const envSchema = z
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
     DATABASE_URL: z.string().url().optional(),
     DB_MODE: z.enum(['postgres', 'memory']).optional(),
+    DEMO_MODE: booleanString.optional(),
     SESSION_SECRET: z.string().min(32).optional(),
     MINI_APP_URL: z.string().url().optional(),
     TELEGRAM_BOT_TOKEN: z
@@ -41,6 +42,7 @@ const envSchema = z
   })
   .superRefine((value, ctx) => {
     const isProduction = value.NODE_ENV === 'production';
+    const demoMode = value.DEMO_MODE === true;
 
     if (!value.DATABASE_URL) {
       if (value.DB_MODE === 'postgres') {
@@ -49,11 +51,11 @@ const envSchema = z
           path: ['DATABASE_URL'],
           message: 'Required when DB_MODE=postgres',
         });
-      } else if (isProduction && value.DB_MODE !== 'memory') {
+      } else if (isProduction && value.DB_MODE !== 'memory' && !demoMode) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
           path: ['DATABASE_URL'],
-          message: 'Required in production unless DB_MODE=memory',
+          message: 'Required in production unless DB_MODE=memory or DEMO_MODE=true',
         });
       }
     }
@@ -72,25 +74,25 @@ const envSchema = z
     if (isProduction && !value.MINI_APP_URL) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['MINI_APP_URL'], message: 'Required in production' });
     }
-    if (isProduction && !value.TELEGRAM_BOT_TOKEN) {
+    if (isProduction && !demoMode && !value.TELEGRAM_BOT_TOKEN) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['TELEGRAM_BOT_TOKEN'],
-        message: 'Required in production (Telegram authentication depends on it)',
+        message: 'Required in production unless DEMO_MODE=true',
       });
     }
-    if (isProduction && !value.TELEGRAM_BOT_USERNAME) {
+    if (isProduction && !demoMode && !value.TELEGRAM_BOT_USERNAME) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['TELEGRAM_BOT_USERNAME'],
-        message: 'Required in production (invitation deep links depend on it)',
+        message: 'Required in production unless DEMO_MODE=true',
       });
     }
-    if (value.DEV_AUTH_ENABLED && isProduction) {
+    if (value.DEV_AUTH_ENABLED && isProduction && !demoMode) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['DEV_AUTH_ENABLED'],
-        message: 'Development authentication must be disabled in production',
+        message: 'Development authentication must be disabled in production unless DEMO_MODE=true',
       });
     }
     if (value.MINI_APP_URL && isProduction && !value.MINI_APP_URL.startsWith('https://')) {
@@ -136,6 +138,7 @@ export interface AppConfig {
   port: number;
   databaseUrl: string | null;
   databaseMode: 'postgres' | 'memory';
+  demoMode: boolean;
   sessionSecret: string;
   miniAppUrl: string | null;
   telegramBotToken: string | null;
@@ -163,7 +166,9 @@ const DEV_SESSION_SECRET = 'dev-only-session-secret-not-for-production-4d8f1c2a'
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
   const nodeEnv = env.NODE_ENV ?? 'development';
-  const defaultDevAuth = nodeEnv === 'production' || nodeEnv === 'test' ? 'false' : 'true';
+  const rawDemoMode = env.DEMO_MODE === 'true' || env.DEMO_MODE === '1';
+  const defaultDevAuth =
+    rawDemoMode || (nodeEnv !== 'production' && nodeEnv !== 'test') ? 'true' : 'false';
   const result = envSchema.safeParse({
     ...env,
     DEV_AUTH_ENABLED: env.DEV_AUTH_ENABLED ?? defaultDevAuth,
@@ -206,13 +211,14 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     port: parsed.PORT,
     databaseUrl: parsed.DATABASE_URL ?? null,
     databaseMode,
+    demoMode: parsed.DEMO_MODE === true,
     sessionSecret,
     miniAppUrl: (parsed.MINI_APP_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
     telegramBotToken: parsed.TELEGRAM_BOT_TOKEN ?? null,
     telegramBotUsername: parsed.TELEGRAM_BOT_USERNAME?.replace(/^@/, '') ?? null,
     telegramWebhookUrl: parsed.TELEGRAM_WEBHOOK_URL ?? null,
     telegramWebhookSecret: parsed.TELEGRAM_WEBHOOK_SECRET ?? null,
-    devAuthEnabled: Boolean(parsed.DEV_AUTH_ENABLED) && !isProduction,
+    devAuthEnabled: Boolean(parsed.DEV_AUTH_ENABLED) && (!isProduction || parsed.DEMO_MODE === true),
     allowedOrigins: origins,
     queueAiTimeoutMs: parsed.QUEUE_AI_TIMEOUT_MS,
     queueMaxWaitMs: parsed.QUEUE_MAX_WAIT_MS,

@@ -375,7 +375,11 @@ function SettingsTab({
           <div className="flex items-center justify-between gap-2">
             <dt className="text-muted">Authentication</dt>
             <dd className="font-semibold text-ink">
-              {config?.environment === 'production' ? 'Telegram initData' : 'Telegram or dev guest'}
+              {config?.demoMode
+                ? 'Guest demo'
+                : config?.environment === 'production'
+                  ? 'Telegram initData'
+                  : 'Telegram or dev guest'}
             </dd>
           </div>
           <div className="flex items-center justify-between gap-2">
@@ -393,7 +397,12 @@ function SettingsTab({
             </div>
           ) : null}
         </dl>
-        {config?.environment !== 'production' ? (
+        {config?.demoMode ? (
+          <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-2 text-[10px] font-medium leading-relaxed text-muted">
+            Demo mode. Guest sign-in is enabled and all data is stored in memory. Everything resets when the server
+            restarts.
+          </div>
+        ) : config?.environment !== 'production' ? (
           <div className="mt-3 rounded-xl border border-amber-500/25 bg-amber-500/10 px-2.5 py-2 text-[10px] font-medium leading-relaxed text-muted">
             Development environment. Guest sign-in is available only outside production and is refused by the server
             when NODE_ENV=production.
