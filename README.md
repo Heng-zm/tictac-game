@@ -79,7 +79,9 @@ npm run db:cleanup    # run a maintenance pass once
 
 ### With Supabase
 
-Supabase is hosted PostgreSQL, so no application code changes are needed. Use the connection strings from **Supabase Dashboard → Project Settings → Database**:
+Supabase is hosted PostgreSQL, so no application code changes are needed. Use the connection strings from **Supabase Dashboard → Project Settings → Database**.
+
+> **Do not use `SUPABASE_URL`, `SUPABASE_KEY`, or `SUPABASE_SERVICE_ROLE_KEY` for this app.** Those are Supabase Data API/Auth keys, not PostgreSQL credentials. This server connects directly to the database with Prisma and does not use the Data API or Supabase Auth.
 
 ```dotenv
 # Runtime: transaction pooler (IPv4-compatible, good for a long-running Node server)
