@@ -1,8 +1,9 @@
 # Production Blueprint: Render web service + Supabase PostgreSQL.
 #
 # Create the Supabase project first, then point Render at this file and fill in
-# DATABASE_URL (transaction pooler, port 6543) and DIRECT_URL (direct/session
-# connection, port 5432). The app applies Prisma migrations on startup.
+# DATABASE_URL (transaction pooler, port 6543) and DIRECT_URL (session pooler,
+# port 5432). Do not use the direct db.<project-ref>.supabase.co host: it is
+# IPv6-only and Render cannot reach it. The app applies Prisma migrations on startup.
 #
 # If you do not already have Supabase, use render.postgres.yaml instead.
 services:

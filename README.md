@@ -115,7 +115,8 @@ Supabase is hosted PostgreSQL, so no application code changes are needed. Use th
 # Runtime: transaction pooler (IPv4-compatible, good for a long-running Node server)
 DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
 
-# Migrations: direct connection or session pooler (port 5432)
+# Migrations: session pooler (port 5432). On Render, do not use the
+# direct db.<project-ref>.supabase.co host: it is IPv6-only.
 DIRECT_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
 ```
 
@@ -133,7 +134,7 @@ Notes:
 - Keep `sslmode=require`. Never expose the database URL or a Supabase service-role key to the browser; this app talks to the database only from the server.
 - `DATABASE_URL` is used by Prisma Client at runtime. `DIRECT_URL` is used by Prisma Migrate (`db:migrate`, `start`, `start:prod`). The pooler on port 6543 cannot run migrations.
 - The migration wrapper (`scripts/prisma-cli.mjs`) automatically points Prisma Migrate at `DIRECT_URL` when it is set, falling back to `DATABASE_URL` for local PostgreSQL.
-- If your network lacks IPv6, use Supabase's session pooler on port 5432 for `DIRECT_URL` (as shown above).
+- If your network lacks IPv6, use Supabase's **Session pooler** on port 5432 for `DIRECT_URL` (as shown above). Render does not support IPv6, so the direct `db.<project-ref>.supabase.co:5432` host fails with `P1001` there. The shared pooler host includes a cluster index (`aws-0-...` or `aws-1-...`) that cannot be inferred from the region; copy the exact string from **Supabase → Connect → Session pooler**.
 - Prisma connects with the database role in the URL and does not use Supabase Row Level Security policies. The committed Supabase migration enables RLS on all game tables and revokes Data API grants from Supabase's `anon` and `authenticated` roles. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, add explicit RLS policies and grants first.
 - The Telegram login remains server-side `initData` verification; Supabase Auth is not required and is not used.
 
@@ -145,7 +146,7 @@ Two production Blueprints are included. Both set `DEMO_MODE=false`, `DB_MODE=pos
 
 1. Create a Supabase project and copy the two PostgreSQL connection strings from **Project Settings → Database**:
    - `DATABASE_URL`: transaction pooler, port `6543`
-   - `DIRECT_URL`: direct connection or session pooler, port `5432`
+   - `DIRECT_URL`: **Session pooler**, port `5432` (not the direct `db.<project-ref>.supabase.co` host on Render, which is IPv6-only)
 2. Create a bot with [@BotFather](https://t.me/BotFather) and note its token and username.
 3. Open the [Render Blueprint](https://render.com/deploy?repo=https://github.com/Heng-zm/tictac-game), connect the repository, and keep `render.yaml` as the Blueprint file.
 4. Fill in `DATABASE_URL`, `DIRECT_URL`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_BOT_USERNAME`. Do **not** use a Supabase `anon` or `service_role` key; this app connects directly to PostgreSQL.
@@ -198,7 +199,7 @@ Copy `.env.example` to `.env`. Important variables:
 | `DATABASE_URL` | PostgreSQL URL. Required in production unless `DB_MODE=memory`. For Supabase, use the transaction pooler URL. |
 | `DB_MODE` | `postgres` or `memory`. Defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory` outside production. `memory` in production is explicit and ephemeral. |
 | `DEMO_MODE` | `true` enables guest login without Telegram and allows in-memory data. Render enables it automatically when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. Set `false` to require real configuration. |
-| `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate` and the start entrypoint. Required when running migrations with Supabase. |
+| `DIRECT_URL` | Session-pooler PostgreSQL URL (port `5432`) used by Prisma Migrate and the start entrypoint. Use the Session pooler, not Supabase's IPv6-only direct host, on Render. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
 | `MINI_APP_URL` | Public HTTPS origin in production. Automatically set from `RENDER_EXTERNAL_URL` on Render when unset. |
 | `TELEGRAM_BOT_TOKEN` | Server-only bot token. Required in production. |

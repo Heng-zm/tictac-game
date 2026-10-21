@@ -170,7 +170,7 @@ This verifies that module assets and API calls work when the app is opened throu
 ### Supabase compatibility
 
 - Prisma uses standard PostgreSQL and applies the committed migration successfully to PostgreSQL 17.11.
-- `DATABASE_URL` is the runtime connection; `DIRECT_URL` is used by the migration wrapper for Supabase's direct/session-pooler connection.
+- `DATABASE_URL` is the runtime connection; `DIRECT_URL` is used by the migration wrapper for Supabase's session-pooler connection. On Render, use the session pooler (`aws-<index>-<region>.pooler.supabase.com:5432`), not the IPv6-only direct host.
 - The documented Supabase setup uses the transaction pooler with `pgbouncer=true` for runtime and port 5432 for migrations.
 - A dedicated migration enables RLS on every game table and revokes Data API grants from Supabase's `anon`/`authenticated` roles. The server's owner role bypasses RLS, so server queries are unaffected.
 - No Supabase-specific client code or service-role key is used in the browser.
@@ -192,7 +192,7 @@ These items could not be verified in this environment and must be checked during
 
 Before calling the deployment production-verified:
 
-- [ ] Create the Supabase project and copy `DATABASE_URL` (pooler) and `DIRECT_URL` (direct/session pooler), or choose the Render Postgres Blueprint.
+- [ ] Create the Supabase project and copy `DATABASE_URL` (transaction pooler) and `DIRECT_URL` (session pooler), or choose the Render Postgres Blueprint. Direct `db.<project-ref>.supabase.co` URLs are IPv6-only and fail on Render.
 - [ ] Deploy `render.yaml` or `render.postgres.yaml`; Render generates `SESSION_SECRET` and `TELEGRAM_WEBHOOK_SECRET` and applies migrations during startup.
 - [ ] Provide a real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` in the Render dashboard. Never send them in chat or commit them.
 - [ ] Confirm the Render service is healthy and `npm run check:prod -- https://your-service` passes.
