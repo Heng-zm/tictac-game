@@ -56,7 +56,7 @@ export function applyRenderDefaults(env: NodeJS.ProcessEnv = process.env): Rende
     if (!env.MINI_APP_URL?.trim()) env.MINI_APP_URL = externalUrl;
     if (!env.CORS_ORIGINS?.trim()) env.CORS_ORIGINS = externalUrl;
   }
-  if (!env.TRUST_PROXY?.trim()) env.TRUST_PROXY = '1';
+  if (!env.TRUST_PROXY?.trim() || env.TRUST_PROXY.trim() === '0') env.TRUST_PROXY = '1';
 
   // Render's generateValue produces base64 by default. Telegram only accepts
   // webhook secret tokens made of [A-Za-z0-9_-], so deterministically hash any
