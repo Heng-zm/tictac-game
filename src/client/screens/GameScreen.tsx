@@ -128,11 +128,12 @@ export function GameScreen({
     try {
       await client.submitMove(match.id, cell, actionId);
     } catch (error) {
-      setPendingCell(null);
-      setPendingActionId(null);
       if (error instanceof SocketRequestError && (error.code === 'CONNECTION_LOST' || error.code === 'TIMEOUT')) {
         client.pushToast({ type: 'error', title: 'Move not sent', message: error.message });
       }
+    } finally {
+      setPendingCell(null);
+      setPendingActionId(null);
     }
   }
 

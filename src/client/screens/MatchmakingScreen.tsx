@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Bot, Clock3, RefreshCw, Search, Users, WifiOff, X } from 'lucide-react';
+import { Bot, Clock3, RefreshCw, Search, UserPlus, Users, WifiOff, X } from 'lucide-react';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
 import { formatDuration, useCountdown, useElapsed } from '../hooks/use-time';
@@ -229,6 +229,15 @@ export function MatchmakingScreen({
                   className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-linear"
                   style={{ width: `${Math.round(searchProgress * 100)}%` }}
                 />
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line/60 pt-3">
+                <Button size="sm" icon={Bot} variant="secondary" onClick={() => void playBot()}>
+                  Play Bot
+                </Button>
+                <Button size="sm" icon={UserPlus} variant="secondary" onClick={() => navigate('/invite/waiting')}>
+                  Invite friend
+                </Button>
               </div>
             </div>
 

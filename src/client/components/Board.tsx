@@ -154,7 +154,6 @@ export function Board({
     activePointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
 
     if (activePointers.current.size === 1) {
-      setIsPanning(true);
       didMove.current = false;
       dragStart.current = {
         clientX: e.clientX,
@@ -162,7 +161,6 @@ export function Board({
         startPanX: pan.x,
         startPanY: pan.y,
       };
-      (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     } else if (activePointers.current.size === 2) {
       // Two-finger pinch zoom start
       const points = Array.from(activePointers.current.values());
@@ -170,6 +168,7 @@ export function Board({
       const p2 = points[1]!;
       initialPinchDist.current = Math.hypot(p1.x - p2.x, p1.y - p2.y);
       initialPinchZoom.current = zoom;
+      didMove.current = true;
     }
   };
 
@@ -190,14 +189,20 @@ export function Board({
       return;
     }
 
-    if (!isPanning) return;
-
     const deltaX = e.clientX - dragStart.current.clientX;
     const deltaY = e.clientY - dragStart.current.clientY;
 
-    if (Math.hypot(deltaX, deltaY) > 7) {
+    if (!didMove.current && Math.hypot(deltaX, deltaY) > 8) {
       didMove.current = true;
+      setIsPanning(true);
+      try {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+      } catch {
+        // ignore
+      }
     }
+
+    if (!didMove.current) return;
 
     // Direct 1:1 hardware pixel panning
     setPan({
@@ -207,12 +212,13 @@ export function Board({
   };
 
   const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    const wasMoved = didMove.current;
     activePointers.current.delete(e.pointerId);
+
     if (activePointers.current.size === 0) {
       setIsPanning(false);
       initialPinchDist.current = null;
     } else if (activePointers.current.size === 1) {
-      // Reset single drag origin to remaining pointer
       const remaining = Array.from(activePointers.current.entries())[0]!;
       dragStart.current = {
         clientX: remaining[1].x,
@@ -221,6 +227,25 @@ export function Board({
         startPanY: pan.y,
       };
       initialPinchDist.current = null;
+    }
+
+    // Clean tap without drag - mathematically compute and place stone
+    if (!wasMoved && !disabled && yourTurn) {
+      const el = containerRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      const clickY = e.clientY - rect.top;
+      const centerX = rect.width / 2 + pan.x * zoom;
+      const centerY = rect.height / 2 + pan.y * zoom;
+      const gridX = Math.round((clickX - centerX) / (CELL_SIZE * zoom));
+      const gridY = Math.round((clickY - centerY) / (CELL_SIZE * zoom));
+      const cell = encodeCell(gridX, gridY);
+
+      if (board[cell] === undefined) {
+        hapticImpact('medium');
+        onCell(cell);
+      }
     }
   };
 
