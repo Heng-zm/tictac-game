@@ -68,6 +68,28 @@ describe('Render defaults', () => {
     expect(config.databaseMode).toBe('memory');
   });
 
+  it('normalizes a Render base64 webhook secret and an empty NODE_ENV', () => {
+    const env: NodeJS.ProcessEnv = {
+      NODE_ENV: '',
+      RENDER: 'true',
+      RENDER_EXTERNAL_URL: 'https://tictactoe.onrender.com',
+      TELEGRAM_BOT_TOKEN: TEST_BOT_TOKEN,
+      TELEGRAM_BOT_USERNAME: 'tictactoe_bot',
+      TELEGRAM_WEBHOOK_SECRET: 'c2VjcmV0K3ZhbHVlLw==',
+    };
+    const result = applyRenderDefaults(env);
+
+    expect(env.NODE_ENV).toBe('production');
+    expect(result.normalizedWebhookSecret).toBe(true);
+    expect(result.derivedWebhookSecret).toBe(false);
+    expect(env.TELEGRAM_WEBHOOK_SECRET).toMatch(/^[a-f0-9]{64}$/);
+    expect(env.TELEGRAM_WEBHOOK_SECRET).not.toBe('c2VjcmV0K3ZhbHVlLw==');
+
+    const config = loadConfig(env);
+    expect(config.isProduction).toBe(true);
+    expect(config.telegramWebhookSecret).toBe(env.TELEGRAM_WEBHOOK_SECRET);
+  });
+
   it('uses a custom Mini App domain for the Telegram webhook', () => {
     const env: NodeJS.ProcessEnv = {
       NODE_ENV: 'production',

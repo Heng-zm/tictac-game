@@ -22,6 +22,36 @@ describe('configuration', () => {
     expect(config.telegramBotToken).toBe(TEST_BOT_TOKEN);
   });
 
+  it('treats empty environment values as unset', () => {
+    const config = loadConfig({
+      NODE_ENV: '',
+      PORT: '',
+      CORS_ORIGINS: '',
+      DEMO_MODE: '',
+      DEV_AUTH_ENABLED: '',
+      DB_MODE: '',
+      DATABASE_URL: '',
+      SESSION_SECRET: '',
+      MINI_APP_URL: '',
+      TELEGRAM_BOT_TOKEN: '',
+      TELEGRAM_BOT_USERNAME: '',
+      TELEGRAM_WEBHOOK_URL: '',
+      TELEGRAM_WEBHOOK_SECRET: '',
+      LOG_LEVEL: '',
+    });
+
+    expect(config.nodeEnv).toBe('development');
+    expect(config.port).toBe(3000);
+    expect(config.databaseMode).toBe('memory');
+    expect(config.databaseUrl).toBeNull();
+    expect(config.devAuthEnabled).toBe(true);
+    expect(config.miniAppUrl).toBe('http://localhost:5173');
+    expect(config.telegramBotToken).toBeNull();
+    expect(config.telegramWebhookUrl).toBeNull();
+    expect(config.telegramWebhookSecret).toBeNull();
+    expect(config.logLevel).toBe('info');
+  });
+
   it('disables development auth by default outside development', () => {
     const testConfig = loadConfig({ NODE_ENV: 'test' });
     expect(testConfig.devAuthEnabled).toBe(false);

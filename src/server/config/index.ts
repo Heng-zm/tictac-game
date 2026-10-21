@@ -170,20 +170,23 @@ export interface AppConfig {
 const DEV_SESSION_SECRET = 'dev-only-session-secret-not-for-production-4d8f1c2a';
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
-  const nodeEnv = env.NODE_ENV ?? 'development';
-  const rawDemoMode = env.DEMO_MODE === 'true' || env.DEMO_MODE === '1';
+  // Hosting dashboards commonly store empty strings for "unset" variables.
+  // Normalize them before Zod applies defaults, otherwise NODE_ENV='' and
+  // numeric/boolean values fail parsing instead of falling back.
+  const cleanedEnv: NodeJS.ProcessEnv = {};
+  for (const [key, value] of Object.entries(env)) {
+    cleanedEnv[key] = emptyToUndefined(value);
+  }
+
+  const isRender = cleanedEnv.RENDER === 'true' || Boolean(cleanedEnv.RENDER_EXTERNAL_URL);
+  const nodeEnv = cleanedEnv.NODE_ENV ?? (isRender ? 'production' : 'development');
+  const rawDemoMode = cleanedEnv.DEMO_MODE === 'true' || cleanedEnv.DEMO_MODE === '1';
   const defaultDevAuth =
     rawDemoMode || (nodeEnv !== 'production' && nodeEnv !== 'test') ? 'true' : 'false';
   const result = envSchema.safeParse({
-    ...env,
-    DEV_AUTH_ENABLED: env.DEV_AUTH_ENABLED ?? defaultDevAuth,
-    TELEGRAM_BOT_TOKEN: emptyToUndefined(env.TELEGRAM_BOT_TOKEN),
-    TELEGRAM_BOT_USERNAME: emptyToUndefined(env.TELEGRAM_BOT_USERNAME),
-    TELEGRAM_WEBHOOK_URL: emptyToUndefined(env.TELEGRAM_WEBHOOK_URL),
-    TELEGRAM_WEBHOOK_SECRET: emptyToUndefined(env.TELEGRAM_WEBHOOK_SECRET),
-    MINI_APP_URL: emptyToUndefined(env.MINI_APP_URL),
-    DATABASE_URL: emptyToUndefined(env.DATABASE_URL),
-    SESSION_SECRET: emptyToUndefined(env.SESSION_SECRET),
+    ...cleanedEnv,
+    NODE_ENV: nodeEnv,
+    DEV_AUTH_ENABLED: cleanedEnv.DEV_AUTH_ENABLED ?? defaultDevAuth,
   });
 
   if (!result.success) {

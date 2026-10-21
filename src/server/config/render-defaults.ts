@@ -4,8 +4,15 @@ export interface RenderDefaultsResult {
   applied: boolean;
   generatedSessionSecret: boolean;
   derivedWebhookSecret: boolean;
+  normalizedWebhookSecret: boolean;
   demoMode: boolean;
   memoryMode: boolean;
+}
+
+const TELEGRAM_WEBHOOK_SECRET_PATTERN = /^[A-Za-z0-9_-]{16,256}$/;
+
+function hashWebhookSecret(value: string): string {
+  return createHash('sha256').update('telegram-webhook-secret:').update(value).digest('hex');
 }
 
 /**
@@ -34,17 +41,32 @@ export function applyRenderDefaults(env: NodeJS.ProcessEnv = process.env): Rende
       applied: false,
       generatedSessionSecret: false,
       derivedWebhookSecret: false,
+      normalizedWebhookSecret: false,
       demoMode: false,
       memoryMode: false,
     };
   }
 
+  // Render may inject an empty NODE_ENV for an existing service. Treat an empty
+  // value as unset and default to production on the platform.
+  if (!env.NODE_ENV?.trim()) env.NODE_ENV = 'production';
+
   const externalUrl = env.RENDER_EXTERNAL_URL?.trim().replace(/\/$/, '');
   if (externalUrl) {
-    env.MINI_APP_URL ??= externalUrl;
-    env.CORS_ORIGINS ??= externalUrl;
+    if (!env.MINI_APP_URL?.trim()) env.MINI_APP_URL = externalUrl;
+    if (!env.CORS_ORIGINS?.trim()) env.CORS_ORIGINS = externalUrl;
   }
-  env.TRUST_PROXY ??= '1';
+  if (!env.TRUST_PROXY?.trim()) env.TRUST_PROXY = '1';
+
+  // Render's generateValue produces base64 by default. Telegram only accepts
+  // webhook secret tokens made of [A-Za-z0-9_-], so deterministically hash any
+  // incompatible value instead of failing startup.
+  let normalizedWebhookSecret = false;
+  const providedWebhookSecret = env.TELEGRAM_WEBHOOK_SECRET?.trim();
+  if (providedWebhookSecret && !TELEGRAM_WEBHOOK_SECRET_PATTERN.test(providedWebhookSecret)) {
+    env.TELEGRAM_WEBHOOK_SECRET = hashWebhookSecret(providedWebhookSecret);
+    normalizedWebhookSecret = true;
+  }
 
   let generatedSessionSecret = false;
   if (!env.SESSION_SECRET?.trim()) {
@@ -54,18 +76,18 @@ export function applyRenderDefaults(env: NodeJS.ProcessEnv = process.env): Rende
 
   let memoryMode = false;
   if (!env.DATABASE_URL?.trim()) {
-    if (!env.DB_MODE) {
+    if (!env.DB_MODE?.trim()) {
       env.DB_MODE = 'memory';
       memoryMode = true;
     } else {
-      memoryMode = env.DB_MODE === 'memory';
+      memoryMode = env.DB_MODE.trim() === 'memory';
     }
   }
 
-  const demoDisabled = env.DEMO_MODE === 'false' || env.DEMO_MODE === '0';
+  const demoDisabled = env.DEMO_MODE?.trim() === 'false' || env.DEMO_MODE?.trim() === '0';
   if (!env.TELEGRAM_BOT_TOKEN?.trim() && !env.DATABASE_URL?.trim() && !demoDisabled) {
-    env.DEMO_MODE ??= 'true';
-    env.DEV_AUTH_ENABLED ??= 'true';
+    if (!env.DEMO_MODE?.trim()) env.DEMO_MODE = 'true';
+    if (!env.DEV_AUTH_ENABLED?.trim()) env.DEV_AUTH_ENABLED = 'true';
   }
 
   // A webhook is preferable in production: Telegram wakes the service instead
@@ -77,10 +99,7 @@ export function applyRenderDefaults(env: NodeJS.ProcessEnv = process.env): Rende
     try {
       env.TELEGRAM_WEBHOOK_URL = new URL('/api/telegram/webhook', publicUrl).toString();
       if (!env.TELEGRAM_WEBHOOK_SECRET?.trim() && env.SESSION_SECRET?.trim()) {
-        env.TELEGRAM_WEBHOOK_SECRET = createHash('sha256')
-          .update('telegram-webhook-secret:')
-          .update(env.SESSION_SECRET)
-          .digest('hex');
+        env.TELEGRAM_WEBHOOK_SECRET = hashWebhookSecret(env.SESSION_SECRET);
         derivedWebhookSecret = true;
       }
     } catch {
@@ -92,7 +111,8 @@ export function applyRenderDefaults(env: NodeJS.ProcessEnv = process.env): Rende
     applied: true,
     generatedSessionSecret,
     derivedWebhookSecret,
-    demoMode: env.DEMO_MODE === 'true' || env.DEMO_MODE === '1',
+    normalizedWebhookSecret,
+    demoMode: env.DEMO_MODE?.trim() === 'true' || env.DEMO_MODE?.trim() === '1',
     memoryMode,
   };
 }

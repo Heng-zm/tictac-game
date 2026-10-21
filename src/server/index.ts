@@ -19,6 +19,12 @@ async function main(): Promise<void> {
       'TELEGRAM_WEBHOOK_SECRET was not set; derived a Telegram-safe one from SESSION_SECRET. Set TELEGRAM_WEBHOOK_SECRET explicitly to rotate it independently.',
     );
   }
+  if (renderDefaults.normalizedWebhookSecret) {
+    logger.warn(
+      { event: 'render_normalized_webhook_secret' },
+      'TELEGRAM_WEBHOOK_SECRET contained characters Telegram rejects; normalized it deterministically. Use letters, digits, "_" and "-" to control the value explicitly.',
+    );
+  }
   if (renderDefaults.demoMode) {
     logger.warn(
       { event: 'demo_mode' },
