@@ -190,9 +190,22 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       setConfig(loadedConfig);
 
       let user: UserProfile | null = null;
+      const initData = getWebApp()?.initData;
       try {
         const me = await fetchMe();
         user = me.user;
+
+        // Refresh the stored name, username, and avatar from the verified
+        // initData on every launch. A valid existing session remains usable
+        // when this best-effort refresh fails (for example, stale initData).
+        if (initData) {
+          try {
+            const auth = await authenticateTelegram(initData);
+            user = auth.user;
+          } catch {
+            // Keep the session profile; the next launch can try again.
+          }
+        }
       } catch (error) {
         if (cancelled) return;
         if (!(error instanceof ApiRequestError) || error.status !== 401) {
@@ -201,8 +214,6 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
           setPhase('error');
           return;
         }
-        const tg = getWebApp();
-        const initData = tg?.initData;
         try {
           if (initData) {
             try {
