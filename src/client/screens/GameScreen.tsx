@@ -310,7 +310,7 @@ export function GameScreen({
       : `Turn ${match.turnNumber + 1}`;
 
   return (
-    <Page className="flex min-h-[var(--app-vh)] flex-col pb-[calc(env(safe-area-inset-bottom)+20px)]">
+    <Page className="flex min-h-[var(--app-vh)] flex-col !px-3 sm:!px-4 !pt-[calc(env(safe-area-inset-top)+6px)] !pb-[calc(env(safe-area-inset-bottom)+12px)]">
       <GameHeader
         onBack={() => navigate('/')}
         onResign={() => setForfeitOpen(true)}
@@ -319,7 +319,7 @@ export function GameScreen({
         rated={isRatedMatch(match)}
       />
 
-      <div className="mb-4 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3">
+      <div className="mb-2 sm:mb-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-0.5">
         <PlayerBadge
           name={you?.displayName ?? 'You'}
           photoUrl={you?.photoUrl}
@@ -348,17 +348,17 @@ export function GameScreen({
       </div>
 
       {opponentDisconnected && match.status === 'ACTIVE' ? (
-        <div className="mb-3 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-3 py-2.5">
-          <WifiOff className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-[11px] font-medium leading-relaxed text-ink">
+        <div className="mb-2 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-2.5 py-1.5">
+          <WifiOff className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+          <p className="text-[10.5px] font-medium leading-tight text-ink">
             Opponent disconnected. Clock paused
             {graceRemaining !== null ? ` · ${formatDuration(graceRemaining)} to reconnect` : ''}.
           </p>
         </div>
       ) : connection !== 'online' ? (
-        <div className="mb-3 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-3 py-2.5">
-          <Timer className="h-4 w-4 shrink-0 text-muted" aria-hidden />
-          <p className="text-[11px] font-medium leading-relaxed text-ink">
+        <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-2.5 py-1.5">
+          <Timer className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+          <p className="text-[10.5px] font-medium leading-tight text-ink">
             {connection === 'idle' || connection === 'connecting'
               ? 'Connecting. Your board and rating are safe.'
               : 'Reconnecting. Your board and rating are safe.'}
@@ -366,7 +366,7 @@ export function GameScreen({
         </div>
       ) : null}
 
-      <div className="flex flex-1 flex-col justify-center py-3">
+      <div className="flex flex-1 flex-col justify-center py-1 sm:py-2">
         <div className="relative">
           <Board
             board={displayBoard}
@@ -390,13 +390,13 @@ export function GameScreen({
           ) : null}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3 px-0.5">
-          <p className="min-w-0 truncate text-sm font-medium text-ink" aria-live="polite">
+        <div className="mt-2.5 flex items-center justify-between gap-2 px-0.5">
+          <p className="min-w-0 truncate text-xs sm:text-sm font-semibold text-ink" aria-live="polite">
             {statusText}
           </p>
-          <p className="shrink-0 text-[11px] font-medium text-muted">{turnLabel}</p>
+          <p className="shrink-0 text-[10px] sm:text-[11px] font-medium text-muted">{turnLabel}</p>
         </div>
-        <p className="mt-1 px-0.5 text-[10px] leading-relaxed text-muted">
+        <p className="mt-0.5 px-0.5 text-[10px] leading-relaxed text-muted">
           {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · 5 in a row to win · infinite grid · drag to pan
         </p>
       </div>
@@ -511,7 +511,7 @@ function GameHeader({
   rated?: boolean;
 }) {
   return (
-    <header className="flex items-center justify-between gap-3 pb-5 pt-1">
+    <header className="flex items-center justify-between gap-3 pb-2.5 sm:pb-3.5 pt-0">
       <div className="flex min-w-0 items-center gap-2.5">
         <IconButton label="Leave game screen" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" aria-hidden />

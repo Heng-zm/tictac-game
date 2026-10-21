@@ -276,7 +276,7 @@ export function Board({
       <div
         ref={containerRef}
         className={cn(
-          'relative w-full aspect-square max-w-[440px] touch-none overflow-hidden rounded-3xl',
+          'relative w-full aspect-square max-w-[min(100%,calc(var(--app-vh,100dvh)-220px))] sm:max-w-[430px] touch-none overflow-hidden rounded-2xl sm:rounded-3xl',
           'border border-line/80 bg-surface/85 shadow-soft backdrop-blur-md transition-shadow',
           isPanning ? 'cursor-grabbing' : 'cursor-grab',
         )}
