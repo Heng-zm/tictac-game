@@ -274,8 +274,8 @@ export function GameScreen({
         : turnRemaining !== null
           ? formatDuration(turnRemaining)
           : yourTurn
-            ? 'Your turn'
-            : 'Waiting';
+            ? 'You'
+            : `${match.currentTurn ?? '—'}`;
   const clockLabel =
     match.status === 'FINISHED'
       ? 'Finished'
@@ -283,7 +283,7 @@ export function GameScreen({
         ? 'Clock paused'
         : yourTurn
           ? 'Your turn'
-          : `${match.currentTurn ?? '—'} to move`;
+          : "Opponent's turn";
   const statusText =
     outcome === 'win'
       ? 'You won'
@@ -298,7 +298,7 @@ export function GameScreen({
               : 'Waiting';
 
   return (
-    <Page className="pb-[calc(env(safe-area-inset-bottom)+20px)]">
+    <Page className="flex min-h-[var(--app-vh)] flex-col pb-[calc(env(safe-area-inset-bottom)+20px)]">
       <GameHeader
         onBack={() => navigate('/')}
         onResign={() => setForfeitOpen(true)}
@@ -358,36 +358,39 @@ export function GameScreen({
         </div>
       ) : null}
 
-      <div className="relative">
-        <Board
-          board={displayBoard}
-          winningLine={winningLine}
-          lastMoveCell={lastMoveCell}
-          yourTurn={yourTurn}
-          disabled={
-            pendingCell !== null ||
-            match.status !== 'ACTIVE' ||
-            match.currentTurn !== match.youSide ||
-            connection !== 'online'
-          }
-          onCell={(cell) => void playCell(cell)}
-        />
-        {pendingCell !== null ? (
-          <span className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center">
-            <span className="rounded-full border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-medium text-muted shadow-soft">
-              Sending move…
+      <div className="flex flex-1 flex-col justify-center py-3">
+        <div className="relative">
+          <Board
+            board={displayBoard}
+            winningLine={winningLine}
+            lastMoveCell={lastMoveCell}
+            yourTurn={yourTurn}
+            disabled={
+              pendingCell !== null ||
+              match.status !== 'ACTIVE' ||
+              match.currentTurn !== match.youSide ||
+              connection !== 'online'
+            }
+            onCell={(cell) => void playCell(cell)}
+          />
+          {pendingCell !== null ? (
+            <span className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center">
+              <span className="rounded-full border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-medium text-muted shadow-soft">
+                Sending move…
+              </span>
             </span>
-          </span>
-        ) : null}
-      </div>
+          ) : null}
+        </div>
 
-      <div className="mt-4 flex items-center justify-between gap-3 px-0.5">
-        <p className="min-w-0 truncate text-sm font-medium text-ink">{statusText}</p>
-        <p className="shrink-0 text-[11px] font-medium text-muted">Turn {match.turnNumber}</p>
+        <div className="mt-4 flex items-center justify-between gap-3 px-0.5">
+          <p className="min-w-0 truncate text-sm font-medium text-ink">{statusText}</p>
+          <p className="shrink-0 text-[11px] font-medium text-muted">Turn {match.turnNumber}</p>
+        </div>
+        <p className="mt-1 px-0.5 text-[10px] leading-relaxed text-muted">
+          {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · moves verified by the server · leaving does not
+          forfeit
+        </p>
       </div>
-      <p className="mt-1 px-0.5 text-[10px] leading-relaxed text-muted">
-        {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · moves verified by the server · leaving does not forfeit
-      </p>
 
       <GameResult
         match={match}

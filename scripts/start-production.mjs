@@ -9,6 +9,11 @@ import 'dotenv/config';
 import { spawnSync } from 'node:child_process';
 import { createRequire } from 'node:module';
 
+if (process.env.DEV_AUTH_ENABLED === 'true' && process.env.DEMO_MODE !== 'true') {
+  console.log('Production startup: auto-disabling DEV_AUTH_ENABLED for security.');
+  process.env.DEV_AUTH_ENABLED = 'false';
+}
+
 const migrationUrl = process.env.DIRECT_URL?.trim() || process.env.DATABASE_URL?.trim();
 
 if (!migrationUrl) {

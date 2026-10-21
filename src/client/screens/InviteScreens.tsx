@@ -144,7 +144,7 @@ export function InviteWaitingScreen({
 
       {activeMatch ? (
         <Card className="p-5 text-center">
-          <p className="text-xs font-bold uppercase tracking-wide text-accent">Game in progress</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Game in progress</p>
           <h2 className="mt-2 text-xl font-bold text-ink">Your friend already joined</h2>
           <p className="mt-1 text-sm text-muted">The invitation was accepted. Jump back into the board.</p>
           <Button className="mt-4 w-full" onClick={() => navigate(`/game/${activeMatch.id}`)}>

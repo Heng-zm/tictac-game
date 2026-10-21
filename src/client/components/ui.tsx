@@ -88,8 +88,10 @@ export function IconButton({ label, children, className, tone = 'default', type 
       aria-label={label}
       title={label}
       className={cn(
-        'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface text-muted transition hover:bg-elevated hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
-        tone === 'danger' && 'text-danger hover:bg-danger/5 hover:text-danger',
+        'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-line bg-surface transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
+        tone === 'danger'
+          ? 'text-danger hover:bg-danger/5'
+          : 'text-muted hover:bg-elevated hover:text-ink',
         className,
       )}
       {...rest}

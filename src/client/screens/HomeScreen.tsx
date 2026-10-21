@@ -216,7 +216,7 @@ export function HomeScreen({
         </div>
       </Card>
 
-      <p className="mt-4 px-4 text-center text-[11px] leading-relaxed text-muted">
+      <p className="mt-4 px-4 text-balance text-center text-[11px] leading-relaxed text-muted">
         Moves are verified by the server. Disconnects pause the clock for{' '}
         {formatDuration(config?.disconnectGraceMs ?? 0)}.
       </p>

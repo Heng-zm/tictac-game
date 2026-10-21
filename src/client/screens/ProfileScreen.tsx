@@ -172,7 +172,7 @@ function OverviewTab({ client, navigate }: { client: GameClient; navigate: (path
       <button
         type="button"
         onClick={() => navigate('/leaderboard')}
-        className="group flex w-full items-center gap-3 rounded-3xl border border-line bg-elevated/50 p-4 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        className="group flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition hover:bg-elevated active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
       >
         <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
           <Medal className="h-5 w-5" aria-hidden />
@@ -296,7 +296,7 @@ function HistoryRow({ item }: { item: HistoryRecord }) {
           <p className="truncate text-sm font-bold text-ink">{item.opponent.displayName}</p>
           {item.opponent.isAi ? <Bot className="h-3.5 w-3.5 shrink-0 text-accent" aria-label="Bot" /> : null}
         </div>
-        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+        <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-muted">
           <span>{modeShortLabel(item.mode as MatchMode)}</span>
           <span aria-hidden>·</span>
           <span>{formatRelativeTime(item.playedAt)}</span>

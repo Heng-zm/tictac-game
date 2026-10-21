@@ -147,7 +147,7 @@ export function MatchmakingScreen({
         </Card>
       ) : expired ? (
         <Card className="overflow-hidden p-5 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-amber-500/10 text-amber-500">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/10 text-amber-500">
             <Clock3 className="h-8 w-8" aria-hidden />
           </div>
           <h2 className="mt-3 text-xl font-bold tracking-tight text-ink">
@@ -170,7 +170,7 @@ export function MatchmakingScreen({
         </Card>
       ) : connectionLost ? (
         <Card className="p-5 text-center">
-          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-3xl bg-danger/10 text-danger">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/10 text-danger">
             <WifiOff className="h-8 w-8" aria-hidden />
           </div>
           <h2 className="mt-3 text-xl font-bold text-ink">Connection lost</h2>

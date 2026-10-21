@@ -77,7 +77,7 @@ export function LeaderboardScreen({
                   <UserRound className="h-5 w-5" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-accent">Your position</p>
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Your position</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="text-sm font-bold text-ink">
                       {data.currentUserRank ? `Rank #${data.currentUserRank}` : 'Unranked'} · {profile.stats.rating} rating
