@@ -1,0 +1,196 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum MatchMode {
+  RANDOM
+  FRIEND
+  AI
+}
+
+enum MatchStatus {
+  WAITING
+  ACTIVE
+  FINISHED
+  ABANDONED
+}
+
+enum Side {
+  X
+  O
+}
+
+enum MatchResult {
+  X_WINS
+  O_WINS
+  DRAW
+}
+
+enum FinishReason {
+  LINE
+  DRAW
+  FORFEIT
+  DISCONNECT
+  TIMEOUT
+  SERVER_SHUTDOWN
+  CANCELLED
+  ABANDONED
+}
+
+enum ParticipantOutcome {
+  WIN
+  LOSS
+  DRAW
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  CANCELLED
+  EXPIRED
+}
+
+enum AiDifficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model User {
+  id              String   @id @default(cuid())
+  telegramId      BigInt   @unique
+  username        String?  @db.VarChar(64)
+  firstName       String   @db.VarChar(128)
+  lastName        String?  @db.VarChar(128)
+  photoUrl        String?  @db.VarChar(1024)
+  languageCode    String?  @db.VarChar(16)
+  autoAiFallback  Boolean  @default(false)
+  /// Reservation used to guarantee a user can be in at most one match.
+  activeMatchId   String?  @db.Uuid
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
+  lastSeenAt      DateTime @default(now()) @db.Timestamptz(3)
+
+  stats             UserStats?
+  participants      MatchParticipant[]
+  invitationsSent   Invitation[]       @relation("InvitationInviter")
+  invitationsAccepted Invitation[]     @relation("InvitationAcceptor")
+
+  @@index([lastSeenAt])
+  @@index([activeMatchId])
+}
+
+model UserStats {
+  userId      String   @id
+  gamesPlayed Int      @default(0)
+  wins        Int      @default(0)
+  losses      Int      @default(0)
+  draws       Int      @default(0)
+  humanGames  Int      @default(0)
+  aiGames     Int      @default(0)
+  aiWins      Int      @default(0)
+  aiLosses    Int      @default(0)
+  aiDraws     Int      @default(0)
+  rating      Int      @default(1000)
+  ratingGames Int      @default(0)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([rating(sort: Desc), wins(sort: Desc)])
+  @@index([ratingGames])
+}
+
+model Match {
+  id             String        @id @default(uuid()) @db.Uuid
+  mode           MatchMode
+  status         MatchStatus   @default(WAITING)
+  board          String        @default(".........") @db.VarChar(9)
+  currentTurn    Side?
+  turnNumber     Int           @default(0)
+  winnerSide     Side?
+  result         MatchResult?
+  finishReason   FinishReason?
+  turnDeadline   DateTime?     @db.Timestamptz(3)
+  rematchOfId    String?       @db.Uuid
+  startedAt      DateTime      @default(now()) @db.Timestamptz(3)
+  finishedAt     DateTime?     @db.Timestamptz(3)
+  lastActivityAt DateTime      @default(now()) @db.Timestamptz(3)
+  version        Int           @default(0)
+  createdAt      DateTime      @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime      @updatedAt @db.Timestamptz(3)
+
+  participants MatchParticipant[]
+  moves        Move[]
+  invitation   Invitation?
+
+  @@index([status, lastActivityAt])
+  @@index([status, turnDeadline])
+  @@index([mode, status])
+  @@index([finishedAt])
+}
+
+model MatchParticipant {
+  id           String             @id @default(uuid()) @db.Uuid
+  matchId      String             @db.Uuid
+  userId       String?
+  side         Side
+  isAi         Boolean            @default(false)
+  aiDifficulty AiDifficulty?
+  displayName  String             @db.VarChar(128)
+  username     String?            @db.VarChar(64)
+  photoUrl     String?            @db.VarChar(1024)
+  outcome      ParticipantOutcome?
+  ratingDelta  Int                @default(0)
+  joinedAt     DateTime           @default(now()) @db.Timestamptz(3)
+  leftAt       DateTime?          @db.Timestamptz(3)
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@unique([matchId, side])
+  @@index([userId, joinedAt(sort: Desc)])
+  @@index([matchId])
+}
+
+model Move {
+  id              String   @id @default(uuid()) @db.Uuid
+  matchId         String   @db.Uuid
+  participantSide Side
+  actionId        String   @db.VarChar(64)
+  cell            Int
+  moveNumber      Int
+  boardAfter      String   @db.VarChar(9)
+  createdAt       DateTime @default(now()) @db.Timestamptz(3)
+
+  match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, actionId])
+  @@unique([matchId, moveNumber])
+  @@index([matchId, createdAt])
+}
+
+model Invitation {
+  id           String           @id @default(uuid()) @db.Uuid
+  tokenHash    String           @unique @db.Char(64)
+  inviterId    String
+  matchId      String           @unique @db.Uuid
+  status       InvitationStatus @default(PENDING)
+  expiresAt    DateTime         @db.Timestamptz(3)
+  acceptedById String?
+  acceptedAt   DateTime?        @db.Timestamptz(3)
+  createdAt    DateTime         @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime         @updatedAt @db.Timestamptz(3)
+
+  inviter    User  @relation("InvitationInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  acceptedBy User? @relation("InvitationAcceptor", fields: [acceptedById], references: [id], onDelete: SetNull)
+  match      Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([status, expiresAt])
+  @@index([inviterId, status])
+}

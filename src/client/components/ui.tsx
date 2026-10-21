@@ -1,0 +1,539 @@
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type ButtonHTMLAttributes,
+  type HTMLAttributes,
+  type ReactNode,
+} from 'react';
+import { createPortal } from 'react-dom';
+import {
+  AlertTriangle,
+  ArrowLeft,
+  CheckCircle2,
+  Info,
+  Loader2,
+  X,
+  XCircle,
+  type LucideIcon,
+} from 'lucide-react';
+import { cn } from '../lib/cn';
+import type { ToastMessage } from '../hooks/use-game-client';
+
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success';
+type ButtonSize = 'sm' | 'md' | 'lg';
+
+const buttonVariants: Record<ButtonVariant, string> = {
+  primary:
+    'bg-accent text-accent-ink shadow-[0_10px_24px_-12px_var(--app-accent)] hover:brightness-105',
+  secondary: 'bg-elevated text-ink border border-line hover:border-accent/40',
+  ghost: 'text-muted hover:bg-elevated hover:text-ink',
+  danger: 'bg-danger text-white hover:brightness-105',
+  success: 'bg-success text-[#04140b] hover:brightness-105',
+};
+
+const buttonSizes: Record<ButtonSize, string> = {
+  sm: 'h-9 px-3 text-sm rounded-xl',
+  md: 'h-11 px-4 text-[15px] rounded-2xl',
+  lg: 'h-12 px-5 text-base rounded-2xl',
+};
+
+export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
+  icon?: LucideIcon;
+}
+
+export function Button({
+  variant = 'primary',
+  size = 'md',
+  loading = false,
+  icon: Icon,
+  className,
+  children,
+  disabled,
+  type = 'button',
+  ...rest
+}: ButtonProps) {
+  return (
+    <button
+      type={type}
+      className={cn(
+        'inline-flex select-none items-center justify-center gap-2 font-semibold transition duration-150 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 focus-visible:ring-offset-2 focus-visible:ring-offset-app',
+        buttonVariants[variant],
+        buttonSizes[size],
+        className,
+      )}
+      disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      {...rest}
+    >
+      {loading ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden /> : Icon ? <Icon className="h-4 w-4" aria-hidden /> : null}
+      {children}
+    </button>
+  );
+}
+
+export interface IconButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  label: string;
+  children: ReactNode;
+  tone?: 'default' | 'danger';
+}
+
+export function IconButton({ label, children, className, tone = 'default', type = 'button', ...rest }: IconButtonProps) {
+  return (
+    <button
+      type={type}
+      aria-label={label}
+      title={label}
+      className={cn(
+        'inline-flex h-10 w-10 items-center justify-center rounded-full border border-line bg-elevated/80 text-muted backdrop-blur transition hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
+        tone === 'danger' && 'text-danger hover:text-danger',
+        className,
+      )}
+      {...rest}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function Card({ className, children, ...rest }: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('panel rounded-3xl', className)} {...rest}>
+      {children}
+    </div>
+  );
+}
+
+export function Avatar({
+  name,
+  photoUrl,
+  size = 'md',
+  className,
+  ring = false,
+}: {
+  name: string;
+  photoUrl?: string | null;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
+  ring?: boolean;
+}) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [photoUrl]);
+  const dimensions = {
+    xs: 'h-7 w-7 text-[10px]',
+    sm: 'h-9 w-9 text-xs',
+    md: 'h-11 w-11 text-sm',
+    lg: 'h-14 w-14 text-lg',
+    xl: 'h-20 w-20 text-2xl',
+  }[size];
+  const initial = (name.trim()[0] ?? '?').toUpperCase();
+
+  return (
+    <span
+      className={cn(
+        'relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-gradient-to-br from-accent/25 to-accent/5 font-bold text-accent',
+        dimensions,
+        ring && 'ring-2 ring-accent/40 ring-offset-2 ring-offset-app',
+        className,
+      )}
+      aria-hidden={photoUrl ? undefined : true}
+    >
+      {photoUrl && !failed ? (
+        <img
+          src={photoUrl}
+          alt=""
+          className="h-full w-full object-cover"
+          loading="lazy"
+          referrerPolicy="no-referrer"
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <span>{initial}</span>
+      )}
+    </span>
+  );
+}
+
+export function SegmentedControl<T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+  className,
+}: {
+  value: T;
+  options: Array<{ value: T; label: string; hint?: string }>;
+  onChange: (value: T) => void;
+  ariaLabel: string;
+  className?: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className={cn('grid gap-1 rounded-2xl border border-line bg-app/50 p-1', className)}
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((option) => {
+        const selected = option.value === value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(option.value)}
+            className={cn(
+              'rounded-xl px-2 py-2 text-center text-xs font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+              selected ? 'bg-accent text-accent-ink shadow-sm' : 'text-muted hover:text-ink',
+            )}
+          >
+            <span className="block">{option.label}</span>
+            {option.hint ? (
+              <span className={cn('mt-0.5 block text-[10px] font-medium', selected ? 'opacity-80' : 'opacity-60')}>
+                {option.hint}
+              </span>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export function Toggle({
+  checked,
+  onChange,
+  label,
+  disabled,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  label: string;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      disabled={disabled}
+      onClick={() => onChange(!checked)}
+      className={cn(
+        'relative h-7 w-12 shrink-0 rounded-full border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70 disabled:opacity-50',
+        checked ? 'border-accent bg-accent' : 'border-line bg-app',
+      )}
+    >
+      <span
+        className={cn(
+          'absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-all',
+          checked ? 'left-[26px]' : 'left-0.5',
+        )}
+      />
+    </button>
+  );
+}
+
+export function Spinner({ className }: { className?: string }) {
+  return <Loader2 className={cn('h-5 w-5 animate-spin text-accent', className)} aria-label="Loading" />;
+}
+
+export function Logo({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
+  const box = { sm: 'h-9 w-9 gap-0.5 p-1', md: 'h-11 w-11 gap-0.5 p-1.5', lg: 'h-16 w-16 gap-1 p-2' }[size];
+  const cell = { sm: 'h-[9px] w-[9px]', md: 'h-[11px] w-[11px]', lg: 'h-3.5 w-3.5' }[size];
+  return (
+    <span
+      className={cn('inline-grid shrink-0 grid-cols-3 rounded-2xl border border-line bg-elevated shadow-soft', box, className)}
+      aria-hidden
+    >
+      {Array.from({ length: 9 }, (_, index) => (
+        <span
+          key={index}
+          className={cn(
+            'rounded-[3px]',
+            cell,
+            index === 0 || index === 4 || index === 8
+              ? 'bg-accent'
+              : index === 2 || index === 6
+                ? 'bg-danger/80'
+                : 'bg-line/80',
+          )}
+        />
+      ))}
+    </span>
+  );
+}
+
+export function ScreenHeader({
+  title,
+  subtitle,
+  onBack,
+  action,
+  eyebrow,
+}: {
+  title: string;
+  subtitle?: string;
+  onBack?: () => void;
+  action?: ReactNode;
+  eyebrow?: string;
+}) {
+  return (
+    <header className="flex items-start justify-between gap-3 pb-4 pt-1">
+      <div className="flex min-w-0 items-center gap-3">
+        {onBack ? (
+          <IconButton label="Go back" onClick={onBack}>
+            <ArrowLeft className="h-5 w-5" aria-hidden />
+          </IconButton>
+        ) : null}
+        <div className="min-w-0">
+          {eyebrow ? (
+            <p className="mb-0.5 text-[11px] font-bold uppercase tracking-[0.14em] text-accent">{eyebrow}</p>
+          ) : null}
+          <h1 className="truncate text-xl font-extrabold tracking-tight text-ink">{title}</h1>
+          {subtitle ? <p className="mt-0.5 text-sm leading-snug text-muted">{subtitle}</p> : null}
+        </div>
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </header>
+  );
+}
+
+const toastStyles = {
+  info: { icon: Info, className: 'text-accent' },
+  success: { icon: CheckCircle2, className: 'text-success' },
+  warning: { icon: AlertTriangle, className: 'text-amber-500' },
+  error: { icon: XCircle, className: 'text-danger' },
+} as const;
+
+export function ToastViewport({
+  toasts,
+  onDismiss,
+}: {
+  toasts: ToastMessage[];
+  onDismiss: (id: string) => void;
+}) {
+  if (toasts.length === 0) return null;
+  return createPortal(
+    <div
+      className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-3 pb-[calc(env(safe-area-inset-bottom)+88px)]"
+      aria-live="polite"
+      aria-atomic="false"
+    >
+      {toasts.map((toast) => {
+        const style = toastStyles[toast.type];
+        const Icon = style.icon;
+        return (
+          <div
+            key={toast.id}
+            className="pointer-events-auto flex w-full max-w-md items-start gap-3 rounded-2xl border border-line bg-elevated/95 p-3.5 text-left shadow-soft backdrop-blur-md animate-fade-up"
+          >
+            <Icon className={cn('mt-0.5 h-5 w-5 shrink-0', style.className)} aria-hidden />
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-ink">{toast.title}</p>
+              {toast.message ? <p className="mt-0.5 text-xs leading-relaxed text-muted">{toast.message}</p> : null}
+            </div>
+            <button
+              type="button"
+              className="rounded-full p-1 text-muted transition hover:bg-app hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              onClick={() => onDismiss(toast.id)}
+              aria-label="Dismiss notification"
+            >
+              <X className="h-3.5 w-3.5" aria-hidden />
+            </button>
+          </div>
+        );
+      })}
+    </div>,
+    document.body,
+  );
+}
+
+export function Modal({
+  open,
+  onClose,
+  title,
+  children,
+  dismissible = true,
+  className,
+}: {
+  open: boolean;
+  onClose?: () => void;
+  title?: string;
+  children: ReactNode;
+  dismissible?: boolean;
+  className?: string;
+}) {
+  const titleId = useId();
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const focusable = panelRef.current?.querySelector<HTMLElement>(
+      'button:not([disabled]), [href], input:not([disabled]), [tabindex]:not([tabindex="-1"])',
+    );
+    focusable?.focus();
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && dismissible) {
+        event.preventDefault();
+        onCloseRef.current?.();
+        return;
+      }
+      if (event.key !== 'Tab') return;
+      const nodes = panelRef.current?.querySelectorAll<HTMLElement>(
+        'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      );
+      if (!nodes || nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [open, dismissible]);
+
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center" role="presentation">
+        <div
+          className="absolute inset-0 animate-fade-in bg-black/55 backdrop-blur-[2px]"
+          onClick={dismissible ? onClose : undefined}
+          aria-hidden
+        />
+        <div
+          ref={panelRef}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby={title ? titleId : undefined}
+          className={cn(
+            'relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-4xl border border-line bg-surface p-5 shadow-soft animate-fade-up sm:rounded-4xl',
+            'pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-5',
+            className,
+          )}
+        >
+          {dismissible ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close"
+              className="absolute right-3 top-3 rounded-full p-2 text-muted transition hover:bg-elevated hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            >
+              <X className="h-4 w-4" aria-hidden />
+            </button>
+          ) : null}
+          {title ? (
+            <h2 id={titleId} className="pr-8 text-lg font-extrabold tracking-tight text-ink">
+              {title}
+            </h2>
+          ) : null}
+          {children}
+        </div>
+      </div>,
+    document.body,
+  );
+}
+
+export function StatTile({
+  label,
+  value,
+  icon: Icon,
+  hint,
+  accent = false,
+}: {
+  label: string;
+  value: string | number;
+  icon?: LucideIcon;
+  hint?: string;
+  accent?: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-2xl border p-3.5',
+        accent ? 'border-accent/25 bg-accent/10' : 'border-line bg-elevated/60',
+      )}
+    >
+      <div className="flex items-center gap-1.5 text-muted">
+        {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
+        <span className="text-[11px] font-semibold uppercase tracking-wide">{label}</span>
+      </div>
+      <p className={cn('mt-1 text-xl font-extrabold tabular-nums', accent ? 'text-accent' : 'text-ink')}>{value}</p>
+      {hint ? <p className="mt-0.5 text-[11px] text-muted">{hint}</p> : null}
+    </div>
+  );
+}
+
+export function Pill({
+  children,
+  tone = 'neutral',
+  className,
+}: {
+  children: ReactNode;
+  tone?: 'neutral' | 'accent' | 'success' | 'danger' | 'warning';
+  className?: string;
+}) {
+  const tones = {
+    neutral: 'border-line bg-elevated text-muted',
+    accent: 'border-accent/30 bg-accent/10 text-accent',
+    success: 'border-success/30 bg-success/10 text-success',
+    danger: 'border-danger/30 bg-danger/10 text-danger',
+    warning: 'border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400',
+  };
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold uppercase tracking-wide',
+        tones[tone],
+        className,
+      )}
+    >
+      {children}
+    </span>
+  );
+}
+
+export function EmptyState({
+  icon: Icon,
+  title,
+  description,
+  action,
+}: {
+  icon: LucideIcon;
+  title: string;
+  description: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col items-center px-6 py-10 text-center">
+      <span className="mb-3 flex h-14 w-14 items-center justify-center rounded-2xl border border-line bg-elevated text-muted">
+        <Icon className="h-6 w-6" aria-hidden />
+      </span>
+      <p className="text-base font-bold text-ink">{title}</p>
+      <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">{description}</p>
+      {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
+export function Skeleton({ className }: { className?: string }) {
+  return <div className={cn('animate-pulse rounded-2xl bg-line/60', className)} />;
+}
