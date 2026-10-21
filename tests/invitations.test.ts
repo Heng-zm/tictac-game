@@ -17,11 +17,17 @@ describe('invitation helpers', () => {
     expect(generateInvitationToken().token).not.toBe(token);
   });
 
-  it('builds Telegram startapp deep links', () => {
+  it('builds Telegram start deep links', () => {
     const config = makeTestConfig({ telegramBotUsername: 'tictactoe_bot' });
     const { token } = generateInvitationToken();
     const link = buildInviteDeepLink(config, token);
-    expect(link).toBe(`https://t.me/tictactoe_bot?startapp=invite_${token}`);
+    expect(link).toBe(`https://t.me/tictactoe_bot?start=invite_${token}`);
+
+    const withApp = buildInviteDeepLink(
+      makeTestConfig({ telegramBotUsername: 'tictactoe_bot', telegramAppName: 'app' }),
+      token,
+    );
+    expect(withApp).toBe(`https://t.me/tictactoe_bot/app?startapp=invite_${token}`);
   });
 
   it('falls back to the Mini App URL during local development', () => {
@@ -38,7 +44,7 @@ describe('invitation helpers', () => {
     const { token } = generateInvitationToken();
     const config = makeTestConfig({ telegramBotUsername: 'tictactoe_bot' });
     const link = new URL(buildInviteDeepLink(config, token));
-    expect(extractInviteToken(link.searchParams.get('startapp'))).toBe(token);
+    expect(extractInviteToken(link.searchParams.get('start'))).toBe(token);
     expect(extractInviteToken('invite_short')).toBeNull();
     expect(extractInviteToken('invite_'.concat('!'.repeat(43)))).toBeNull();
     expect(extractInviteToken('other_value')).toBeNull();

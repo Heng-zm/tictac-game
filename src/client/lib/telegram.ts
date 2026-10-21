@@ -189,7 +189,7 @@ export function shareInTelegram(url: string, text: string): boolean {
 
 export function openTelegramBot(botUsername: string, startParam?: string): boolean {
   const tg = getWebApp();
-  const suffix = startParam ? `?startapp=${encodeURIComponent(startParam)}` : '';
+  const suffix = startParam ? `?start=${encodeURIComponent(startParam)}` : '';
   const url = `https://t.me/${botUsername}${suffix}`;
   if (tg) {
     try {

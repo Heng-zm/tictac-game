@@ -5,6 +5,7 @@ import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage, fetchLeaderboard } from '../lib/api';
 import { cn } from '../lib/cn';
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, ScreenHeader, Skeleton } from '../components/ui';
+import { RankBadge, RankLabel, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 
 export function LeaderboardScreen({
@@ -82,10 +83,12 @@ export function LeaderboardScreen({
                     <p className="text-sm font-bold text-ink">
                       {data.currentUserRank ? `Rank #${data.currentUserRank}` : 'Unranked'} · {profile.stats.rating} rating
                     </p>
+                    <RankBadge rating={profile.stats.rating} />
                     <Pill tone="accent">{profile.stats.ratingGames} rated</Pill>
                   </div>
                 </div>
               </div>
+              <RankProgress rating={profile.stats.rating} className="mt-3" />
             </Card>
           ) : null}
 
@@ -152,7 +155,9 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
 
       <div className="shrink-0 text-right">
         <p className="text-sm font-semibold tabular-nums text-ink">{entry.rating}</p>
-        <p className="text-[10px] text-muted">{entry.ratedGames} rated</p>
+        <p className="mt-0.5 whitespace-nowrap text-[10px] text-muted">
+          <RankLabel rating={entry.rating} /> · {entry.ratedGames} rated
+        </p>
       </div>
     </div>
   );

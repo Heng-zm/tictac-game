@@ -1,6 +1,6 @@
 import type { AppConfigPayload } from '../../shared/game-types';
 
-type InviteConfig = Pick<AppConfigPayload, 'botUsername' | 'miniAppUrl'>;
+type InviteConfig = Pick<AppConfigPayload, 'botUsername' | 'botAppName' | 'miniAppUrl'>;
 
 const PRIVATE_IPV4_PATTERN =
   /^(?:10(?:\.\d{1,3}){3}|127(?:\.\d{1,3}){3}|169\.254(?:\.\d{1,3}){2}|172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}|192\.168(?:\.\d{1,3}){2})$/;
@@ -56,7 +56,10 @@ export function buildInviteDeepLink(
 ): string {
   const startParam = `invite_${token}`;
   if (config?.botUsername) {
-    return `https://t.me/${config.botUsername}?startapp=${encodeURIComponent(startParam)}`;
+    if (config.botAppName) {
+      return `https://t.me/${config.botUsername}/${config.botAppName}?startapp=${encodeURIComponent(startParam)}`;
+    }
+    return `https://t.me/${config.botUsername}?start=${encodeURIComponent(startParam)}`;
   }
   const base = config?.miniAppUrl ?? currentOrigin;
   try {

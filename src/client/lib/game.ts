@@ -73,3 +73,20 @@ export function finishReasonCopy(match: PublicMatchState): string {
 export function isRatedMatch(match: PublicMatchState): boolean {
   return match.mode !== 'AI';
 }
+
+/**
+ * Display-only estimate of the rating change for a finished human match.
+ * The server remains authoritative; unfinished or abandoned games return null.
+ */
+export function ratingImpactFor(match: PublicMatchState): number | null {
+  if (!isRatedMatch(match) || match.status !== 'FINISHED' || !match.result) return null;
+  if (
+    match.finishReason === 'CANCELLED' ||
+    match.finishReason === 'SERVER_SHUTDOWN' ||
+    match.finishReason === 'ABANDONED'
+  ) {
+    return null;
+  }
+  if (match.result === 'DRAW') return 5;
+  return match.winnerSide === match.youSide ? 20 : -10;
+}

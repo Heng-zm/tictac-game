@@ -15,7 +15,10 @@ export function hashInvitationToken(token: string): string {
 export function buildInviteDeepLink(config: AppConfig, token: string): string {
   const startParam = `invite_${token}`;
   if (config.telegramBotUsername) {
-    return `https://t.me/${encodeURIComponent(config.telegramBotUsername)}?startapp=${startParam}`;
+    if (config.telegramAppName) {
+      return `https://t.me/${encodeURIComponent(config.telegramBotUsername)}/${encodeURIComponent(config.telegramAppName)}?startapp=${startParam}`;
+    }
+    return `https://t.me/${encodeURIComponent(config.telegramBotUsername)}?start=${startParam}`;
   }
   // Local development fallback: the client also understands ?startapp=.
   const base = config.miniAppUrl ?? 'http://localhost:5173';

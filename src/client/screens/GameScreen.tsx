@@ -28,7 +28,7 @@ export function GameScreen({
   navigate: (path: string) => void;
   matchId: string;
 }) {
-  const { connection, match: currentMatch, joinMatch } = client;
+  const { connection, match: currentMatch, joinMatch, config } = client;
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<{ code: string; message: string } | null>(null);
   const [pendingCell, setPendingCell] = useState<number | null>(null);
@@ -100,6 +100,7 @@ export function GameScreen({
   }, [client.lastRejection, pendingActionId]);
 
   const turnRemaining = useCountdown(match?.turnDeadline ?? null);
+  const turnTimerTotal = config?.turnTimeoutMs ?? 0;
   const graceRemaining = useCountdown(client.opponentGraceEndsAt);
   const youSide = match?.youSide ?? null;
   const yourTurn = Boolean(
@@ -296,6 +297,13 @@ export function GameScreen({
             : match.currentTurn
               ? `${opponent?.displayName ?? 'Opponent'} to move`
               : 'Waiting';
+  const clockProgress =
+    match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnTimerTotal > 0
+      ? Math.min(1, Math.max(0, turnRemaining / turnTimerTotal))
+      : null;
+  const clockUrgent = Boolean(
+    yourTurn && match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnRemaining <= 5000,
+  );
 
   return (
     <Page className="flex min-h-[var(--app-vh)] flex-col pb-[calc(env(safe-area-inset-bottom)+20px)]">
@@ -317,17 +325,13 @@ export function GameScreen({
           isYou
           isAi={false}
         />
-        <div className="flex min-w-[68px] flex-col items-center text-center">
-          <span
-            className={cn(
-              'text-xl font-bold tabular-nums tracking-tight',
-              turnRemaining !== null && turnRemaining <= 5000 && yourTurn ? 'text-danger' : 'text-ink',
-            )}
-          >
-            {clockText}
-          </span>
-          <span className="mt-0.5 text-[10px] font-medium text-muted">{clockLabel}</span>
-        </div>
+        <TurnClock
+          text={clockText}
+          label={clockLabel}
+          progress={clockProgress}
+          urgent={clockUrgent}
+          muted={match.turnTimerPaused || match.status === 'FINISHED'}
+        />
         <PlayerBadge
           name={opponent?.displayName ?? 'Opponent'}
           photoUrl={opponent?.photoUrl}
@@ -383,7 +387,9 @@ export function GameScreen({
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-3 px-0.5">
-          <p className="min-w-0 truncate text-sm font-medium text-ink">{statusText}</p>
+          <p className="min-w-0 truncate text-sm font-medium text-ink" aria-live="polite">
+            {statusText}
+          </p>
           <p className="shrink-0 text-[11px] font-medium text-muted">Turn {match.turnNumber}</p>
         </div>
         <p className="mt-1 px-0.5 text-[10px] leading-relaxed text-muted">
@@ -422,6 +428,69 @@ export function GameScreen({
         </div>
       </Modal>
     </Page>
+  );
+}
+
+function TurnClock({
+  text,
+  label,
+  progress,
+  urgent,
+  muted,
+}: {
+  text: string;
+  label: string;
+  progress: number | null;
+  urgent: boolean;
+  muted: boolean;
+}) {
+  const radius = 27;
+  const circumference = 2 * Math.PI * radius;
+  const offset = progress === null ? circumference : circumference * (1 - progress);
+
+  return (
+    <div className="flex min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
+      <div className="relative flex h-14 w-14 items-center justify-center">
+        <svg viewBox="0 0 64 64" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden>
+          <circle
+            cx="32"
+            cy="32"
+            r={radius}
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="3"
+            className="text-line/80"
+          />
+          {progress !== null ? (
+            <circle
+              cx="32"
+              cy="32"
+              r={radius}
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeDasharray={circumference}
+              strokeDashoffset={offset}
+              className={cn(
+                'transition-[stroke-dashoffset] duration-500 ease-linear',
+                muted ? 'text-muted/60' : urgent ? 'text-danger' : 'text-accent',
+              )}
+            />
+          ) : null}
+        </svg>
+        <span
+          className={cn(
+            'font-bold tabular-nums tracking-tight',
+            text.length > 5 ? 'text-[11px]' : 'text-base',
+            muted ? 'text-muted' : urgent ? 'text-danger' : 'text-ink',
+          )}
+        >
+          {text}
+        </span>
+      </div>
+      <span className="mt-0.5 text-[10px] font-medium text-muted">{label}</span>
+    </div>
   );
 }
 

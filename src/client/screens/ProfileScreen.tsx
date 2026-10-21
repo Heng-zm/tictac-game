@@ -19,6 +19,7 @@ import { errorMessage, fetchHistory } from '../lib/api';
 import { formatRelativeTime } from '../hooks/use-time';
 import { cn } from '../lib/cn';
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, ScreenHeader, Skeleton, StatTile, Toggle } from '../components/ui';
+import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { modeShortLabel } from '../lib/game';
 
@@ -64,7 +65,8 @@ export function ProfileScreen({
               {profile.firstName} {profile.lastName ?? ''}
             </h2>
             {profile.username ? <p className="truncate text-xs text-muted">@{profile.username}</p> : null}
-            <div className="mt-2 flex flex-wrap gap-1.5">
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <RankBadge rating={stats.rating} />
               <Pill tone="accent">
                 <Trophy className="h-3 w-3" aria-hidden />
                 {stats.rating}
@@ -73,6 +75,7 @@ export function ProfileScreen({
             </div>
           </div>
         </div>
+        <RankProgress rating={stats.rating} className="mt-4" />
         <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
           <div>
             <p className="text-base font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
@@ -136,7 +139,7 @@ function OverviewTab({ client, navigate }: { client: GameClient; navigate: (path
     <div className="mt-4 space-y-3">
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-ink">Record</h3>
+          <h3 className="text-sm font-semibold text-ink">Record</h3>
           <Button size="sm" variant="ghost" icon={RefreshCw} loading={refreshing} onClick={() => void refresh()}>
             Refresh
           </Button>
@@ -156,7 +159,7 @@ function OverviewTab({ client, navigate }: { client: GameClient; navigate: (path
               <Bot className="h-4 w-4" aria-hidden />
             </span>
             <div>
-              <h3 className="text-sm font-extrabold text-ink">Bot record</h3>
+              <h3 className="text-sm font-semibold text-ink">Bot record</h3>
               <p className="text-[11px] text-muted">Unrated practice games</p>
             </div>
           </div>
@@ -341,7 +344,7 @@ function SettingsTab({
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h3 className="text-sm font-extrabold text-ink">Auto-play a bot</h3>
+            <h3 className="text-sm font-semibold text-ink">Auto-play a bot</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-muted">
               If no human joins within the queue window, automatically start an unrated bot match instead of leaving
               you waiting.
@@ -357,7 +360,7 @@ function SettingsTab({
       </Card>
 
       <Card className="p-4">
-        <h3 className="text-sm font-extrabold text-ink">Themes & motion</h3>
+        <h3 className="text-sm font-semibold text-ink">Themes & motion</h3>
         <p className="mt-1 text-[11px] leading-relaxed text-muted">
           The interface follows your Telegram light or dark theme and updates live. Motion is reduced automatically
           when your device asks for it.
@@ -370,7 +373,7 @@ function SettingsTab({
       </Card>
 
       <Card className="p-4">
-        <h3 className="text-sm font-extrabold text-ink">Account</h3>
+        <h3 className="text-sm font-semibold text-ink">Account</h3>
         <dl className="mt-1.5 space-y-1.5 text-[11px]">
           <div className="flex items-center justify-between gap-2">
             <dt className="text-muted">Authentication</dt>

@@ -224,6 +224,7 @@ export function createApp(deps: AppDependencies): express.Express {
     const payload: AppConfigPayload = {
       protocol: PROTOCOL_VERSION,
       botUsername: config.telegramBotUsername,
+      botAppName: config.telegramAppName,
       miniAppUrl: config.miniAppUrl,
       devAuthEnabled: config.devAuthEnabled,
       demoMode: config.demoMode,

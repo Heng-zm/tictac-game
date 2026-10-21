@@ -202,6 +202,7 @@ export interface LeaderboardResponse {
 export interface AppConfigPayload {
   protocol: typeof PROTOCOL_VERSION;
   botUsername: string | null;
+  botAppName?: string | null;
   miniAppUrl: string | null;
   devAuthEnabled: boolean;
   demoMode: boolean;

@@ -15,6 +15,7 @@ import { errorMessage } from '../lib/api';
 import { modeLabel } from '../lib/game';
 import { cn } from '../lib/cn';
 import { Avatar, Button, Card, Logo, Pill, SegmentedControl } from '../components/ui';
+import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { formatDuration } from '../hooks/use-time';
 
@@ -82,14 +83,61 @@ export function HomeScreen({
         </div>
       ) : null}
 
+      {activeMatch || pendingInvite ? (
+        <div className="mb-3 space-y-2.5">
+          {activeMatch ? (
+            <button
+              type="button"
+              onClick={() => navigate(`/game/${activeMatch.id}`)}
+              className="group flex w-full items-center gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+                <Play className="h-4 w-4" fill="currentColor" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
+                  Game in progress
+                </span>
+                <span className="mt-0.5 block truncate text-sm font-semibold text-ink">{modeLabel(activeMatch.mode)}</span>
+              </span>
+              <span className="shrink-0 text-xs font-semibold text-accent">Resume</span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
+            </button>
+          ) : null}
+
+          {pendingInvite ? (
+            <button
+              type="button"
+              onClick={() => navigate('/invite/waiting')}
+              className="group flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 text-left transition hover:bg-elevated active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
+                <Clock3 className="h-4 w-4" aria-hidden />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
+                  Invitation pending
+                </span>
+                <span className="mt-0.5 block truncate text-sm font-semibold text-ink">Waiting for a friend</span>
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden />
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Your rating</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Ladder rating</p>
             <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-ink">{stats.rating}</p>
           </div>
-          <Pill tone="accent">{stats.ratingGames} rated</Pill>
+          <div className="flex flex-col items-end gap-1.5">
+            <RankBadge rating={stats.rating} />
+            <span className="text-[10px] font-medium text-muted">{stats.ratingGames} rated</span>
+          </div>
         </div>
+        <RankProgress rating={stats.rating} className="mt-3" />
         <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
           <div>
             <p className="text-sm font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
@@ -105,41 +153,6 @@ export function HomeScreen({
           </div>
         </div>
       </Card>
-
-      {activeMatch ? (
-        <button
-          type="button"
-          onClick={() => navigate(`/game/${activeMatch.id}`)}
-          className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
-            <Play className="h-4 w-4" fill="currentColor" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Game in progress</span>
-            <span className="mt-0.5 block truncate text-sm font-semibold text-ink">{modeLabel(activeMatch.mode)}</span>
-          </span>
-          <span className="shrink-0 text-xs font-semibold text-accent">Resume</span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
-        </button>
-      ) : null}
-
-      {pendingInvite ? (
-        <button
-          type="button"
-          onClick={() => navigate('/invite/waiting')}
-          className="group mt-3 flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 text-left transition hover:bg-elevated active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-        >
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
-            <Clock3 className="h-4 w-4" aria-hidden />
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">Invitation pending</span>
-            <span className="mt-0.5 block truncate text-sm font-semibold text-ink">Waiting for a friend</span>
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden />
-        </button>
-      ) : null}
 
       <section className="mt-6">
         <h2 className="mb-2.5 text-sm font-semibold text-ink">Play</h2>

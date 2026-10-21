@@ -22,6 +22,10 @@ const envSchema = z
       .string()
       .regex(/^@?[A-Za-z0-9_]{3,64}$/, 'Malformed TELEGRAM_BOT_USERNAME')
       .optional(),
+    TELEGRAM_APP_NAME: z
+      .string()
+      .regex(/^[A-Za-z0-9_]{3,64}$/, 'Malformed TELEGRAM_APP_NAME')
+      .optional(),
     TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
     TELEGRAM_WEBHOOK_SECRET: z
       .string()
@@ -150,6 +154,7 @@ export interface AppConfig {
   miniAppUrl: string | null;
   telegramBotToken: string | null;
   telegramBotUsername: string | null;
+  telegramAppName: string | null;
   telegramWebhookUrl: string | null;
   telegramWebhookSecret: string | null;
   devAuthEnabled: boolean;
@@ -226,6 +231,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     miniAppUrl: (parsed.MINI_APP_URL ?? 'http://localhost:5173').replace(/\/$/, ''),
     telegramBotToken: parsed.TELEGRAM_BOT_TOKEN ?? null,
     telegramBotUsername: parsed.TELEGRAM_BOT_USERNAME?.replace(/^@/, '') ?? null,
+    telegramAppName: parsed.TELEGRAM_APP_NAME?.replace(/^\//, '') ?? null,
     telegramWebhookUrl: parsed.TELEGRAM_WEBHOOK_URL ?? null,
     telegramWebhookSecret: parsed.TELEGRAM_WEBHOOK_SECRET ?? null,
     devAuthEnabled: Boolean(parsed.DEV_AUTH_ENABLED) && (!isProduction || parsed.DEMO_MODE === true),

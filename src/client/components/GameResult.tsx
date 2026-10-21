@@ -1,7 +1,15 @@
 import { History, Home, Minus, RotateCcw, Trophy, X } from 'lucide-react';
 import type { PublicMatchState } from '../../shared/game-types';
 import { cn } from '../lib/cn';
-import { describeOutcome, finishReasonCopy, isRatedMatch, modeLabel, opponentFor } from '../lib/game';
+import {
+  describeOutcome,
+  findWinningLine,
+  finishReasonCopy,
+  isRatedMatch,
+  modeLabel,
+  opponentFor,
+  ratingImpactFor,
+} from '../lib/game';
 import { Button, Modal, Pill } from './ui';
 
 export function GameResult({
@@ -22,6 +30,14 @@ export function GameResult({
   const outcome = describeOutcome(match);
   const opponent = opponentFor(match);
   const title = outcome === 'win' ? 'You win!' : outcome === 'loss' ? 'You lost' : 'Draw';
+  const impact = ratingImpactFor(match);
+  const impactTone = impact === null ? 'neutral' : impact > 0 ? 'success' : 'danger';
+  const impactLabel =
+    impact === null
+      ? isRatedMatch(match)
+        ? 'No rating change'
+        : 'Unrated'
+      : `Rating ${impact > 0 ? '+' : ''}${impact}`;
   const rematch = match.rematch;
   const waiting = rematch.requestedByYou && !rematch.requestedByOpponent;
   const opponentWaiting = rematch.requestedByOpponent && !rematch.requestedByYou;
@@ -57,10 +73,8 @@ export function GameResult({
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-2">
-          <Pill tone={outcome === 'win' ? 'success' : outcome === 'draw' ? 'neutral' : 'danger'}>
-            {modeLabel(match.mode)}
-          </Pill>
-          {isRatedMatch(match) ? <Pill tone="accent">Rated</Pill> : <Pill>Unrated</Pill>}
+          <Pill>{modeLabel(match.mode)}</Pill>
+          <Pill tone={impactTone}>{impactLabel}</Pill>
         </div>
         <h2 className="mt-3 text-2xl font-bold tracking-tight text-ink">{title}</h2>
         <p className="mx-auto mt-1.5 max-w-[19rem] text-sm leading-relaxed text-muted">{finishReasonCopy(match)}</p>
@@ -70,6 +84,8 @@ export function GameResult({
             {opponent.isAi && opponent.aiDifficulty ? ` · ${opponent.aiDifficulty.toLowerCase()}` : ''}
           </p>
         ) : null}
+
+        <FinalBoard match={match} />
 
         <div className="mt-5 space-y-2">
           {rematch.available || match.mode === 'AI' ? (
@@ -102,5 +118,34 @@ export function GameResult({
         ) : null}
       </div>
     </Modal>
+  );
+}
+
+function FinalBoard({ match }: { match: PublicMatchState }) {
+  if (!match.board.some(Boolean)) return null;
+
+  const winningLine = findWinningLine(match.board);
+  const winningCells = new Set<number>(winningLine ?? []);
+
+  return (
+    <div
+      className="mx-auto mt-4 grid w-[8.5rem] grid-cols-3 gap-1 rounded-2xl border border-line bg-elevated/50 p-1.5"
+      role="img"
+      aria-label="Final board"
+    >
+      {match.board.map((cell, index) => (
+        <span
+          key={index}
+          className={cn(
+            'flex aspect-square items-center justify-center rounded-lg border text-base font-bold leading-none',
+            cell ? 'bg-surface' : 'bg-surface/40',
+            winningCells.has(index) ? 'border-accent/40 bg-accent/10' : 'border-line/70',
+            cell === 'X' ? 'text-accent' : cell === 'O' ? 'text-danger' : 'text-muted',
+          )}
+        >
+          {cell ?? ''}
+        </span>
+      ))}
+    </div>
   );
 }
