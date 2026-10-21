@@ -300,6 +300,19 @@ describe('HTTP API', () => {
     );
   });
 
+  it('keeps cancelled invitations out of match history', async () => {
+    const alice = await authenticate(current.app, 'device-key-history-invite', 'Alice');
+    const aliceEntity = await current.repo.getUserById(alice.user.id);
+    if (!aliceEntity) throw new Error('Missing Alice');
+    const invitation = await current.service.createInvitation(aliceEntity);
+    await current.service.cancelInvitation(alice.user.id, invitation.id);
+
+    const history = await alice.agent.get('/api/history?limit=10');
+    expect(history.status).toBe(200);
+    expect(history.body.items).toEqual([]);
+    expect(history.body.nextCursor).toBeNull();
+  });
+
   it('validates history and leaderboard query parameters', async () => {
     const session = await authenticate(current.app, 'device-key-query');
     expect((await session.agent.get('/api/history?limit=0')).status).toBe(400);

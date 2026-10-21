@@ -322,6 +322,14 @@ describe('MatchService', () => {
     });
   });
 
+  it('clears stale or orphaned activeMatchId during assertAvailable', async () => {
+    const memoryRepo = repo as unknown as { users: Map<string, { activeMatchId: string | null }> };
+    memoryRepo.users.get(alice.id)!.activeMatchId = randomUUID();
+
+    await expect(service.assertAvailable(alice.id)).resolves.toBeUndefined();
+    expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
+  });
+
   it('plays an AI match and lets Hard block optimally', async () => {
     const match = await service.startAi(alice.id, 'HARD', 'X');
     expect(match.mode).toBe('AI');
@@ -404,6 +412,50 @@ describe('MatchService', () => {
 
     await service.handleConnected(alice);
     await advance(1_000);
+    expect(await repo.getMatchById(match.id)).toMatchObject({
+      status: 'FINISHED',
+      result: 'O_WINS',
+      finishReason: 'TIMEOUT',
+    });
+  });
+
+  it('resumes a paused turn with its remaining time after reconnecting', async () => {
+    service = await startService({ turnTimeoutMs: 1_000, disconnectGraceMs: 10_000 });
+    const match = await createRandomMatch();
+    await advance(250);
+    expect((await repo.getMatchById(match.id))?.turnDeadline?.getTime()).toBe(clock.now().getTime() + 750);
+
+    await service.handleDisconnected(alice.id);
+    await advance(2_000);
+
+    await service.handleConnected(alice);
+    await advance(700);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ACTIVE');
+
+    await advance(60);
+    expect(await repo.getMatchById(match.id)).toMatchObject({
+      status: 'FINISHED',
+      result: 'O_WINS',
+      finishReason: 'TIMEOUT',
+    });
+  });
+
+  it('keeps the paused turn time when the other player reconnects first', async () => {
+    service = await startService({ turnTimeoutMs: 1_000, disconnectGraceMs: 10_000 });
+    const match = await createRandomMatch();
+    await advance(250);
+
+    await service.handleDisconnected(alice.id);
+    await advance(500);
+    await service.handleDisconnected(bob.id);
+    await service.handleConnected(bob);
+    await advance(500);
+
+    await service.handleConnected(alice);
+    await advance(700);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ACTIVE');
+
+    await advance(60);
     expect(await repo.getMatchById(match.id)).toMatchObject({
       status: 'FINISHED',
       result: 'O_WINS',

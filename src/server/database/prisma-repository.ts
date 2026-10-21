@@ -123,6 +123,16 @@ export class PrismaGameRepository implements GameRepository {
     });
   }
 
+  async clearUserReservation(userId: string, matchId?: string): Promise<void> {
+    await this.prisma.user.updateMany({
+      where: {
+        id: userId,
+        ...(matchId ? { activeMatchId: matchId } : { activeMatchId: { not: null } }),
+      },
+      data: { activeMatchId: null },
+    });
+  }
+
   async createMatch(input: CreateMatchInput): Promise<MatchEntity> {
     return this.prisma.$transaction(async (tx) => {
       const now = new Date();
@@ -539,9 +549,18 @@ export class PrismaGameRepository implements GameRepository {
   async getRecentMatches(userId: string, limit: number, cursor?: string): Promise<RecentMatchPage> {
     const matches = await this.prisma.match.findMany({
       where: {
-        participants: { some: { userId } },
         status: { in: ['FINISHED', 'ABANDONED'] },
         finishedAt: { not: null },
+        AND: [
+          { participants: { some: { userId } } },
+          // Cancelled or expired invitations abandon a WAITING match that only
+          // ever had the host. Exclude those unfinished single-player matches.
+          {
+            participants: {
+              some: { OR: [{ isAi: true }, { userId: { not: userId } }] },
+            },
+          },
+        ],
       },
       include: matchInclude,
       orderBy: [{ finishedAt: 'desc' }, { id: 'desc' }],
@@ -688,7 +707,7 @@ export class PrismaGameRepository implements GameRepository {
       WHERE u."activeMatchId" IS NOT NULL
         AND NOT EXISTS (
           SELECT 1 FROM "Match" m
-          WHERE m.id = u."activeMatchId" AND m.status IN ('ACTIVE', 'WAITING')
+          WHERE m.id = u."activeMatchId" AND m.status::text IN ('ACTIVE', 'WAITING')
         )
     `;
     summary.repairedReservations += Number(repaired);

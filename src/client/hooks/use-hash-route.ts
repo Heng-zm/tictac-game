@@ -10,10 +10,11 @@ export type Route =
   | { name: 'leaderboard' }
   | { name: 'notFound' };
 
-function parseHash(hash: string): Route {
-  const raw = hash.replace(/^#\/?/, '').replace(/\/+$/, '');
-  if (!raw) return { name: 'home' };
-  const [first, second] = raw.split('/');
+export function parseHash(hash: string): Route {
+  const withoutHash = hash.replace(/^#\/?/, '');
+  const pathOnly = (withoutHash.split('?')[0] ?? '').replace(/\/+$/, '');
+  if (!pathOnly) return { name: 'home' };
+  const [first, second] = pathOnly.split('/');
   switch (first) {
     case 'search':
       return { name: 'search' };

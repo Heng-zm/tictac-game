@@ -358,6 +358,7 @@ describe('MemoryGameRepository', () => {
     expect(await repo.cancelInvitation(invitation.id, alice.id)).toEqual({ status: 'not_pending' });
     expect((await repo.getMatchById(match.id))?.status).toBe('ABANDONED');
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
+    expect((await repo.getRecentMatches(alice.id, 10)).matches).toEqual([]);
   });
 
   it('accepts invitations exactly once and rejects self-acceptance and busy acceptors', async () => {

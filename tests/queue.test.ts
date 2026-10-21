@@ -53,6 +53,7 @@ describe('MatchmakingQueue', () => {
 
     const second = queue.join('user-b', false);
     // Both entries are removed immediately when a pair is found.
+    expect(second.state).toBe('matched');
     expect(second.waitingPlayers).toBe(0);
     await vi.advanceTimersByTimeAsync(0);
 

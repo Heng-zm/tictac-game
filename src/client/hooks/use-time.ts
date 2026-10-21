@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from 'react';
 
 export function useCountdown(target: string | null | undefined, nowMs?: number): number | null {
-  const targetMs = useMemo(() => (target ? new Date(target).getTime() : null), [target]);
+  const targetMs = useMemo(() => {
+    if (!target) return null;
+    const time = new Date(target).getTime();
+    return Number.isFinite(time) ? time : null;
+  }, [target]);
   const [remaining, setRemaining] = useState<number | null>(() =>
     targetMs === null ? null : Math.max(0, targetMs - (nowMs ?? Date.now())),
   );
@@ -21,7 +25,7 @@ export function useCountdown(target: string | null | undefined, nowMs?: number):
 }
 
 export function formatDuration(ms: number | null): string {
-  if (ms === null) return '--:--';
+  if (ms === null || !Number.isFinite(ms)) return '--:--';
   const totalSeconds = Math.max(0, Math.ceil(ms / 1000));
   const minutes = Math.floor(totalSeconds / 60);
   const seconds = totalSeconds % 60;
@@ -29,7 +33,7 @@ export function formatDuration(ms: number | null): string {
 }
 
 export function formatLongDuration(ms: number | null): string {
-  if (ms === null) return '--';
+  if (ms === null || !Number.isFinite(ms)) return '--';
   const totalMinutes = Math.max(0, Math.ceil(ms / 60_000));
   if (totalMinutes < 1) return '<1m';
   if (totalMinutes < 60) return `${totalMinutes}m`;
@@ -64,5 +68,7 @@ export function formatRelativeTime(iso: string): string {
 }
 
 export function formatClock(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+  const then = new Date(iso).getTime();
+  if (!Number.isFinite(then)) return '';
+  return new Date(then).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
 }

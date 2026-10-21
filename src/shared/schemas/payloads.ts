@@ -80,25 +80,33 @@ export const invitationTokenParamSchema = z.object({
   token: inviteTokenSchema,
 });
 
+const emptyToNull = (val: unknown) => (typeof val === 'string' && val.trim() === '' ? null : val);
+
 export const telegramWebAppUserSchema = z
   .object({
     id: z.number().int().positive().safe(),
     first_name: z.string().min(1).max(128),
-    last_name: z.string().max(128).optional().nullable(),
-    username: z
-      .string()
-      .max(64)
-      .regex(/^[A-Za-z0-9_]+$/)
-      .optional()
-      .nullable(),
-    language_code: z.string().max(16).optional().nullable(),
-    photo_url: z
-      .string()
-      .max(1024)
-      .url()
-      .refine((value) => value.startsWith('https://'), 'Profile photo must use HTTPS')
-      .optional()
-      .nullable(),
+    last_name: z.preprocess(emptyToNull, z.string().max(128).optional().nullable()),
+    username: z.preprocess(
+      emptyToNull,
+      z
+        .string()
+        .max(64)
+        .regex(/^[A-Za-z0-9_]+$/)
+        .optional()
+        .nullable(),
+    ),
+    language_code: z.preprocess(emptyToNull, z.string().max(16).optional().nullable()),
+    photo_url: z.preprocess(
+      emptyToNull,
+      z
+        .string()
+        .max(1024)
+        .url()
+        .refine((value) => value.startsWith('https://'), 'Profile photo must use HTTPS')
+        .optional()
+        .nullable(),
+    ),
     is_bot: z.boolean().optional().nullable(),
     is_premium: z.boolean().optional().nullable(),
   })

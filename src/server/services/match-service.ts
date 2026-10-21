@@ -40,6 +40,8 @@ interface ActiveGame {
   disconnectTimers: Map<string, ReturnType<typeof setTimeout>>;
   disconnectedUsers: Set<string>;
   processedActions: Set<string>;
+  /** Time left on the current turn when the player who owns it disconnected. */
+  pausedTurnRemaining: number | null;
 }
 
 interface RematchTracker {
@@ -99,13 +101,11 @@ export class MatchService {
       }
       const refreshed = await this.deps.repository.getUserById(userId);
       if (refreshed?.activeMatchId) {
-        throw new AppError(409, 'PLAYER_BUSY', 'You already have a game in progress');
+        await this.deps.repository.clearUserReservation(userId, user.activeMatchId);
       }
       return;
     }
-    if (user.activeMatchId) {
-      throw new AppError(409, 'PLAYER_BUSY', 'You already have a game in progress');
-    }
+    await this.deps.repository.clearUserReservation(userId, user.activeMatchId);
   }
 
   async handleConnected(user: UserEntity): Promise<void> {
@@ -149,6 +149,9 @@ export class MatchService {
     game.disconnectedUsers.add(userId);
     if (game.match.currentTurn === userParticipant.side) {
       this.clearTurnTimer(game);
+      game.pausedTurnRemaining = game.match.turnDeadline
+        ? Math.max(0, game.match.turnDeadline.getTime() - this.now().getTime())
+        : null;
       game.match.turnDeadline = null;
     }
     this.startDisconnectTimer(game, userId);
@@ -397,6 +400,9 @@ export class MatchService {
       return this.stateFor(repoResult.match, userId);
     }
     if (repoResult.status === 'conflict') {
+      // The repository is the source of truth after a race. Make sure the
+      // refreshed in-memory state also has a timer for the new turn.
+      this.scheduleTimers(activeGame);
       this.emitState(activeGame);
       throw new AppError(409, 'STALE_STATE', 'The game changed. The board has been refreshed.');
     }
@@ -573,31 +579,36 @@ export class MatchService {
     }
     if (reservation.status !== 'ACTIVE') return true;
 
+    const now = this.now();
     const game = this.installActive(reservation);
-    if (
-      game.match.turnDeadline &&
-      game.match.turnDeadline.getTime() <= this.now().getTime()
-    ) {
-      game.match.turnDeadline = this.deadlineForTurn(
-        game.match.mode,
-        game.match.participants,
-        game.match.currentTurn,
-        this.now(),
-      );
-    }
-    this.joinMatchRooms(game.match);
+    const participant = game.match.participants.find((item) => item.userId === user.id);
     const wasDisconnected = game.disconnectedUsers.has(user.id);
     if (wasDisconnected) {
       game.disconnectedUsers.delete(user.id);
       const timer = game.disconnectTimers.get(user.id);
       if (timer) clearTimeout(timer);
       game.disconnectTimers.delete(user.id);
-      game.match.turnDeadline =
-        game.match.currentTurn === game.match.participants.find((p) => p.userId === user.id)?.side
-          ? this.deadlineForTurn(game.match.mode, game.match.participants, game.match.currentTurn, this.now())
-          : game.match.turnDeadline;
+      if (participant && game.match.currentTurn === participant.side) {
+        // Resume the turn with the time that was left when the player dropped
+        // instead of restarting the full timer.
+        game.match.turnDeadline =
+          game.pausedTurnRemaining !== null
+            ? new Date(now.getTime() + game.pausedTurnRemaining)
+            : this.deadlineForTurn(game.match.mode, game.match.participants, game.match.currentTurn, now);
+        // Only the player who owned the paused turn consumes the stored time.
+        // A reconnect by the other player must not clear it.
+        game.pausedTurnRemaining = null;
+      }
       this.emitOpponentReconnected(game, user.id);
+    } else if (game.match.turnDeadline && game.match.turnDeadline.getTime() <= now.getTime()) {
+      game.match.turnDeadline = this.deadlineForTurn(
+        game.match.mode,
+        game.match.participants,
+        game.match.currentTurn,
+        now,
+      );
     }
+    this.joinMatchRooms(game.match);
     this.scheduleTimers(game);
     this.emitState(game);
     return true;
@@ -664,6 +675,7 @@ export class MatchService {
       disconnectTimers: new Map(),
       disconnectedUsers: new Set(),
       processedActions: new Set(),
+      pausedTurnRemaining: null,
     };
     this.games.set(match.id, game);
     for (const participant of match.participants) {
@@ -895,6 +907,7 @@ export class MatchService {
         this.emitState(game);
       }
     } else if (repoResult.status === 'conflict') {
+      this.scheduleTimers(game);
       this.emitState(game);
     }
   }
@@ -922,6 +935,7 @@ export class MatchService {
       if (game.match.status === 'FINISHED') {
         this.finishUi(game);
       } else {
+        this.scheduleTimers(game);
         this.emitState(game);
       }
     }
@@ -939,6 +953,9 @@ export class MatchService {
     this.clearAllGameTimers(game);
     this.removeUserMatch(game.match);
     this.emitToParticipants(game.match, 'match:state');
+    // Both players were offline when the match was abandoned, so there is no
+    // one left to resume it. Drop the in-memory game instead of leaking it.
+    if (this.games.get(game.match.id) === game) this.games.delete(game.match.id);
   }
 
   private finishUi(game: ActiveGame): void {

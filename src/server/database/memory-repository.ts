@@ -103,6 +103,14 @@ export class MemoryGameRepository implements GameRepository {
     if (user) user.lastSeenAt = this.clock();
   }
 
+  async clearUserReservation(userId: string, matchId?: string): Promise<void> {
+    const user = this.users.get(userId);
+    if (!user) return;
+    if (!matchId || user.activeMatchId === matchId) {
+      user.activeMatchId = null;
+    }
+  }
+
   async createMatch(input: CreateMatchInput): Promise<MatchEntity> {
     const humanIds = input.participants
       .map((participant) => participant.userId)
@@ -440,7 +448,11 @@ export class MemoryGameRepository implements GameRepository {
         (match) =>
           (match.status === 'FINISHED' || match.status === 'ABANDONED') &&
           match.finishedAt !== null &&
-          match.participants.some((participant) => participant.userId === userId),
+          match.participants.some((participant) => participant.userId === userId) &&
+          // Cancelled or expired invitations abandon a WAITING match that only
+          // ever had the host. They are not games and cannot produce a history
+          // entry (there is no opponent).
+          match.participants.length >= 2,
       )
       .sort((a, b) => {
         const diff = (b.finishedAt?.getTime() ?? 0) - (a.finishedAt?.getTime() ?? 0);

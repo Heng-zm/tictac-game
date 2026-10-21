@@ -3,6 +3,7 @@ import type { TelegramThemeParams, TelegramWebApp } from '../types/telegram';
 const INVITE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 
 export function getWebApp(): TelegramWebApp | null {
+  if (typeof window === 'undefined') return null;
   return window.Telegram?.WebApp ?? null;
 }
 
@@ -11,8 +12,16 @@ export function readStartParam(): string | null {
   const tg = getWebApp();
   const fromTelegram = tg?.initDataUnsafe?.start_param;
   if (fromTelegram) return fromTelegram;
+  if (typeof window === 'undefined') return null;
   const params = new URLSearchParams(window.location.search);
-  return params.get('startapp') ?? params.get('start') ?? null;
+  const fromSearch = params.get('tgWebAppStartParam') ?? params.get('startapp') ?? params.get('start');
+  if (fromSearch) return fromSearch;
+  if (window.location.hash.includes('?')) {
+    const hashQuery = window.location.hash.slice(window.location.hash.indexOf('?') + 1);
+    const hashParams = new URLSearchParams(hashQuery);
+    return hashParams.get('tgWebAppStartParam') ?? hashParams.get('startapp') ?? hashParams.get('start') ?? null;
+  }
+  return null;
 }
 
 export function parseInviteToken(startParam: string | null): string | null {

@@ -66,6 +66,15 @@ export class MatchmakingQueue {
       this.removeEntry(opponent.userId);
       this.removeEntry(userId);
       void this.startHumanMatch(opponent.userId, userId);
+      return {
+        state: 'matched',
+        mode: QUEUE_MODE,
+        elapsedMs: 0,
+        fallbackAt: null,
+        fallbackAvailable: false,
+        autoFallback: autoAiFallback,
+        waitingPlayers: this.entries.size,
+      };
     }
 
     return this.toStatus(entry);

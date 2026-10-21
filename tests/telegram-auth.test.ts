@@ -222,4 +222,28 @@ describe('Telegram initData verification', () => {
     expect(verified.lastName).toBeNull();
     expect(verified.username).toBeNull();
   });
+
+  it('normalizes empty strings in optional user fields to null', () => {
+    const initData = buildTelegramInitDataForTest(
+      TEST_BOT_TOKEN,
+      {
+        id: 8,
+        first_name: 'Bob',
+        last_name: '',
+        username: '',
+        photo_url: '',
+        language_code: '',
+      },
+      NOW_SECONDS - 1,
+    );
+    const verified = verifyTelegramInitData(initData, TEST_BOT_TOKEN, {
+      maxAgeSeconds: 100,
+      now: NOW,
+    });
+    expect(verified.firstName).toBe('Bob');
+    expect(verified.lastName).toBeNull();
+    expect(verified.username).toBeNull();
+    expect(verified.photoUrl).toBeNull();
+    expect(verified.languageCode).toBeNull();
+  });
 });

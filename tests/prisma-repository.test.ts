@@ -438,6 +438,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect((await repo.getInvitationById(expired.invitation.id))?.status).toBe('EXPIRED');
     expect((await repo.getMatchById(expired.match.id))?.status).toBe('ABANDONED');
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
+    expect((await repo.getRecentMatches(alice.id, 10)).matches).toEqual([]);
     expect(await repo.acceptInvitation(expiredHash, bob, null)).toEqual({ status: 'expired' });
     expect(await repo.acceptInvitation(hashInvitationToken('9'.repeat(43)), bob, null)).toEqual({
       status: 'not_found',

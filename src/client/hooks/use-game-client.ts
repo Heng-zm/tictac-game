@@ -300,6 +300,11 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     socket.on('queue:status', (status) => {
       if (!active) return;
+      if (status.state === 'matched') {
+        setQueue(null);
+        hapticNotify('success');
+        return;
+      }
       setQueue(status);
       if (status.state === 'error') {
         pushToast({ type: 'error', title: 'Matchmaking stopped', message: status.message });
@@ -311,7 +316,6 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
           message: 'You can try again or play against the bot.',
         });
       }
-      if (status.state === 'matched') hapticNotify('success');
     });
 
     socket.on('match:found', ({ match: found }) => {
@@ -339,7 +343,13 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
         if (!current || current.id !== event.matchId || current.board[event.cell] !== null) return current;
         const board = [...current.board];
         board[event.cell] = event.side;
-        return { ...current, board };
+        return {
+          ...current,
+          board,
+          version: Math.max(current.version, event.version),
+          turnNumber: current.turnNumber + 1,
+          currentTurn: event.side === 'X' ? 'O' : 'X',
+        };
       });
       hapticImpact('light');
     });
@@ -450,7 +460,9 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     const result = await request<QueueJoinResult>((ack) => {
       socket.emit('queue:join', { autoAiFallback }, ack);
     });
-    setQueue(result.status);
+    if (result.status.state !== 'matched') {
+      setQueue(result.status);
+    }
     return result.status;
   }, [requireSocket]);
 

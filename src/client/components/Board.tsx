@@ -76,6 +76,27 @@ function clamp(value: number): number {
 export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, onCell }: BoardProps) {
   const line = winningLine ? winningLineGeometry(winningLine) : null;
   const winning = new Set(winningLine ?? []);
+  const winningSide = winningLine ? board[winningLine[0]] : null;
+  const isOWin = winningSide === 'O';
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
+    let targetIndex: number | null = null;
+    if (e.key === 'ArrowUp') {
+      targetIndex = currentIndex >= 3 ? currentIndex - 3 : null;
+    } else if (e.key === 'ArrowDown') {
+      targetIndex = currentIndex <= 5 ? currentIndex + 3 : null;
+    } else if (e.key === 'ArrowLeft') {
+      targetIndex = currentIndex % 3 !== 0 ? currentIndex - 1 : null;
+    } else if (e.key === 'ArrowRight') {
+      targetIndex = currentIndex % 3 !== 2 ? currentIndex + 1 : null;
+    }
+
+    if (targetIndex !== null) {
+      e.preventDefault();
+      const targetButton = e.currentTarget.parentElement?.children[targetIndex] as HTMLElement | undefined;
+      targetButton?.focus();
+    }
+  };
 
   return (
     <div className="game-board-frame relative select-none">
@@ -94,15 +115,21 @@ export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, on
               role="gridcell"
               aria-label={`${cellName(index)}, ${cell ?? 'empty'}`}
               aria-disabled={!canPlay}
-              disabled={!canPlay}
-              onClick={() => onCell(index)}
+              onClick={() => {
+                if (canPlay) onCell(index);
+              }}
+              onKeyDown={(e) => handleKeyDown(e, index)}
               className={cn(
                 'group relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl border bg-elevated/70 transition duration-150',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
                 cell === 'X' ? 'text-accent' : cell === 'O' ? 'text-danger' : 'text-ink',
-                cell === null && canPlay && 'hover:border-accent/40 hover:bg-accent/5 active:scale-[0.97]',
+                cell === null && canPlay && 'cursor-pointer hover:border-accent/40 hover:bg-accent/5 active:scale-[0.97]',
+                !canPlay && 'cursor-default',
                 cell === null ? 'border-line' : 'border-transparent',
-                isWinning && 'border-accent/40 bg-accent/10 shadow-[0_0_30px_-10px_var(--app-accent)]',
+                isWinning &&
+                  (isOWin
+                    ? 'border-danger/40 bg-danger/10 shadow-[0_0_30px_-10px_var(--app-danger)]'
+                    : 'border-accent/40 bg-accent/10 shadow-[0_0_30px_-10px_var(--app-accent)]'),
               )}
             >
               {cell === 'X' ? <XMark /> : null}
@@ -130,10 +157,14 @@ export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, on
             y1={line.y1}
             x2={line.x2}
             y2={line.y2}
-            stroke="var(--app-accent)"
+            pathLength={100}
+            stroke={isOWin ? 'var(--app-danger)' : 'var(--app-accent)'}
             strokeWidth="0.09"
             strokeLinecap="round"
-            className="animate-draw-line drop-shadow-[0_0_6px_var(--app-accent)]"
+            className={cn(
+              'animate-draw-line',
+              isOWin ? 'drop-shadow-[0_0_6px_var(--app-danger)]' : 'drop-shadow-[0_0_6px_var(--app-accent)]',
+            )}
             style={{ strokeDasharray: 100 }}
           />
         </svg>

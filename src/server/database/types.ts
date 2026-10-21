@@ -226,6 +226,7 @@ export interface GameRepository {
   getUserById(id: string): Promise<UserEntity | null>;
   setAutoAiFallback(userId: string, value: boolean): Promise<UserEntity>;
   touchUser(userId: string): Promise<void>;
+  clearUserReservation(userId: string, matchId?: string): Promise<void>;
 
   createMatch(input: CreateMatchInput): Promise<MatchEntity>;
   createInvitationMatch(input: CreateInvitationInput): Promise<{ match: MatchEntity; invitation: InvitationEntity }>;

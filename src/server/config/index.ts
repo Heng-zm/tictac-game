@@ -25,9 +25,11 @@ const envSchema = z
     TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
     TELEGRAM_WEBHOOK_SECRET: z
       .string()
-      .min(16)
-      .max(256)
-      .regex(/^[A-Za-z0-9_-]+$/, 'TELEGRAM_WEBHOOK_SECRET must use only letters, digits, "_" and "-"')
+      .transform((val) => val.replace(/=+$/, ''))
+      .refine(
+        (val) => val.length >= 16 && val.length <= 256 && /^[A-Za-z0-9_-]+$/.test(val),
+        'TELEGRAM_WEBHOOK_SECRET must use only letters, digits, "_" and "-"',
+      )
       .optional(),
     DEV_AUTH_ENABLED: booleanString.optional(),
     CORS_ORIGINS: z.string().default('http://localhost:5173'),
