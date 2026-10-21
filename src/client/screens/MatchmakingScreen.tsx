@@ -227,7 +227,7 @@ export function MatchmakingScreen({
               >
                 <div
                   className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-linear"
-                  style={{ width: `${Math.max(3, Math.round(searchProgress * 100))}%` }}
+                  style={{ width: `${Math.round(searchProgress * 100)}%` }}
                 />
               </div>
             </div>

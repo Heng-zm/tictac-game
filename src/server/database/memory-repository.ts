@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { createEmptyBoard, type Board, type Side } from '../../shared/game-types';
+import { createEmptyBoard, type Side } from '../../shared/game-types';
 import { RepositoryConflictError } from '../errors';
 import { ratingDeltaFor, statsDeltaFor } from '../game/scoring';
 import type {
