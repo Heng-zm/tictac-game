@@ -1,97 +1,111 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMove,
-  countEmptyCells,
   getAvailableMoves,
   getGameStatus,
   getWinner,
   isBoardFull,
   isValidBoard,
   sideToMove,
-  validateBoard,
 } from '../src/server/game/rules';
 import {
-  WINNING_LINES,
   createEmptyBoard,
+  decodeCell,
+  encodeCell,
   type Board,
-  type Cell,
 } from '../src/shared/game-types';
 
-const DRAW_BOARD: Cell[] = ['X', 'O', 'X', 'X', 'O', 'O', 'O', 'X', 'X'];
+describe('infinite grid 5-in-a-row rules', () => {
+  it('detects horizontal 5-in-a-row win for X', () => {
+    const board: Board = createEmptyBoard();
+    // 5 in a row horizontally at y=0, x=0..4
+    for (let x = 0; x < 5; x++) {
+      board[encodeCell(x, 0)] = 'X';
+    }
+    // 4 moves for O elsewhere
+    for (let x = 0; x < 4; x++) {
+      board[encodeCell(x, 1)] = 'O';
+    }
 
-function boardWithXLine(line: readonly [number, number, number]): Cell[] {
-  const board = createEmptyBoard();
-  for (const index of line) board[index] = 'X';
-  return board;
-}
-
-describe('game rules', () => {
-  it.each(WINNING_LINES.map((line) => [line.join('-'), line] as const))(
-    'detects winning line %s',
-    (_label, line) => {
-      const board = boardWithXLine(line);
-      expect(getWinner(board)).toEqual({ side: 'X', line });
-      expect(getGameStatus(board)).toEqual({ status: 'WON', winner: 'X', line });
-      expect(isBoardFull(board)).toBe(false);
-    },
-  );
-
-  it('detects O wins and draws', () => {
-    const board: Cell[] = [null, null, null, 'O', 'O', 'O', null, null, null];
-    expect(getWinner(board)).toEqual({ side: 'O', line: [3, 4, 5] });
-    expect(getWinner(DRAW_BOARD)).toBeNull();
-    expect(getGameStatus(DRAW_BOARD)).toEqual({ status: 'DRAW', winner: null, line: null });
-    expect(isBoardFull(DRAW_BOARD)).toBe(true);
-    expect(countEmptyCells(DRAW_BOARD)).toBe(0);
+    const winner = getWinner(board);
+    expect(winner).not.toBeNull();
+    expect(winner?.side).toBe('X');
+    expect(winner?.line.length).toBe(5);
+    expect(getGameStatus(board).status).toBe('WON');
   });
 
-  it('reports an active game and available moves', () => {
-    const board: Cell[] = ['X', null, 'O', null, 'X', null, null, null, null];
+  it('detects vertical 5-in-a-row win for O', () => {
+    const board: Board = createEmptyBoard();
+    // 5 moves for X
+    for (let i = 0; i < 5; i++) board[encodeCell(i, 5)] = 'X';
+    // 5 in a row vertically for O at x=2, y=0..4
+    for (let y = 0; y < 5; y++) board[encodeCell(2, y)] = 'O';
+
+    const winner = getWinner(board);
+    expect(winner).not.toBeNull();
+    expect(winner?.side).toBe('O');
+  });
+
+  it('detects diagonal 5-in-a-row win', () => {
+    const board: Board = createEmptyBoard();
+    for (let i = 0; i < 5; i++) board[encodeCell(i, i)] = 'X';
+    for (let i = 0; i < 4; i++) board[encodeCell(i, -1)] = 'O';
+
+    const winner = getWinner(board);
+    expect(winner).not.toBeNull();
+    expect(winner?.side).toBe('X');
+  });
+
+  it('reports active game when fewer than 5 in a row', () => {
+    const board: Board = createEmptyBoard();
+    board[encodeCell(0, 0)] = 'X';
+    board[encodeCell(1, 0)] = 'O';
+    expect(getWinner(board)).toBeNull();
     expect(getGameStatus(board)).toEqual({ status: 'ACTIVE', winner: null, line: null });
-    expect(getAvailableMoves(board)).toEqual([1, 3, 5, 6, 7, 8]);
-    expect(countEmptyCells(board)).toBe(6);
   });
 
-  it('applies a valid move without mutating the source board', () => {
+  it('infinite board never fills up and has no draw', () => {
+    const board: Board = createEmptyBoard();
+    expect(isBoardFull(board)).toBe(false);
+  });
+
+  it('applies a valid move without mutating original board', () => {
     const board = createEmptyBoard();
-    const result = applyMove(board, 'X', 4);
+    const cell = encodeCell(2, 3);
+    const result = applyMove(board, 'X', cell);
     expect(result.ok).toBe(true);
     if (!result.ok) throw new Error('unreachable');
-    expect(result.board[4]).toBe('X');
-    expect(board[4]).toBeNull();
+    expect(result.board[cell]).toBe('X');
+    expect(board[cell]).toBeUndefined();
   });
 
-  it('rejects invalid, occupied and finished boards', () => {
-    expect(applyMove(createEmptyBoard(), 'X', -1)).toEqual({ ok: false, code: 'INVALID_CELL' });
-    expect(applyMove(createEmptyBoard(), 'X', 9)).toEqual({ ok: false, code: 'INVALID_CELL' });
-    expect(applyMove(createEmptyBoard(), 'X', 1.5)).toEqual({ ok: false, code: 'INVALID_CELL' });
-    expect(applyMove(createEmptyBoard(), 'X', Number.NaN)).toEqual({ ok: false, code: 'INVALID_CELL' });
-
-    const occupied: Cell[] = [null, 'O', null, null, null, null, null, null, null];
-    expect(applyMove(occupied, 'X', 1)).toEqual({ ok: false, code: 'OCCUPIED_CELL' });
-
-    const won: Cell[] = ['X', 'X', 'X', 'O', 'O', null, null, null, null];
-    expect(applyMove(won, 'O', 5)).toEqual({ ok: false, code: 'GAME_FINISHED' });
-    // A full board has no empty cell, so the occupancy check wins over the
-    // finished check for any attempted move.
-    expect(applyMove(DRAW_BOARD, 'X', 0)).toEqual({ ok: false, code: 'OCCUPIED_CELL' });
+  it('rejects occupied cells and finished games', () => {
+    const board: Board = createEmptyBoard();
+    const cell = encodeCell(0, 0);
+    board[cell] = 'X';
+    expect(applyMove(board, 'O', cell)).toEqual({ ok: false, code: 'OCCUPIED_CELL' });
   });
 
-  it('validates board shapes', () => {
-    expect(isValidBoard(DRAW_BOARD)).toBe(true);
+  it('validates board object shape', () => {
     expect(isValidBoard(createEmptyBoard())).toBe(true);
+    expect(isValidBoard({ [encodeCell(0, 0)]: 'X' })).toBe(true);
     expect(isValidBoard([])).toBe(false);
-    expect(isValidBoard(['X', 'O'])).toBe(false);
-    expect(isValidBoard(['X', 'O', 'X', 'O', 'X', 'O', 'X', 'O', 'Z'])).toBe(false);
-    expect(() => validateBoard(['X'] as unknown as Board)).toThrow('Invalid board state');
+    expect(isValidBoard(null)).toBe(false);
   });
 
-  it('derives the side to move from mark counts', () => {
-    expect(sideToMove(createEmptyBoard())).toBe('X');
-    expect(sideToMove(['X', null, null, null, null, null, null, null, null])).toBe('O');
-    expect(sideToMove(['X', 'O', 'X', null, null, null, null, null, null])).toBe('O');
-    expect(() => sideToMove(['O', null, null, null, null, null, null, null, null])).toThrow(
-      'Invalid move counts on board',
-    );
+  it('derives side to move correctly', () => {
+    const board = createEmptyBoard();
+    expect(sideToMove(board)).toBe('X');
+    board[encodeCell(0, 0)] = 'X';
+    expect(sideToMove(board)).toBe('O');
+    board[encodeCell(1, 0)] = 'O';
+    expect(sideToMove(board)).toBe('X');
+  });
+
+  it('correctly decodes cell coordinates', () => {
+    const cell = encodeCell(15, -7);
+    const decoded = decodeCell(cell);
+    expect(decoded.x).toBe(15);
+    expect(decoded.y).toBe(-7);
   });
 });

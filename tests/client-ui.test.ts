@@ -3,6 +3,7 @@ import { formatClock, formatDuration, formatLongDuration } from '../src/client/h
 import { parseHash } from '../src/client/hooks/use-hash-route';
 import { readStartParam } from '../src/client/lib/telegram';
 import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink } from '../src/client/lib/invites';
+import { rankForRating } from '../src/client/lib/ranks';
 
 const localConfig = {
   botUsername: null,
@@ -84,5 +85,22 @@ describe('client UI formatting', () => {
     expect(readStartParam()).toBe('invite_hash');
 
     vi.unstubAllGlobals();
+  });
+
+  it('derives ladder tiers and progress from the rating', () => {
+    expect(rankForRating(999)).toMatchObject({
+      name: 'Rookie',
+      nextRank: { name: 'Bronze' },
+      pointsToNext: 1,
+    });
+    expect(rankForRating(1000)).toMatchObject({
+      name: 'Bronze',
+      nextRank: { name: 'Silver' },
+      pointsToNext: 100,
+      progress: 0,
+    });
+    expect(rankForRating(1099)).toMatchObject({ name: 'Bronze', pointsToNext: 1 });
+    expect(rankForRating(1100)).toMatchObject({ name: 'Silver', nextRank: { name: 'Gold' } });
+    expect(rankForRating(1800)).toMatchObject({ name: 'Master', nextRank: null, progress: 1 });
   });
 });

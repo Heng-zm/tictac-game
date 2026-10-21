@@ -22,7 +22,7 @@ export function buildMatchView(match: MatchEntity, userId: string, options: Matc
     id: match.id,
     mode: match.mode,
     status: match.status,
-    board: [...match.board],
+    board: { ...match.board },
     currentTurn: match.currentTurn,
     turnNumber: match.turnNumber,
     version: match.version,

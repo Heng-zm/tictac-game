@@ -20,6 +20,10 @@ export default function App() {
   const inviteHandled = useRef(false);
 
   useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [route]);
+
+  useEffect(() => {
     if (client.phase !== 'ready' || inviteHandled.current) return;
     const token = client.initialInviteToken;
     if (!token) return;
@@ -91,6 +95,12 @@ export default function App() {
       : null;
 
   const showConnectionBanner = route.name !== 'game' && route.name !== 'search';
+  // The result modal already communicates the outcome while the player is on
+  // the board, so keep its toast out of the modal's action area.
+  const visibleToasts =
+    route.name === 'game'
+      ? client.toasts.filter((toast) => toast.source !== 'match-result')
+      : client.toasts;
 
   return (
     <div className="min-h-[var(--app-vh)]">
@@ -98,8 +108,10 @@ export default function App() {
         <ConnectionBanner connection={client.connection} onRetry={client.reconnect} />
       ) : null}
       {screen}
-      {nav ? <BottomNav active={nav} onNavigate={navigate} /> : null}
-      <ToastViewport toasts={client.toasts} onDismiss={client.dismissToast} />
+      {nav ? (
+        <BottomNav active={nav} onNavigate={navigate} hasActiveGame={client.match?.status === 'ACTIVE'} />
+      ) : null}
+      <ToastViewport toasts={visibleToasts} onDismiss={client.dismissToast} />
     </div>
   );
 }

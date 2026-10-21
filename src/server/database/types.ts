@@ -1,5 +1,6 @@
 import type {
   AiDifficulty,
+  Board,
   FinishReason,
   InvitationStatus,
   MatchMode,
@@ -66,7 +67,7 @@ export interface MatchEntity {
   id: string;
   mode: MatchMode;
   status: MatchStatus;
-  board: (Side | null)[];
+  board: Board;
   currentTurn: Side | null;
   turnNumber: number;
   winnerSide: Side | null;
@@ -131,7 +132,7 @@ export interface RecordMoveInput {
   side: Side;
   cell: number;
   actionId: string;
-  boardAfter: (Side | null)[];
+  boardAfter: Board;
   nextTurn: Side | null;
   moveNumber: number;
   turnDeadline: Date | null;

@@ -4,7 +4,12 @@ import request from 'supertest';
 import { io as createClient, type Socket } from 'socket.io-client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createGameServer, type GameServerRuntime } from '../src/server/create-server';
-import type { QueueStatus, SocketAck, UserProfile } from '../src/shared/game-types';
+import {
+  encodeCell,
+  type QueueStatus,
+  type SocketAck,
+  type UserProfile,
+} from '../src/shared/game-types';
 import { makeTestConfig, makeTestLogger } from './helpers';
 
 interface Session {
@@ -16,7 +21,7 @@ interface MatchFound {
   match: {
     id: string;
     status: string;
-    board: Array<'X' | 'O' | null>;
+    board: Record<number, 'X' | 'O'>;
     currentTurn: 'X' | 'O' | null;
     turnNumber: number;
     version: number;
@@ -242,31 +247,45 @@ describe('Socket.IO end-to-end', () => {
     const xSocket = aliceSide === 'X' ? aliceSocket : bobSocket;
     const oSocket = bobSide === 'O' ? bobSocket : aliceSocket;
 
+    const c00 = encodeCell(0, 0);
+    const c01 = encodeCell(0, 1);
+    const c10 = encodeCell(1, 0);
+    const c11 = encodeCell(1, 1);
+    const c20 = encodeCell(2, 0);
+    const c21 = encodeCell(2, 1);
+    const c30 = encodeCell(3, 0);
+    const c31 = encodeCell(3, 1);
+    const c40 = encodeCell(4, 0);
+
     const firstAction = randomUUID();
     const firstMove = expectOk<{ match: MatchFound['match'] }>(
-      await emitAck(xSocket, 'move:submit', { matchId, cell: 0, actionId: firstAction }),
+      await emitAck(xSocket, 'move:submit', { matchId, cell: c00, actionId: firstAction }),
     );
-    expect(firstMove.match.board[0]).toBe('X');
+    expect(firstMove.match.board[c00]).toBe('X');
     expect(firstMove.match.currentTurn).toBe('O');
 
     const duplicate = expectOk<{ match: MatchFound['match'] }>(
-      await emitAck(xSocket, 'move:submit', { matchId, cell: 0, actionId: firstAction }),
+      await emitAck(xSocket, 'move:submit', { matchId, cell: c00, actionId: firstAction }),
     );
     expect(duplicate.match.version).toBe(firstMove.match.version);
 
     expectError(
-      await emitAck(xSocket, 'move:submit', { matchId, cell: 1, actionId: randomUUID() }),
+      await emitAck(xSocket, 'move:submit', { matchId, cell: c10, actionId: randomUUID() }),
       'OUT_OF_TURN',
     );
     expectError(
-      await emitAck(oSocket, 'move:submit', { matchId, cell: 0, actionId: randomUUID() }),
+      await emitAck(oSocket, 'move:submit', { matchId, cell: c00, actionId: randomUUID() }),
       'OCCUPIED_CELL',
     );
 
     const moves: Array<[Socket, number]> = [
-      [oSocket, 3],
-      [xSocket, 1],
-      [oSocket, 4],
+      [oSocket, c01],
+      [xSocket, c10],
+      [oSocket, c11],
+      [xSocket, c20],
+      [oSocket, c21],
+      [xSocket, c30],
+      [oSocket, c31],
     ];
     for (const [socket, cell] of moves) {
       expectOk(await emitAck(socket, 'move:submit', { matchId, cell, actionId: randomUUID() }));
@@ -276,7 +295,7 @@ describe('Socket.IO end-to-end', () => {
     const oFinished = waitFor<MatchFound>(oSocket, 'match:finished');
     const finalActionId = randomUUID();
     const finalMove = expectOk<{ match: MatchFound['match'] }>(
-      await emitAck(xSocket, 'move:submit', { matchId, cell: 2, actionId: finalActionId }),
+      await emitAck(xSocket, 'move:submit', { matchId, cell: c40, actionId: finalActionId }),
     );
     expect(finalMove.match.status).toBe('FINISHED');
     expect(finalMove.match.result).toBe('X_WINS');
@@ -288,7 +307,7 @@ describe('Socket.IO end-to-end', () => {
     expect(oFinal.match.result).toBe('X_WINS');
 
     const retry = expectOk<{ match: MatchFound['match'] }>(
-      await emitAck(xSocket, 'move:submit', { matchId, cell: 2, actionId: finalActionId }),
+      await emitAck(xSocket, 'move:submit', { matchId, cell: c40, actionId: finalActionId }),
     );
     expect(retry.match.status).toBe('FINISHED');
 
@@ -323,15 +342,17 @@ describe('Socket.IO end-to-end', () => {
     expect(match.match.id).toBe(started.matchId);
     expect(match.match.youSide).toBe('X');
 
+    const c00 = encodeCell(0, 0);
     const afterAiMove = waitFor<MatchFound>(
       socket,
       'match:state',
       (payload) => payload.match.turnNumber >= 2,
     );
-    expectOk(await emitAck(socket, 'move:submit', { matchId: started.matchId, cell: 0, actionId: randomUUID() }));
+    expectOk(await emitAck(socket, 'move:submit', { matchId: started.matchId, cell: c00, actionId: randomUUID() }));
     const state = await afterAiMove;
-    expect(state.match.board[0]).toBe('X');
-    expect(state.match.board[4]).toBe('O');
+    expect(state.match.board[c00]).toBe('X');
+    const oMoves = Object.values(state.match.board).filter((v) => v === 'O');
+    expect(oMoves).toHaveLength(1);
     expect(state.match.turnNumber).toBe(2);
     expect(state.match.currentTurn).toBe('X');
 

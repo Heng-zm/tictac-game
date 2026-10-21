@@ -110,17 +110,17 @@ export function GameScreen({
       youSide &&
       match.youSide === youSide,
   );
-  const board = match?.board ?? [];
+  const board = match?.board ?? {};
   const displayBoard =
     pendingCell !== null && youSide
-      ? board.map((cell, index) => (index === pendingCell ? youSide : cell))
+      ? { ...board, [pendingCell]: youSide }
       : board;
   const activeBoard = match?.status === 'FINISHED' ? board : displayBoard;
   const winningLine = match ? findWinningLine(activeBoard) : null;
   const lastMoveCell = client.lastMove && client.match?.id === match?.id ? client.lastMove.cell : null;
 
   async function playCell(cell: number): Promise<void> {
-    if (!match || match.status !== 'ACTIVE' || !yourTurn || pendingCell !== null || board[cell] !== null) return;
+    if (!match || match.status !== 'ACTIVE' || !yourTurn || pendingCell !== null || board[cell] !== undefined) return;
     const actionId = makeActionId();
     setPendingCell(cell);
     setPendingActionId(actionId);
@@ -304,6 +304,10 @@ export function GameScreen({
   const clockUrgent = Boolean(
     yourTurn && match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnRemaining <= 5000,
   );
+  const turnLabel =
+    match.status === 'FINISHED'
+      ? `${match.turnNumber} ${match.turnNumber === 1 ? 'move' : 'moves'}`
+      : `Turn ${match.turnNumber + 1}`;
 
   return (
     <Page className="flex min-h-[var(--app-vh)] flex-col pb-[calc(env(safe-area-inset-bottom)+20px)]">
@@ -390,11 +394,10 @@ export function GameScreen({
           <p className="min-w-0 truncate text-sm font-medium text-ink" aria-live="polite">
             {statusText}
           </p>
-          <p className="shrink-0 text-[11px] font-medium text-muted">Turn {match.turnNumber}</p>
+          <p className="shrink-0 text-[11px] font-medium text-muted">{turnLabel}</p>
         </div>
         <p className="mt-1 px-0.5 text-[10px] leading-relaxed text-muted">
-          {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · moves verified by the server · leaving does not
-          forfeit
+          {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · 5 in a row to win · infinite grid · drag to pan
         </p>
       </div>
 

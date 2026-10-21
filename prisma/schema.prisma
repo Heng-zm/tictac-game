@@ -111,7 +111,7 @@ model Match {
   id             String        @id @default(uuid()) @db.Uuid
   mode           MatchMode
   status         MatchStatus   @default(WAITING)
-  board          String        @default(".........") @db.VarChar(9)
+  board          String        @default("{}")
   currentTurn    Side?
   turnNumber     Int           @default(0)
   winnerSide     Side?
@@ -166,7 +166,7 @@ model Move {
   actionId        String   @db.VarChar(64)
   cell            Int
   moveNumber      Int
-  boardAfter      String   @db.VarChar(9)
+  boardAfter      String
   createdAt       DateTime @default(now()) @db.Timestamptz(3)
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)

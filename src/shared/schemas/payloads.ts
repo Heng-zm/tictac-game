@@ -33,7 +33,7 @@ export const matchJoinSchema = z.object({ matchId: uuidSchema }).strict();
 export const moveSubmitSchema = z
   .object({
     matchId: uuidSchema,
-    cell: z.number().int().min(0).max(8),
+    cell: z.number().int(),
     actionId: uuidSchema,
   })
   .strict();

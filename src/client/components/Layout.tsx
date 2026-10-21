@@ -86,9 +86,11 @@ type NavName = 'home' | 'leaderboard' | 'profile';
 export function BottomNav({
   active,
   onNavigate,
+  hasActiveGame = false,
 }: {
   active: NavName;
   onNavigate: (path: string) => void;
+  hasActiveGame?: boolean;
 }) {
   const items = [
     { name: 'home' as const, label: 'Play', icon: Home, path: '/' },
@@ -104,18 +106,28 @@ export function BottomNav({
         {items.map((item) => {
           const selected = active === item.name;
           const Icon = item.icon;
+          const showActiveGame = item.name === 'home' && hasActiveGame;
           return (
             <button
               key={item.name}
               type="button"
               onClick={() => onNavigate(item.path)}
               aria-current={selected ? 'page' : undefined}
+              aria-label={showActiveGame ? `${item.label} (game in progress)` : undefined}
               className={cn(
                 'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
                 selected ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-elevated hover:text-ink',
               )}
             >
-              <Icon className="h-5 w-5" aria-hidden />
+              <span className="relative">
+                <Icon className="h-5 w-5" aria-hidden />
+                {showActiveGame ? (
+                  <span
+                    className="absolute -right-1.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent ring-2 ring-surface"
+                    aria-hidden
+                  />
+                ) : null}
+              </span>
               {item.label}
             </button>
           );

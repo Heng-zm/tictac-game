@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Side } from '../../shared/game-types';
+import { createEmptyBoard, type Board, type Side } from '../../shared/game-types';
 import { RepositoryConflictError } from '../errors';
 import { ratingDeltaFor, statsDeltaFor } from '../game/scoring';
 import type {
@@ -149,7 +149,7 @@ export class MemoryGameRepository implements GameRepository {
       id,
       mode: input.mode,
       status: input.status,
-      board: Array(9).fill(null),
+      board: createEmptyBoard(),
       currentTurn: input.currentTurn,
       turnNumber: 0,
       winnerSide: null,
@@ -183,7 +183,7 @@ export class MemoryGameRepository implements GameRepository {
       id: matchId,
       mode: 'FRIEND',
       status: 'WAITING',
-      board: Array(9).fill(null),
+      board: createEmptyBoard(),
       currentTurn: 'X',
       turnNumber: 0,
       winnerSide: null,
@@ -259,7 +259,7 @@ export class MemoryGameRepository implements GameRepository {
       return { status: 'conflict', match: cloneMatch(match) };
     }
 
-    match.board = [...input.boardAfter];
+    match.board = { ...input.boardAfter };
     match.currentTurn = input.finalization ? null : input.nextTurn;
     match.turnNumber = input.moveNumber;
     match.turnDeadline = input.finalization ? null : input.turnDeadline;
@@ -640,7 +640,7 @@ function cloneUser(user: UserEntity): UserEntity {
 function cloneMatch(match: MatchEntity): MatchEntity {
   return {
     ...match,
-    board: [...match.board],
+    board: { ...match.board },
     participants: match.participants.map((participant) => ({ ...participant })),
   };
 }

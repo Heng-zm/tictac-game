@@ -442,7 +442,7 @@ export function Modal({
             </button>
           ) : null}
           {title ? (
-            <h2 id={titleId} className="pr-8 text-lg font-extrabold tracking-tight text-ink">
+            <h2 id={titleId} className="pr-8 text-lg font-bold tracking-tight text-ink">
               {title}
             </h2>
           ) : null}

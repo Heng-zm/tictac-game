@@ -1,5 +1,6 @@
 import { History, Home, Minus, RotateCcw, Trophy, X } from 'lucide-react';
 import type { PublicMatchState } from '../../shared/game-types';
+import { decodeCell, encodeCell } from '../../shared/game-types';
 import { cn } from '../lib/cn';
 import {
   describeOutcome,
@@ -121,29 +122,51 @@ export function GameResult({
   );
 }
 
+const FINAL_BOARD_RADIUS = 2;
+
 function FinalBoard({ match }: { match: PublicMatchState }) {
-  if (!match.board.some(Boolean)) return null;
+  const occupied = Object.keys(match.board).map(Number);
+  if (occupied.length === 0) return null;
 
   const winningLine = findWinningLine(match.board);
   const winningCells = new Set<number>(winningLine ?? []);
+  const average = occupied.reduce(
+    (sum, cell) => {
+      const { x, y } = decodeCell(cell);
+      return { x: sum.x + x, y: sum.y + y };
+    },
+    { x: 0, y: 0 },
+  );
+  const focusCell =
+    winningLine?.[Math.floor(winningLine.length / 2)] ??
+    encodeCell(Math.round(average.x / occupied.length), Math.round(average.y / occupied.length));
+  const focus = decodeCell(focusCell);
+  const span = FINAL_BOARD_RADIUS * 2 + 1;
+  const cells = Array.from({ length: span * span }, (_, index) => {
+    const x = focus.x + (index % span) - FINAL_BOARD_RADIUS;
+    const y = focus.y + Math.floor(index / span) - FINAL_BOARD_RADIUS;
+    const cell = encodeCell(x, y);
+    return { cell, value: match.board[cell] };
+  });
 
   return (
     <div
-      className="mx-auto mt-4 grid w-[8.5rem] grid-cols-3 gap-1 rounded-2xl border border-line bg-elevated/50 p-1.5"
+      className="mx-auto mt-4 grid w-[9rem] grid-cols-5 gap-1 rounded-2xl border border-line bg-elevated/50 p-1.5"
       role="img"
-      aria-label="Final board"
+      aria-label="Final board around the deciding area"
     >
-      {match.board.map((cell, index) => (
+      {cells.map(({ cell, value }) => (
         <span
-          key={index}
+          key={cell}
           className={cn(
-            'flex aspect-square items-center justify-center rounded-lg border text-base font-bold leading-none',
-            cell ? 'bg-surface' : 'bg-surface/40',
-            winningCells.has(index) ? 'border-accent/40 bg-accent/10' : 'border-line/70',
-            cell === 'X' ? 'text-accent' : cell === 'O' ? 'text-danger' : 'text-muted',
+            'flex aspect-square items-center justify-center rounded-md border text-sm font-bold leading-none',
+            winningCells.has(cell)
+              ? 'border-amber-400/70 bg-amber-400/15'
+              : cn('border-line/70', value ? 'bg-surface' : 'bg-surface/40'),
+            value === 'X' ? 'text-accent' : value === 'O' ? 'text-danger' : 'text-muted',
           )}
         >
-          {cell ?? ''}
+          {value ?? ''}
         </span>
       ))}
     </div>

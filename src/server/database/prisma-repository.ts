@@ -8,7 +8,7 @@ import {
   type UserStats as PrismaUserStats,
 } from '@prisma/client';
 import type { AiDifficulty, FinishReason, InvitationStatus, MatchMode, MatchResult, MatchStatus, ParticipantOutcome, Side } from '../../shared/game-types';
-import { boardFromString, boardToString } from '../../shared/game-types';
+import { boardFromString, boardToString, createEmptyBoard } from '../../shared/game-types';
 import { ratingDeltaFor, statsDeltaFor } from '../game/scoring';
 import { RepositoryConflictError } from '../errors';
 import type {
@@ -145,7 +145,7 @@ export class PrismaGameRepository implements GameRepository {
         data: {
           mode: input.mode,
           status: input.status,
-          board: boardToString(Array(9).fill(null)),
+          board: boardToString(createEmptyBoard()),
           currentTurn: input.currentTurn,
           turnNumber: 0,
           turnDeadline: input.turnDeadline,
@@ -188,7 +188,7 @@ export class PrismaGameRepository implements GameRepository {
         data: {
           mode: 'FRIEND',
           status: 'WAITING',
-          board: boardToString(Array(9).fill(null)),
+          board: boardToString(createEmptyBoard()),
           currentTurn: 'X',
           turnNumber: 0,
           startedAt: now,

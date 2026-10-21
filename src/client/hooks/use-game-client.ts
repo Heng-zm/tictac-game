@@ -44,6 +44,7 @@ export interface ToastMessage {
   type: 'info' | 'success' | 'warning' | 'error';
   title: string;
   message?: string;
+  source?: 'match-result';
 }
 
 export interface LastMove {
@@ -340,9 +341,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       if (!active) return;
       setLastMove({ cell: event.cell, side: event.side, actionId: event.actionId, at: Date.now() });
       setMatch((current) => {
-        if (!current || current.id !== event.matchId || current.board[event.cell] !== null) return current;
-        const board = [...current.board];
-        board[event.cell] = event.side;
+        if (!current || current.id !== event.matchId || current.board[event.cell] !== undefined) return current;
+        const board = { ...current.board, [event.cell]: event.side };
         return {
           ...current,
           board,
@@ -375,6 +375,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
         type: title === 'You win!' ? 'success' : title === 'Draw' ? 'info' : 'error',
         title,
         message: finishReasonText(finished.finishReason),
+        source: 'match-result',
       });
       window.setTimeout(() => {
         if (active) {

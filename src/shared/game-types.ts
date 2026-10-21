@@ -3,7 +3,7 @@ export const PROTOCOL_VERSION = 1 as const;
 export const SIDES = ['X', 'O'] as const;
 export type Side = (typeof SIDES)[number];
 export type Cell = Side | null;
-export type Board = readonly Cell[];
+export type Board = Record<number, Side>;
 
 export type MatchMode = 'RANDOM' | 'FRIEND' | 'AI';
 export type MatchStatus = 'WAITING' | 'ACTIVE' | 'FINISHED' | 'ABANDONED';
@@ -21,32 +21,47 @@ export type AiDifficulty = 'EASY' | 'MEDIUM' | 'HARD';
 export type ParticipantOutcome = 'WIN' | 'LOSS' | 'DRAW';
 export type InvitationStatus = 'PENDING' | 'ACCEPTED' | 'CANCELLED' | 'EXPIRED';
 
-export const WINNING_LINES: ReadonlyArray<readonly [number, number, number]> = [
-  [0, 1, 2],
-  [3, 4, 5],
-  [6, 7, 8],
-  [0, 3, 6],
-  [1, 4, 7],
-  [2, 5, 8],
-  [0, 4, 8],
-  [2, 4, 6],
-];
+export const COORD_OFFSET = 10_000;
+export const COORD_STRIDE = 20_000;
 
-export const EMPTY_BOARD_STRING = '.........';
+export function encodeCell(x: number, y: number): number {
+  return (y + COORD_OFFSET) * COORD_STRIDE + (x + COORD_OFFSET);
+}
 
-export function createEmptyBoard(): Cell[] {
-  return Array<Cell>(9).fill(null);
+export function decodeCell(cell: number): { x: number; y: number } {
+  const x = (cell % COORD_STRIDE) - COORD_OFFSET;
+  const y = Math.floor(cell / COORD_STRIDE) - COORD_OFFSET;
+  return { x, y };
+}
+
+export function createEmptyBoard(): Board {
+  return {};
 }
 
 export function boardToString(board: Board): string {
-  return board.map((cell) => cell ?? '.').join('');
+  return JSON.stringify(board);
 }
 
-export function boardFromString(value: string): Cell[] {
-  if (!/^[XO.]{9}$/.test(value)) {
-    throw new Error('Invalid serialized board');
+export function boardFromString(value: string): Board {
+  if (!value || value === '{}' || value === '.........') return {};
+  if (value.startsWith('{')) {
+    try {
+      return JSON.parse(value) as Board;
+    } catch {
+      return {};
+    }
   }
-  return [...value].map((cell) => (cell === '.' ? null : (cell as Side)));
+  // Backward compatibility with legacy 9-character 3x3 boards
+  const board: Board = {};
+  for (let i = 0; i < Math.min(value.length, 9); i++) {
+    const ch = value[i];
+    if (ch === 'X' || ch === 'O') {
+      const x = (i % 3) - 1;
+      const y = Math.floor(i / 3) - 1;
+      board[encodeCell(x, y)] = ch as Side;
+    }
+  }
+  return board;
 }
 
 export function oppositeSide(side: Side): Side {
@@ -80,7 +95,7 @@ export interface PublicMatchState {
   id: string;
   mode: MatchMode;
   status: MatchStatus;
-  board: Cell[];
+  board: Board;
   currentTurn: Side | null;
   turnNumber: number;
   version: number;

@@ -1,32 +1,32 @@
-import type { Cell } from '../../shared/game-types';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
+import type { Board as BoardType, Side } from '../../shared/game-types';
+import { decodeCell, encodeCell } from '../../shared/game-types';
 import { cn } from '../lib/cn';
 
 interface BoardProps {
-  board: Cell[];
-  winningLine: readonly [number, number, number] | null;
+  board: BoardType;
+  winningLine: number[] | null;
   lastMoveCell: number | null;
   yourTurn: boolean;
   disabled: boolean;
-  onCell: (index: number) => void;
+  onCell: (cell: number) => void;
 }
 
-function cellName(index: number): string {
-  const row = Math.floor(index / 3) + 1;
-  const column = (index % 3) + 1;
-  return `Row ${row}, column ${column}`;
-}
+const CELL_SIZE = 44; // Cell size in px
+const VISIBLE_RADIUS = 7; // Shows 15x15 window around current center
 
 function XMark() {
   return (
-    <svg viewBox="0 0 100 100" className="mark-x h-[52%] w-[52%]" aria-hidden>
+    <svg viewBox="0 0 100 100" className="h-[62%] w-[62%] text-accent" aria-hidden>
       <path
-        d="M27 27 L73 73 M73 27 L27 73"
+        d="M24 24 L76 76 M76 24 L24 76"
         fill="none"
         stroke="currentColor"
-        strokeWidth="13"
+        strokeWidth="14"
         strokeLinecap="round"
         pathLength={100}
-        className="mark-stroke"
+        className="mark-stroke animate-in zoom-in-50 duration-200"
       />
     </svg>
   );
@@ -34,141 +34,263 @@ function XMark() {
 
 function OMark() {
   return (
-    <svg viewBox="0 0 100 100" className="mark-o h-[55%] w-[55%]" aria-hidden>
+    <svg viewBox="0 0 100 100" className="h-[65%] w-[65%] text-danger" aria-hidden>
       <circle
         cx="50"
         cy="50"
-        r="26"
+        r="27"
         fill="none"
         stroke="currentColor"
-        strokeWidth="12"
+        strokeWidth="13"
         pathLength={100}
-        className="mark-stroke"
+        className="mark-stroke animate-in zoom-in-50 duration-200"
       />
     </svg>
   );
 }
 
-function winningLineGeometry(line: readonly [number, number, number]) {
-  const centers = line.map((index) => ({
-    x: (index % 3) + 0.5,
-    y: Math.floor(index / 3) + 0.5,
-  }));
-  const start = centers[0];
-  const end = centers[2];
-  if (!start || !end) return null;
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const extension = 0.28;
-  return {
-    x1: clamp(start.x - (dx / length) * extension),
-    y1: clamp(start.y - (dy / length) * extension),
-    x2: clamp(end.x + (dx / length) * extension),
-    y2: clamp(end.y + (dy / length) * extension),
+export function Board({
+  board,
+  winningLine,
+  lastMoveCell,
+  yourTurn,
+  disabled,
+  onCell,
+}: BoardProps) {
+  // Center coordinate of the viewport in grid coordinates (x, y)
+  const [center, setCenter] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState<number>(1);
+  const [hoveredCell, setHoveredCell] = useState<number | null>(null);
+
+  // Dragging state
+  const isDragging = useRef(false);
+  const dragStart = useRef<{ clientX: number; clientY: number; startCenterX: number; startCenterY: number }>({
+    clientX: 0,
+    clientY: 0,
+    startCenterX: 0,
+    startCenterY: 0,
+  });
+  const didDrag = useRef(false);
+
+  const winningSet = useMemo(() => new Set(winningLine ?? []), [winningLine]);
+
+  // Center on latest move when opponent moves or match opens
+  const lastMoveRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastMoveCell !== null && lastMoveCell !== lastMoveRef.current) {
+      lastMoveRef.current = lastMoveCell;
+      const { x, y } = decodeCell(lastMoveCell);
+      setCenter({ x, y });
+    }
+  }, [lastMoveCell]);
+
+  const recenter = useCallback(() => {
+    if (lastMoveCell !== null) {
+      const { x, y } = decodeCell(lastMoveCell);
+      setCenter({ x, y });
+    } else {
+      setCenter({ x: 0, y: 0 });
+    }
+    setZoom(1);
+  }, [lastMoveCell]);
+
+  // Pointer drag events for smooth panning on mobile & desktop
+  const handlePointerDown = (e: React.PointerEvent) => {
+    // Only drag with primary mouse button or touch
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    isDragging.current = true;
+    didDrag.current = false;
+    dragStart.current = {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      startCenterX: center.x,
+      startCenterY: center.y,
+    };
+    (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
   };
-}
 
-function clamp(value: number): number {
-  return Math.min(2.92, Math.max(0.08, value));
-}
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDragging.current) return;
+    const deltaX = e.clientX - dragStart.current.clientX;
+    const deltaY = e.clientY - dragStart.current.clientY;
 
-export function Board({ board, winningLine, lastMoveCell, yourTurn, disabled, onCell }: BoardProps) {
-  const line = winningLine ? winningLineGeometry(winningLine) : null;
-  const winning = new Set(winningLine ?? []);
-  const winningSide = winningLine ? board[winningLine[0]] : null;
-  const isOWin = winningSide === 'O';
-
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLButtonElement>, currentIndex: number) => {
-    let targetIndex: number | null = null;
-    if (e.key === 'ArrowUp') {
-      targetIndex = currentIndex >= 3 ? currentIndex - 3 : null;
-    } else if (e.key === 'ArrowDown') {
-      targetIndex = currentIndex <= 5 ? currentIndex + 3 : null;
-    } else if (e.key === 'ArrowLeft') {
-      targetIndex = currentIndex % 3 !== 0 ? currentIndex - 1 : null;
-    } else if (e.key === 'ArrowRight') {
-      targetIndex = currentIndex % 3 !== 2 ? currentIndex + 1 : null;
+    if (Math.hypot(deltaX, deltaY) > 6) {
+      didDrag.current = true;
     }
 
-    if (targetIndex !== null) {
-      e.preventDefault();
-      const targetButton = e.currentTarget.parentElement?.children[targetIndex] as HTMLElement | undefined;
-      targetButton?.focus();
+    // Convert pixel delta to grid units
+    const currentCellSize = CELL_SIZE * zoom;
+    const gridDeltaX = Math.round(deltaX / currentCellSize);
+    const gridDeltaY = Math.round(deltaY / currentCellSize);
+
+    const newCenterX = dragStart.current.startCenterX - gridDeltaX;
+    const newCenterY = dragStart.current.startCenterY - gridDeltaY;
+
+    if (newCenterX !== center.x || newCenterY !== center.y) {
+      setCenter({ x: newCenterX, y: newCenterY });
     }
   };
+
+  const handlePointerUp = () => {
+    isDragging.current = false;
+  };
+
+  const zoomIn = () => setZoom((z) => Math.min(1.4, Number((z + 0.15).toFixed(2))));
+  const zoomOut = () => setZoom((z) => Math.max(0.7, Number((z - 0.15).toFixed(2))));
+
+  // Generate cells visible around current center
+  const visibleCells = useMemo(() => {
+    const list: Array<{ x: number; y: number; cell: number; value: Side | undefined }> = [];
+    const minX = center.x - VISIBLE_RADIUS;
+    const maxX = center.x + VISIBLE_RADIUS;
+    const minY = center.y - VISIBLE_RADIUS;
+    const maxY = center.y + VISIBLE_RADIUS;
+
+    for (let y = minY; y <= maxY; y++) {
+      for (let x = minX; x <= maxX; x++) {
+        const cell = encodeCell(x, y);
+        list.push({ x, y, cell, value: board[cell] });
+      }
+    }
+    return list;
+  }, [center.x, center.y, board]);
+
+  const gridDimension = (VISIBLE_RADIUS * 2 + 1) * CELL_SIZE * zoom;
 
   return (
-    <div className="game-board-frame relative select-none">
+    <div className="relative flex flex-col items-center select-none">
+      {/* Board container */}
       <div
-        role="grid"
-        aria-label="Tic Tac Toe board"
-        className="grid grid-cols-3 gap-2"
+        className="relative touch-none overflow-hidden rounded-3xl border border-line bg-surface/75 shadow-soft backdrop-blur-md"
+        style={{
+          width: '100%',
+          maxWidth: '380px',
+          aspectRatio: '1 / 1',
+        }}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={handlePointerUp}
       >
-        {board.map((cell, index) => {
-          const isWinning = winning.has(index);
-          const canPlay = !disabled && yourTurn && cell === null;
-          return (
-            <button
-              key={index}
-              type="button"
-              role="gridcell"
-              aria-label={`${cellName(index)}, ${cell ?? 'empty'}`}
-              aria-disabled={!canPlay}
-              onClick={() => {
-                if (canPlay) onCell(index);
-              }}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-              className={cn(
-                'group relative flex aspect-square items-center justify-center overflow-hidden rounded-xl border bg-surface transition duration-150',
-                'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
-                cell === 'X' ? 'text-accent' : cell === 'O' ? 'text-danger' : 'text-ink',
-                cell === null && canPlay && 'cursor-pointer hover:border-accent/30 hover:bg-accent/5 active:scale-[0.98]',
-                !canPlay && 'cursor-default',
-                cell === null ? 'border-line' : 'border-line/60',
-                isWinning &&
-                  (isOWin
-                    ? 'border-danger/30 bg-danger/5'
-                    : 'border-accent/30 bg-accent/5'),
-              )}
-            >
-              {cell === 'X' ? <XMark /> : null}
-              {cell === 'O' ? <OMark /> : null}
-              {lastMoveCell === index && !isWinning ? (
-                <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-current opacity-50" />
-              ) : null}
-              {cell === null && canPlay ? (
-                <span className="pointer-events-none absolute inset-0 flex items-center justify-center text-2xl font-light text-muted opacity-0 transition group-hover:opacity-40">
-                  +
-                </span>
-              ) : null}
-            </button>
-          );
-        })}
-      </div>
-      {line ? (
-        <svg
-          viewBox="0 0 3 3"
-          className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible"
-          aria-hidden
+        {/* Infinite Grid Canvas */}
+        <div
+          role="grid"
+          aria-label="Infinite 5-in-a-row Caro grid"
+          className="absolute inset-0 flex items-center justify-center"
         >
-          <line
-            x1={line.x1}
-            y1={line.y1}
-            x2={line.x2}
-            y2={line.y2}
-            pathLength={100}
-            stroke={isOWin ? 'var(--app-danger)' : 'var(--app-accent)'}
-            strokeWidth="0.09"
-            strokeLinecap="round"
-            className={cn(
-              'animate-draw-line',
-              isOWin ? 'drop-shadow-[0_0_6px_var(--app-danger)]' : 'drop-shadow-[0_0_6px_var(--app-accent)]',
-            )}
-            style={{ strokeDasharray: 100 }}
-          />
-        </svg>
-      ) : null}
+          <div
+            className="grid transition-transform duration-75"
+            style={{
+              gridTemplateColumns: `repeat(${VISIBLE_RADIUS * 2 + 1}, ${CELL_SIZE * zoom}px)`,
+              gridTemplateRows: `repeat(${VISIBLE_RADIUS * 2 + 1}, ${CELL_SIZE * zoom}px)`,
+              width: `${gridDimension}px`,
+              height: `${gridDimension}px`,
+            }}
+          >
+            {visibleCells.map(({ x, y, cell, value }) => {
+              const isWinning = winningSet.has(cell);
+              const isLast = lastMoveCell === cell;
+              const isCenter = x === 0 && y === 0;
+              const canPlay = !disabled && yourTurn && value === undefined;
+
+              return (
+                <button
+                  key={cell}
+                  type="button"
+                  role="gridcell"
+                  aria-label={`Position ${x}, ${y}, ${value ?? 'empty'}`}
+                  aria-disabled={!canPlay}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (!didDrag.current && canPlay) {
+                      onCell(cell);
+                    }
+                  }}
+                  onPointerEnter={() => canPlay && setHoveredCell(cell)}
+                  onPointerLeave={() => setHoveredCell(null)}
+                  style={{
+                    width: `${CELL_SIZE * zoom}px`,
+                    height: `${CELL_SIZE * zoom}px`,
+                  }}
+                  className={cn(
+                    'group relative flex items-center justify-center border border-line/40 transition-colors duration-100',
+                    'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent/70',
+                    value === undefined && canPlay && 'cursor-pointer hover:bg-accent/10 active:scale-95',
+                    value === undefined && !canPlay && 'cursor-default',
+                    value !== undefined && 'cursor-default',
+                    isWinning && 'border-amber-400/80 bg-amber-400/15',
+                    isCenter && value === undefined && 'bg-accent/5',
+                  )}
+                >
+                  {/* Center origin indicator */}
+                  {isCenter && value === undefined && (
+                    <span className="pointer-events-none absolute h-2 w-2 rounded-full bg-accent/40" />
+                  )}
+
+                  {/* Placed stones */}
+                  {value === 'X' ? <XMark /> : null}
+                  {value === 'O' ? <OMark /> : null}
+
+                  {/* Latest move indicator dot (just like in reference image) */}
+                  {isLast && (
+                    <span
+                      className={cn(
+                        'pointer-events-none absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-surface animate-pulse',
+                        value === 'X' ? 'bg-accent' : 'bg-danger',
+                      )}
+                    />
+                  )}
+
+                  {/* Winning glow */}
+                  {isWinning && (
+                    <span className="pointer-events-none absolute inset-0 rounded-sm ring-2 ring-amber-400/70 shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
+                  )}
+
+                  {/* Hover ghost preview */}
+                  {hoveredCell === cell && canPlay && (
+                    <span className="pointer-events-none absolute text-sm font-bold text-accent/30">
+                      +
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Viewport Floating HUD Controls */}
+        <div className="pointer-events-none absolute inset-x-3 bottom-3 flex items-center justify-between">
+          <div className="rounded-full border border-line bg-surface/90 px-2.5 py-1 text-[10px] font-semibold text-muted shadow-sm backdrop-blur-md">
+            Center: ({center.x}, {center.y}) · 5 to win
+          </div>
+
+          <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-line bg-surface/90 p-1 shadow-sm backdrop-blur-md">
+            <button
+              type="button"
+              onClick={recenter}
+              title="Recenter on latest move"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-90"
+            >
+              <Crosshair className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={zoomOut}
+              title="Zoom out"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-90"
+            >
+              <ZoomOut className="h-3.5 w-3.5" />
+            </button>
+            <button
+              type="button"
+              onClick={zoomIn}
+              title="Zoom in"
+              className="flex h-7 w-7 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-90"
+            >
+              <ZoomIn className="h-3.5 w-3.5" />
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

@@ -4,7 +4,12 @@ import type { AppConfig } from '../src/server/config';
 import type { MatchEntity, UserEntity } from '../src/server/database/types';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import { MatchService } from '../src/server/services/match-service';
-import type { CreatedInvitation, PublicMatchState, Side } from '../src/shared/game-types';
+import {
+  encodeCell,
+  type CreatedInvitation,
+  type PublicMatchState,
+  type Side,
+} from '../src/shared/game-types';
 import {
   FakeIo,
   MutableClock,
@@ -77,22 +82,31 @@ describe('MatchService', () => {
     return participant.userId;
   }
 
-  async function playToXWin(match: MatchEntity): Promise<{ finalActionId: string; finalState: PublicMatchState }> {
+  async function playToXWin(match: MatchEntity): Promise<{
+    finalActionId: string;
+    finalCell: number;
+    finalState: PublicMatchState;
+  }> {
     const moves: Array<[Side, number]> = [
-      ['X', 0],
-      ['O', 3],
-      ['X', 1],
-      ['O', 4],
-      ['X', 2],
+      ['X', encodeCell(0, 0)],
+      ['O', encodeCell(0, 1)],
+      ['X', encodeCell(1, 0)],
+      ['O', encodeCell(1, 1)],
+      ['X', encodeCell(2, 0)],
+      ['O', encodeCell(2, 1)],
+      ['X', encodeCell(3, 0)],
+      ['O', encodeCell(3, 1)],
+      ['X', encodeCell(4, 0)],
     ];
     let last: PublicMatchState | null = null;
     let finalActionId = '';
+    const finalCell = moves[moves.length - 1]![1];
     for (const [side, cell] of moves) {
       finalActionId = randomUUID();
       last = await service.submitMove(sideUser(match, side), match.id, cell, finalActionId);
     }
     if (!last) throw new Error('Game was not played');
-    return { finalActionId, finalState: last };
+    return { finalActionId, finalCell, finalState: last };
   }
 
   function inviteToken(invitation: CreatedInvitation): string {
@@ -142,20 +156,21 @@ describe('MatchService', () => {
     const aliceId = sideUser(match, 'X');
     const bobId = sideUser(match, 'O');
 
-    const state = await service.submitMove(aliceId, match.id, 0, randomUUID());
-    expect(state.board[0]).toBe('X');
+    const cell0 = encodeCell(0, 0);
+    const state = await service.submitMove(aliceId, match.id, cell0, randomUUID());
+    expect(state.board[cell0]).toBe('X');
     expect(state.currentTurn).toBe('O');
     expect(state.version).toBe(1);
     expect(io.events('move:accepted')).toHaveLength(1);
-    expect(io.lastForRoom<{ match: PublicMatchState }>(bob.id, 'match:state')?.match.board[0]).toBe('X');
+    expect(io.lastForRoom<{ match: PublicMatchState }>(bob.id, 'match:state')?.match.board[cell0]).toBe('X');
 
-    await expect(service.submitMove(aliceId, match.id, 1, randomUUID())).rejects.toMatchObject({
+    await expect(service.submitMove(aliceId, match.id, encodeCell(1, 0), randomUUID())).rejects.toMatchObject({
       code: 'OUT_OF_TURN',
     });
-    await expect(service.submitMove(bobId, match.id, 0, randomUUID())).rejects.toMatchObject({
+    await expect(service.submitMove(bobId, match.id, cell0, randomUUID())).rejects.toMatchObject({
       code: 'OCCUPIED_CELL',
     });
-    await expect(service.submitMove(bobId, match.id, 9, randomUUID())).rejects.toMatchObject({
+    await expect(service.submitMove(bobId, match.id, -1, randomUUID())).rejects.toMatchObject({
       code: 'INVALID_CELL',
     });
   });
@@ -164,8 +179,9 @@ describe('MatchService', () => {
     const match = await createRandomMatch();
     const aliceId = sideUser(match, 'X');
     const actionId = randomUUID();
-    const first = await service.submitMove(aliceId, match.id, 0, actionId);
-    const duplicate = await service.submitMove(aliceId, match.id, 0, actionId);
+    const cell0 = encodeCell(0, 0);
+    const first = await service.submitMove(aliceId, match.id, cell0, actionId);
+    const duplicate = await service.submitMove(aliceId, match.id, cell0, actionId);
     expect(duplicate.version).toBe(first.version);
     expect(duplicate.board).toEqual(first.board);
     expect(io.events('move:accepted')).toHaveLength(1);
@@ -173,14 +189,14 @@ describe('MatchService', () => {
 
   it('keeps retries of the finishing move idempotent', async () => {
     const match = await createRandomMatch();
-    const { finalActionId, finalState } = await playToXWin(match);
+    const { finalActionId, finalCell, finalState } = await playToXWin(match);
 
     expect(finalState.status).toBe('FINISHED');
     expect(finalState.result).toBe('X_WINS');
     expect(finalState.finishReason).toBe('LINE');
     expect(finalState.players.X?.isYou).toBe(true);
 
-    const retry = await service.submitMove(alice.id, match.id, 2, finalActionId);
+    const retry = await service.submitMove(alice.id, match.id, finalCell, finalActionId);
     expect(retry.status).toBe('FINISHED');
     expect(retry.version).toBe(finalState.version);
     expect(retry.board).toEqual(finalState.board);
@@ -188,12 +204,12 @@ describe('MatchService', () => {
 
   it('keeps finishing-move retries idempotent after a server restart', async () => {
     const match = await createRandomMatch();
-    const { finalActionId, finalState } = await playToXWin(match);
+    const { finalActionId, finalCell, finalState } = await playToXWin(match);
 
     // A fresh service has no in-memory processed-action set; durability comes
     // from the repository's move history.
     const restarted = await startService();
-    const retry = await restarted.submitMove(alice.id, match.id, 2, finalActionId);
+    const retry = await restarted.submitMove(alice.id, match.id, finalCell, finalActionId);
 
     expect(retry.status).toBe('FINISHED');
     expect(retry.version).toBe(finalState.version);
@@ -204,13 +220,13 @@ describe('MatchService', () => {
     const match = await createRandomMatch();
     await playToXWin(match);
 
-    await expect(service.submitMove(alice.id, match.id, 4, randomUUID())).rejects.toMatchObject({
+    await expect(service.submitMove(alice.id, match.id, encodeCell(5, 0), randomUUID())).rejects.toMatchObject({
       code: 'GAME_FINISHED',
     });
-    await expect(service.submitMove(charlie.id, match.id, 4, randomUUID())).rejects.toMatchObject({
+    await expect(service.submitMove(charlie.id, match.id, encodeCell(5, 0), randomUUID())).rejects.toMatchObject({
       code: 'MATCH_FORBIDDEN',
     });
-    await expect(service.submitMove(alice.id, randomUUID(), 4, randomUUID())).rejects.toMatchObject({
+    await expect(service.submitMove(alice.id, randomUUID(), encodeCell(5, 0), randomUUID())).rejects.toMatchObject({
       code: 'MATCH_NOT_FOUND',
     });
   });
@@ -339,14 +355,16 @@ describe('MatchService', () => {
       userId: null,
     });
 
-    await service.submitMove(alice.id, match.id, 0, randomUUID());
+    const cell0 = encodeCell(0, 0);
+    await service.submitMove(alice.id, match.id, cell0, randomUUID());
     await vi.advanceTimersByTimeAsync(0);
     await flushAsyncWork();
 
     const afterAi = await repo.getMatchById(match.id);
     expect(afterAi?.turnNumber).toBe(2);
-    expect(afterAi?.board[0]).toBe('X');
-    expect(afterAi?.board[4]).toBe('O');
+    expect(afterAi?.board[cell0]).toBe('X');
+    const oMoves = Object.values(afterAi?.board ?? {}).filter((v) => v === 'O');
+    expect(oMoves).toHaveLength(1);
     expect(afterAi?.currentTurn).toBe('X');
     expect(io.events('move:accepted').some((event) => (event.payload as { side?: Side }).side === 'O')).toBe(true);
   });

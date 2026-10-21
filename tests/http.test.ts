@@ -433,6 +433,7 @@ describe('HTTP API', () => {
   });
 
   it('rejects cross-origin mutations but allows configured origins', async () => {
+    const allowedOrigin = current.config.allowedOrigins[0]!;
     const blocked = await request(current.app)
       .post('/api/auth/dev')
       .set('Origin', 'https://evil.example')
@@ -442,14 +443,14 @@ describe('HTTP API', () => {
 
     const allowed = await request(current.app)
       .post('/api/auth/dev')
-      .set('Origin', 'http://localhost:5173')
+      .set('Origin', allowedOrigin)
       .send({ deviceKey: 'device-key-origin' });
     expect(allowed.status).toBe(200);
-    expect(allowed.headers['access-control-allow-origin']).toBe('http://localhost:5173');
+    expect(allowed.headers['access-control-allow-origin']).toBe(allowedOrigin);
 
     const preflight = await request(current.app)
       .options('/api/me/preferences')
-      .set('Origin', 'http://localhost:5173')
+      .set('Origin', allowedOrigin)
       .set('Access-Control-Request-Method', 'PATCH');
     expect(preflight.status).toBe(204);
   });

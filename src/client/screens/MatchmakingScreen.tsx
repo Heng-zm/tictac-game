@@ -25,6 +25,14 @@ export function MatchmakingScreen({
   const busy = Boolean(activeMatch || pendingInvite);
   const elapsed = useElapsed(startedAt);
   const fallbackRemaining = useCountdown(queue?.fallbackAt ?? null);
+  const maxWaitMs = config?.queueMaxWaitMs ?? 0;
+  const searchProgress = maxWaitMs > 0 ? Math.min(1, elapsed / maxWaitMs) : 0;
+  const timeLeftLabel =
+    autoFallback && fallbackRemaining !== null
+      ? fallbackRemaining <= 0
+        ? 'Bot ready'
+        : `${formatDuration(fallbackRemaining)} to bot`
+      : `${formatDuration(Math.max(0, maxWaitMs - elapsed))} max`;
   const connectionLost =
     connection === 'reconnecting' || connection === 'offline' || connection === 'shutdown';
 
@@ -210,8 +218,17 @@ export function MatchmakingScreen({
                 </Pill>
                 <Pill>
                   <Clock3 className="h-3 w-3" aria-hidden />
-                  {formatDuration(Math.max(0, (config?.queueMaxWaitMs ?? 0) - elapsed))} max
+                  {timeLeftLabel}
                 </Pill>
+              </div>
+              <div
+                className="mx-auto mt-3 h-1.5 max-w-[14rem] overflow-hidden rounded-full bg-elevated"
+                aria-hidden
+              >
+                <div
+                  className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-linear"
+                  style={{ width: `${Math.max(3, Math.round(searchProgress * 100))}%` }}
+                />
               </div>
             </div>
 

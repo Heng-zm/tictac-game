@@ -37,6 +37,11 @@ export function LeaderboardScreen({
   }, [load]);
 
   const currentInList = Boolean(data?.entries.some((entry) => entry.isYou));
+  const currentPosition = data?.currentUserRank
+    ? `Rank #${data.currentUserRank}`
+    : (profile?.stats.ratingGames ?? 0) === 0
+      ? 'Provisional'
+      : 'Outside top 50';
 
   return (
     <Page withNav>
@@ -81,7 +86,7 @@ export function LeaderboardScreen({
                   <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Your position</p>
                   <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1">
                     <p className="text-sm font-bold text-ink">
-                      {data.currentUserRank ? `Rank #${data.currentUserRank}` : 'Unranked'} · {profile.stats.rating} rating
+                      {currentPosition} · {profile.stats.rating} rating
                     </p>
                     <RankBadge rating={profile.stats.rating} />
                     <Pill tone="accent">{profile.stats.ratingGames} rated</Pill>

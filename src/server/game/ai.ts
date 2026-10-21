@@ -1,121 +1,111 @@
-import type { Board, Side, AiDifficulty } from '../../shared/game-types';
-import { getAvailableMoves, getGameStatus, getWinner, validateBoard } from './rules';
+import type { AiDifficulty, Board, Side } from '../../shared/game-types';
+import { decodeCell, encodeCell } from '../../shared/game-types';
+import { DIRECTIONS, getAvailableMoves, getGameStatus } from './rules';
 
 export type RandomSource = () => number;
-
-/** Prefer centre, then corners, then edges when scores tie. */
-const MOVE_ORDER = [4, 0, 2, 6, 8, 1, 3, 5, 7] as const;
-
-interface ScoredMove {
-  index: number;
-  score: number;
-}
 
 function isActive(board: Board): boolean {
   return getGameStatus(board).status === 'ACTIVE';
 }
 
-function minimax(board: CellBoard, aiSide: Side, humanSide: Side, depth: number, alpha: number, beta: number, maximizing: boolean): number {
-  const winner = getWinner(board);
-  if (winner) {
-    return winner.side === aiSide ? 10 - depth : depth - 10;
-  }
-  const available = getAvailableMoves(board);
-  if (available.length === 0) return 0;
+function evaluateDirection(
+  board: Board,
+  x: number,
+  y: number,
+  side: Side,
+): number {
+  let score = 0;
 
-  if (maximizing) {
-    let best = -Infinity;
-    let a = alpha;
-    for (const index of MOVE_ORDER) {
-      if (board[index] !== null) continue;
-      board[index] = aiSide;
-      const score = minimax(board, aiSide, humanSide, depth + 1, a, beta, false);
-      board[index] = null;
-      best = Math.max(best, score);
-      a = Math.max(a, score);
-      if (beta <= a) break;
+  for (const [dx, dy] of DIRECTIONS) {
+    let consecutive = 1;
+    let openEnds = 0;
+
+    // Count forward
+    let step = 1;
+    while (board[encodeCell(x + dx * step, y + dy * step)] === side) {
+      consecutive++;
+      step++;
     }
-    return best;
+    if (board[encodeCell(x + dx * step, y + dy * step)] === undefined) {
+      openEnds++;
+    }
+
+    // Count backward
+    step = 1;
+    while (board[encodeCell(x - dx * step, y - dy * step)] === side) {
+      consecutive++;
+      step++;
+    }
+    if (board[encodeCell(x - dx * step, y - dy * step)] === undefined) {
+      openEnds++;
+    }
+
+    if (consecutive >= 5) {
+      score += 1_000_000;
+    } else if (consecutive === 4) {
+      if (openEnds === 2) score += 200_000; // Open 4 (guaranteed win)
+      else if (openEnds === 1) score += 40_000; // Blocked 4
+    } else if (consecutive === 3) {
+      if (openEnds === 2) score += 10_000; // Open 3
+      else if (openEnds === 1) score += 1_500; // Blocked 3
+    } else if (consecutive === 2) {
+      if (openEnds === 2) score += 400; // Open 2
+      else if (openEnds === 1) score += 80;
+    }
   }
 
-  let best = Infinity;
-  let b = beta;
-  for (const index of MOVE_ORDER) {
-    if (board[index] !== null) continue;
-    board[index] = humanSide;
-    const score = minimax(board, aiSide, humanSide, depth + 1, alpha, b, true);
-    board[index] = null;
-    best = Math.min(best, score);
-    b = Math.min(b, score);
-    if (b <= alpha) break;
-  }
-  return best;
+  return score;
 }
 
-type CellBoard = (Side | null)[];
-
-function scoreMoves(board: Board, aiSide: Side): ScoredMove[] {
-  const humanSide: Side = aiSide === 'X' ? 'O' : 'X';
-  const working = [...board] as CellBoard;
-  const moves: ScoredMove[] = [];
-  for (const index of MOVE_ORDER) {
-    if (working[index] !== null) continue;
-    working[index] = aiSide;
-    const score = minimax(working, aiSide, humanSide, 0, -Infinity, Infinity, false);
-    working[index] = null;
-    moves.push({ index, score });
-  }
-  return moves;
-}
-
-function bestMoves(board: Board, aiSide: Side): ScoredMove[] {
-  const scored = scoreMoves(board, aiSide);
-  const bestScore = Math.max(...scored.map((move) => move.score));
-  const best = scored.filter((move) => move.score === bestScore);
-  // Keep deterministic order but start from the preferred move order.
-  return MOVE_ORDER.flatMap((index) => best.filter((move) => move.index === index));
-}
-
-function pickRandom<T>(items: T[], rng: RandomSource): T {
-  const index = Math.min(items.length - 1, Math.max(0, Math.floor(rng() * items.length)));
-  return items[index] as T;
-}
-
-/**
- * Chooses an AI move from the server's authoritative board.
- * Hard uses alpha-beta minimax and is unbeatable. Medium and easy deliberately
- * make mistakes, but every returned move is always legal.
- */
 export function chooseAiMove(
   board: Board,
   aiSide: Side,
   difficulty: AiDifficulty,
   rng: RandomSource = Math.random,
 ): number | null {
-  validateBoard(board);
   if (!isActive(board)) return null;
-  const available = getAvailableMoves(board);
-  if (available.length === 0) return null;
 
-  if (difficulty === 'HARD') {
-    return bestMoves(board, aiSide)[0]?.index ?? null;
+  const candidates = getAvailableMoves(board);
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1 && Object.keys(board).length === 0) {
+    return candidates[0] ?? encodeCell(0, 0);
   }
 
-  const strategicChance = difficulty === 'MEDIUM' ? 0.72 : 0.22;
-  const useStrategic = rng() < strategicChance;
-  if (useStrategic) {
-    const best = bestMoves(board, aiSide);
-    // Easy occasionally overlooks its very best move even when "strategic".
-    if (difficulty === 'EASY' && best.length > 1 && rng() < 0.5) {
-      return pickRandom(best.slice(1), rng).index;
+  const humanSide: Side = aiSide === 'X' ? 'O' : 'X';
+  const scoredMoves: Array<{ cell: number; score: number }> = [];
+
+  for (const cell of candidates) {
+    const { x, y } = decodeCell(cell);
+    const attack = evaluateDirection(board, x, y, aiSide);
+    const defense = evaluateDirection(board, x, y, humanSide);
+    // Immediate win is highest priority, followed by blocking opponent's immediate win
+    let totalScore = 0;
+    if (attack >= 1_000_000) {
+      totalScore = 10_000_000 + attack;
+    } else if (defense >= 1_000_000) {
+      totalScore = 5_000_000 + defense;
+    } else {
+      totalScore = attack + defense * 1.2;
     }
-    return best[0]?.index ?? null;
+    scoredMoves.push({ cell, score: totalScore });
   }
 
-  return pickRandom(available, rng);
-}
+  scoredMoves.sort((a, b) => b.score - a.score);
 
-/** Used only by tests and diagnostics. */
-export function chooseOptimalMove(board: Board, aiSide: Side): number | null {
-  return chooseAiMove(board, aiSide, 'HARD', () => 0);
+  if (difficulty === 'EASY') {
+    // 50% chance to pick best, 50% random candidate
+    if (rng() < 0.5) return scoredMoves[0]?.cell ?? null;
+    const randomIndex = Math.floor(rng() * scoredMoves.length);
+    return scoredMoves[randomIndex]?.cell ?? null;
+  }
+
+  if (difficulty === 'MEDIUM') {
+    // Pick from top 3 moves
+    const pool = scoredMoves.slice(0, 3);
+    const randomIndex = Math.floor(rng() * pool.length);
+    return pool[randomIndex]?.cell ?? null;
+  }
+
+  // HARD: Always pick top move
+  return scoredMoves[0]?.cell ?? null;
 }

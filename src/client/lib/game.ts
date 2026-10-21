@@ -1,17 +1,46 @@
 import type {
   AiDifficulty,
+  Board,
   MatchMode,
   PublicMatchState,
   PublicPlayer,
   Side,
 } from '../../shared/game-types';
-import { WINNING_LINES, oppositeSide } from '../../shared/game-types';
+import { decodeCell, encodeCell, oppositeSide } from '../../shared/game-types';
 
-export function findWinningLine(board: readonly (Side | null)[]): readonly [number, number, number] | null {
-  for (const line of WINNING_LINES) {
-    const [a, b, c] = line;
-    const first = board[a];
-    if (first && first === board[b] && first === board[c]) return line;
+const DIRECTIONS = [
+  [1, 0],
+  [0, 1],
+  [1, 1],
+  [1, -1],
+] as const;
+
+export function findWinningLine(board: Board): number[] | null {
+  const entries = Object.entries(board) as [string, Side][];
+  if (entries.length < 9) return null;
+
+  for (const [cellStr, side] of entries) {
+    const cell = Number(cellStr);
+    const { x, y } = decodeCell(cell);
+
+    for (const [dx, dy] of DIRECTIONS) {
+      const prevCell = encodeCell(x - dx, y - dy);
+      if (board[prevCell] === side) continue;
+
+      const line = [cell];
+      for (let step = 1; step < 5; step++) {
+        const nextCell = encodeCell(x + dx * step, y + dy * step);
+        if (board[nextCell] === side) {
+          line.push(nextCell);
+        } else {
+          break;
+        }
+      }
+
+      if (line.length >= 5) {
+        return line;
+      }
+    }
   }
   return null;
 }
@@ -50,7 +79,7 @@ export function finishReasonCopy(match: PublicMatchState): string {
   const youWon = match.winnerSide === match.youSide;
   switch (match.finishReason) {
     case 'LINE':
-      return youWon ? 'Three in a row. Beautifully played.' : 'Three in a row for your opponent.';
+      return youWon ? 'Five in a row! Beautifully played.' : 'Five in a row for your opponent.';
     case 'DRAW':
       return 'The board is full. Nobody gave an inch.';
     case 'DISCONNECT':
