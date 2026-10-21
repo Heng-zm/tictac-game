@@ -21,7 +21,7 @@ const VALID_USER = {
 
 function signParams(params: Record<string, string>, botToken = TEST_BOT_TOKEN): string {
   const dataCheckString = Object.entries(params)
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();

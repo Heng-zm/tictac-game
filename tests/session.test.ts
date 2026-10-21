@@ -1,9 +1,12 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { Response } from 'express';
 import {
   DEFAULT_SESSION_TTL_SECONDS,
   SESSION_COOKIE_NAME,
+  clearSessionCookie,
   createSessionToken,
   parseCookieHeader,
+  setSessionCookie,
   verifySessionToken,
 } from '../src/server/auth/session';
 import { TEST_SESSION_SECRET } from './helpers';
@@ -85,6 +88,30 @@ describe('session tokens', () => {
       a: '%E0%A4%A',
       b: 'hello world',
     });
+  });
+
+  it('uses SameSite=None for secure production cookies and Lax locally', () => {
+    const res = { cookie: vi.fn(), clearCookie: vi.fn() } as unknown as Response;
+
+    setSessionCookie(res, 'token', { secure: false, ttlSeconds: 60 });
+    expect(res.cookie).toHaveBeenCalledWith(
+      SESSION_COOKIE_NAME,
+      'token',
+      expect.objectContaining({ httpOnly: true, secure: false, sameSite: 'lax', maxAge: 60_000 }),
+    );
+
+    setSessionCookie(res, 'token', { secure: true });
+    expect(res.cookie).toHaveBeenLastCalledWith(
+      SESSION_COOKIE_NAME,
+      'token',
+      expect.objectContaining({ httpOnly: true, secure: true, sameSite: 'none' }),
+    );
+
+    clearSessionCookie(res, true);
+    expect(res.clearCookie).toHaveBeenCalledWith(
+      SESSION_COOKIE_NAME,
+      expect.objectContaining({ secure: true, sameSite: 'none' }),
+    );
   });
 });
 

@@ -146,6 +146,8 @@ describe('HTTP API', () => {
     expect(response.headers['x-frame-options']).toBeUndefined();
     expect(response.headers['content-security-policy']).toContain('frame-ancestors');
     expect(response.headers['content-security-policy']).toContain('https://web.telegram.org');
+    // HSTS is only sent in production; localhost development must not pin HTTPS.
+    expect(response.headers['strict-transport-security']).toBeUndefined();
   });
 
   it('authenticates development users and keeps the session in an HttpOnly cookie', async () => {

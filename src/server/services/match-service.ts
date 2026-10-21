@@ -324,7 +324,14 @@ export class MatchService {
     if (game?.processedActions.has(actionId)) {
       return this.stateFor(match, userId);
     }
-    if (match.status !== 'ACTIVE') throw new AppError(409, 'GAME_FINISHED', 'This game has ended');
+    if (match.status !== 'ACTIVE') {
+      // The in-memory action set is lost on restart. Check durable move history
+      // so retrying the move that ended the game still returns the final state.
+      if (await this.deps.repository.hasProcessedAction(matchId, actionId)) {
+        return this.stateFor(match, userId);
+      }
+      throw new AppError(409, 'GAME_FINISHED', 'This game has ended');
+    }
     const activeGame = game ?? this.installActive(match);
     if (match.currentTurn !== player.side) {
       throw new AppError(409, 'OUT_OF_TURN', 'It is not your turn');

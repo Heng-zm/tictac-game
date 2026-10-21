@@ -170,6 +170,8 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect(first.status).toBe('applied');
     expect(first.match).toMatchObject({ version: 1, currentTurn: 'O', turnNumber: 1 });
     expect(first.match.board[0]).toBe('X');
+    expect(await repo.hasProcessedAction(matchId, actionA)).toBe(true);
+    expect(await repo.hasProcessedAction(matchId, randomUUID())).toBe(false);
 
     const duplicate = await repo.recordMove(moveInput(matchId, 0, 'X', 0, actionA, boardA, 1));
     expect(duplicate.status).toBe('duplicate');
@@ -460,7 +462,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect(firstPass.expiredInvitations).toBe(1);
     expect(firstPass.abandonedMatches).toBe(1);
     expect(firstPass.deletedInvitations).toBe(1);
-    expect(firstPass.repairedReservations).toBe(0);
+    expect(firstPass.repairedReservations).toBe(1);
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
 
     const matchId = await createRandomMatch();
@@ -479,6 +481,25 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     await prisma.user.update({ where: { id: alice.id }, data: { activeMatchId: randomUUID() } });
     const thirdPass = await repo.runMaintenance(now, 24 * 60 * 60 * 1000);
     expect(thirdPass.repairedReservations).toBe(1);
+    expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
+
+    const staleTokenHash = hashInvitationToken('2'.repeat(43));
+    const staleInvite = await repo.createInvitationMatch({
+      host: alice,
+      tokenHash: staleTokenHash,
+      expiresAt: new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000),
+      displayName: alice.firstName,
+    });
+    await prisma.match.update({
+      where: { id: staleInvite.match.id },
+      data: { lastActivityAt: new Date(now.getTime() - 2 * 24 * 60 * 60 * 1000) },
+    });
+
+    const stalePass = await repo.runMaintenance(now, 24 * 60 * 60 * 1000);
+    expect(stalePass.expiredInvitations).toBe(1);
+    expect(stalePass.abandonedMatches).toBe(1);
+    expect((await repo.getInvitationById(staleInvite.invitation.id))?.status).toBe('EXPIRED');
+    expect((await repo.getMatchById(staleInvite.match.id))?.status).toBe('ABANDONED');
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
   });
 });

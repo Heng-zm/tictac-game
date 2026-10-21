@@ -18,7 +18,7 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/server/**/*.ts', 'src/shared/**/*.ts', 'tests/**/*.ts', 'scripts/**/*.ts', 'prisma/**/*.ts'],
+    files: ['src/server/**/*.ts', 'src/shared/**/*.ts', 'tests/**/*.ts', 'scripts/**/*.{ts,mjs}', 'prisma/**/*.ts'],
     languageOptions: {
       globals: { ...globals.node },
       parserOptions: { ecmaVersion: 2022, sourceType: 'module' },

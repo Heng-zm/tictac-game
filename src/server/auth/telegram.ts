@@ -139,7 +139,7 @@ function parseInitData(initData: string): ParsedInitData {
 function verifyHash(parsed: ParsedInitData, botToken: string): void {
   const dataCheckString = [...parsed.params.entries()]
     .filter(([key]) => key !== 'hash')
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(compareParamKeys)
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
 
@@ -150,6 +150,14 @@ function verifyHash(parsed: ParsedInitData, botToken: string): void {
   if (supplied.length !== computed.length || !timingSafeEqual(supplied, computed)) {
     throw new TelegramAuthError('INIT_DATA_INVALID', 'Telegram authentication signature is invalid');
   }
+}
+
+/**
+ * Telegram signs fields sorted by key using JavaScript's default string order.
+ * Avoid localeCompare here: its result depends on the host locale and ICU data.
+ */
+function compareParamKeys([a]: [string, string], [b]: [string, string]): number {
+  return a < b ? -1 : a > b ? 1 : 0;
 }
 
 function normalizeOptionalName(value: string | null | undefined): string | null {
@@ -173,7 +181,7 @@ export function buildTelegramInitDataForTest(
   params.set('user', JSON.stringify(user));
   for (const [key, value] of Object.entries(extra)) params.set(key, value);
   const dataCheckString = [...params.entries()]
-    .sort(([a], [b]) => a.localeCompare(b))
+    .sort(compareParamKeys)
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
   const secretKey = createHmac('sha256', 'WebAppData').update(botToken).digest();

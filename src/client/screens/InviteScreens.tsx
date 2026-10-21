@@ -137,7 +137,7 @@ export function InviteWaitingScreen({
         title="Invite a friend"
         subtitle="One private link, one opponent"
         onBack={() => navigate('/')}
-        action={<Pill tone="accent">Unrated?</Pill>}
+        action={<Pill tone="accent">Rated</Pill>}
       />
 
       {activeMatch ? (

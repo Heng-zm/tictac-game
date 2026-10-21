@@ -236,6 +236,10 @@ export class MemoryGameRepository implements GameRepository {
     return this.getMatchById(user.activeMatchId);
   }
 
+  async hasProcessedAction(matchId: string, actionId: string): Promise<boolean> {
+    return this.moves.get(matchId)?.has(actionId) ?? false;
+  }
+
   async recordMove(input: RecordMoveInput): Promise<RepositoryMoveResult> {
     const match = this.matches.get(input.matchId);
     if (!match) throw new RepositoryConflictError('MATCH_NOT_FOUND', 'Match does not exist');
@@ -508,6 +512,17 @@ export class MemoryGameRepository implements GameRepository {
       if ((match.status === 'ACTIVE' || match.status === 'WAITING') && match.lastActivityAt.getTime() < cutoff) {
         await this.abandonMatch({ matchId: match.id, finishReason: 'SERVER_SHUTDOWN', finishedAt: now });
         summary.abandonedMatches += 1;
+      }
+    }
+
+    // Close pending invitations whose match is no longer waiting, including
+    // stale waiting matches abandoned just above.
+    for (const invitation of this.invitations.values()) {
+      if (invitation.status !== 'PENDING') continue;
+      const match = this.matches.get(invitation.matchId);
+      if (!match || match.status !== 'WAITING') {
+        invitation.status = 'EXPIRED';
+        summary.expiredInvitations += 1;
       }
     }
 

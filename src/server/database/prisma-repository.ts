@@ -234,6 +234,14 @@ export class PrismaGameRepository implements GameRepository {
     return this.getMatchById(user.activeMatchId);
   }
 
+  async hasProcessedAction(matchId: string, actionId: string): Promise<boolean> {
+    const move = await this.prisma.move.findUnique({
+      where: { matchId_actionId: { matchId, actionId } },
+      select: { id: true },
+    });
+    return move !== null;
+  }
+
   async recordMove(input: RecordMoveInput): Promise<RepositoryMoveResult> {
     return this.prisma.$transaction(async (tx) => {
       const existing = await tx.move.findUnique({
@@ -648,6 +656,22 @@ export class PrismaGameRepository implements GameRepository {
         });
         summary.repairedReservations += reservations.count;
       });
+    }
+
+    // Close pending invitations whose match is no longer waiting. This covers
+    // stale WAITING matches abandoned above as well as matches abandoned by an
+    // earlier crash before the invitation could be updated.
+    const orphaned = await this.prisma.invitation.findMany({
+      where: { status: 'PENDING', match: { status: { not: 'WAITING' } } },
+      select: { id: true },
+      take: 1000,
+    });
+    if (orphaned.length > 0) {
+      const expiredOrphans = await this.prisma.invitation.updateMany({
+        where: { id: { in: orphaned.map((invitation) => invitation.id) }, status: 'PENDING' },
+        data: { status: 'EXPIRED' },
+      });
+      summary.expiredInvitations += expiredOrphans.count;
     }
 
     const deleted = await this.prisma.invitation.deleteMany({

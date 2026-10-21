@@ -59,6 +59,7 @@ Vite proxies `/api` and `/socket.io` to the server.
 ```bash
 # Create a database, then set DATABASE_URL in .env, for example:
 # postgresql://postgres:postgres@localhost:5432/tictactoe?schema=public
+# Set DIRECT_URL to the same local URL (Prisma uses it for migrations).
 
 npm run db:migrate:dev   # create/apply migrations in development
 # or, for an existing deployment:
@@ -76,6 +77,36 @@ npm run db:studio     # inspect data
 npm run db:cleanup    # run a maintenance pass once
 ```
 
+### With Supabase
+
+Supabase is hosted PostgreSQL, so no application code changes are needed. Use the connection strings from **Supabase Dashboard → Project Settings → Database**:
+
+```dotenv
+# Runtime: transaction pooler (IPv4-compatible, good for a long-running Node server)
+DATABASE_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1&sslmode=require
+
+# Migrations: direct connection or session pooler (port 5432)
+DIRECT_URL=postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+Then apply the committed migration and start the app:
+
+```bash
+npm run db:migrate
+npm run build
+NODE_ENV=production npm start
+```
+
+Notes:
+
+- URL-encode special characters in the database password.
+- Keep `sslmode=require`. Never expose the database URL or a Supabase service-role key to the browser; this app talks to the database only from the server.
+- `DATABASE_URL` is used by Prisma Client at runtime. `DIRECT_URL` is used by the `db:migrate`/`db:migrate:dev` scripts for Prisma Migrate. The pooler on port 6543 cannot run migrations.
+- The migration wrapper (`scripts/prisma-cli.mjs`) automatically points Prisma Migrate at `DIRECT_URL` when it is set, falling back to `DATABASE_URL` for local PostgreSQL.
+- If your network lacks IPv6, use Supabase's session pooler on port 5432 for `DIRECT_URL` (as shown above).
+- Prisma connects with the database role in the URL and does not use Supabase Row Level Security. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, enable RLS first.
+- The Telegram login remains server-side `initData` verification; Supabase Auth is not required and is not used.
+
 ## Environment
 
 Copy `.env.example` to `.env`. Important variables:
@@ -84,7 +115,8 @@ Copy `.env.example` to `.env`. Important variables:
 | --- | --- |
 | `NODE_ENV` | `development`, `test`, or `production`. |
 | `PORT` | Server port (default `3000`). |
-| `DATABASE_URL` | PostgreSQL URL. Required in production. |
+| `DATABASE_URL` | PostgreSQL URL. Required in production. For Supabase, use the transaction pooler URL. |
+| `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate`. Required when running migrations with Supabase. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
 | `MINI_APP_URL` | Public HTTPS origin in production. |
 | `TELEGRAM_BOT_TOKEN` | Server-only bot token. Required in production. |
@@ -155,6 +187,7 @@ Minimum production environment:
 NODE_ENV=production
 PORT=3000
 DATABASE_URL=postgresql://...
+DIRECT_URL=postgresql://...
 SESSION_SECRET=<random 32+ chars>
 MINI_APP_URL=https://your-domain.example
 TELEGRAM_BOT_TOKEN=123456:...
@@ -191,6 +224,10 @@ npx vitest run tests/prisma-repository.test.ts
 ```
 
 Without `TEST_DATABASE_URL`, those tests skip cleanly.
+
+## Verification
+
+See [VERIFICATION.md](./VERIFICATION.md) for the exact commands, test counts, production smoke-test results, and the list of behavior that still requires real Telegram/Supabase/deployment verification.
 
 ## Project structure
 

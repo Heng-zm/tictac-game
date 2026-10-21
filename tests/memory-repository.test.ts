@@ -136,6 +136,8 @@ describe('MemoryGameRepository', () => {
     expect(first.match.board[0]).toBe('X');
     expect(first.match.currentTurn).toBe('O');
     expect(first.match.turnNumber).toBe(1);
+    expect(await repo.hasProcessedAction(matchId, actionA)).toBe(true);
+    expect(await repo.hasProcessedAction(matchId, randomUUID())).toBe(false);
 
     const duplicate = await repo.recordMove(moveInput(matchId, 0, 'X', 0, actionA, boardA, 1));
     expect(duplicate.status).toBe('duplicate');
@@ -449,6 +451,25 @@ describe('MemoryGameRepository', () => {
     expect(summary.deletedInvitations).toBe(0);
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
     expect((await repo.getUserById(bob.id))?.activeMatchId).toBeNull();
+  });
+
+  it('expires pending invitations attached to stale waiting matches', async () => {
+    const tokenHash = hashInvitationToken('2'.repeat(43));
+    const { match, invitation } = await repo.createInvitationMatch({
+      host: alice,
+      tokenHash,
+      expiresAt: new Date(clock.now().getTime() + 5 * 24 * 60 * 60 * 1000),
+      displayName: alice.firstName,
+    });
+
+    clock.advance(2 * 24 * 60 * 60 * 1000);
+    const summary = await repo.runMaintenance(clock.now(), 24 * 60 * 60 * 1000);
+
+    expect(summary.expiredInvitations).toBe(1);
+    expect(summary.abandonedMatches).toBe(1);
+    expect((await repo.getInvitationById(invitation.id))?.status).toBe('EXPIRED');
+    expect((await repo.getMatchById(match.id))?.status).toBe('ABANDONED');
+    expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
   });
 
   it('sets preferences and touches users', async () => {

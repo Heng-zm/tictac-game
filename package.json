@@ -20,9 +20,9 @@
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.server.json --noEmit && tsc -p tsconfig.client.json --noEmit",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate deploy",
-    "db:migrate:dev": "prisma migrate dev",
-    "db:studio": "prisma studio",
+    "db:migrate": "node scripts/prisma-cli.mjs migrate deploy",
+    "db:migrate:dev": "node scripts/prisma-cli.mjs migrate dev",
+    "db:studio": "node scripts/prisma-cli.mjs studio",
     "db:cleanup": "tsx scripts/cleanup.ts",
     "postinstall": "prisma generate"
   },

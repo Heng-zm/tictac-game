@@ -92,7 +92,9 @@ export function setSessionCookie(
   res.cookie(SESSION_COOKIE_NAME, token, {
     httpOnly: true,
     secure: options.secure,
-    sameSite: 'lax',
+    // Telegram Web renders Mini Apps in an iframe, so production cookies must
+    // be usable in a cross-site context. Local development stays on Lax.
+    sameSite: options.secure ? 'none' : 'lax',
     path: '/',
     maxAge: (options.ttlSeconds ?? DEFAULT_SESSION_TTL_SECONDS) * 1000,
   });
@@ -102,7 +104,7 @@ export function clearSessionCookie(res: Response, secure: boolean): void {
   res.clearCookie(SESSION_COOKIE_NAME, {
     httpOnly: true,
     secure,
-    sameSite: 'lax',
+    sameSite: secure ? 'none' : 'lax',
     path: '/',
   });
 }

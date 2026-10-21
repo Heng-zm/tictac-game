@@ -99,6 +99,8 @@ export function createApp(deps: AppDependencies): express.Express {
   app.use(
     helmet({
       frameguard: false,
+      // HSTS on localhost would poison development browsers for other projects.
+      hsts: config.isProduction,
       crossOriginEmbedderPolicy: false,
       crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },

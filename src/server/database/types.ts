@@ -232,6 +232,7 @@ export interface GameRepository {
   getMatchById(matchId: string): Promise<MatchEntity | null>;
   getReservationMatch(userId: string): Promise<MatchEntity | null>;
   recordMove(input: RecordMoveInput): Promise<RepositoryMoveResult>;
+  hasProcessedAction(matchId: string, actionId: string): Promise<boolean>;
   finalizeMatch(input: FinalizeMatchInput): Promise<RepositoryFinalizeResult>;
   abandonMatch(input: AbandonMatchInput): Promise<MatchEntity | null>;
 

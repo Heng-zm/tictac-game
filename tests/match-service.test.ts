@@ -186,6 +186,20 @@ describe('MatchService', () => {
     expect(retry.board).toEqual(finalState.board);
   });
 
+  it('keeps finishing-move retries idempotent after a server restart', async () => {
+    const match = await createRandomMatch();
+    const { finalActionId, finalState } = await playToXWin(match);
+
+    // A fresh service has no in-memory processed-action set; durability comes
+    // from the repository's move history.
+    const restarted = await startService();
+    const retry = await restarted.submitMove(alice.id, match.id, 2, finalActionId);
+
+    expect(retry.status).toBe('FINISHED');
+    expect(retry.version).toBe(finalState.version);
+    expect(retry.board).toEqual(finalState.board);
+  });
+
   it('rejects further moves and non-participants after a game ends', async () => {
     const match = await createRandomMatch();
     await playToXWin(match);
