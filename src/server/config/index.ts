@@ -23,7 +23,12 @@ const envSchema = z
       .regex(/^@?[A-Za-z0-9_]{3,64}$/, 'Malformed TELEGRAM_BOT_USERNAME')
       .optional(),
     TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
-    TELEGRAM_WEBHOOK_SECRET: z.string().min(16).max(256).optional(),
+    TELEGRAM_WEBHOOK_SECRET: z
+      .string()
+      .min(16)
+      .max(256)
+      .regex(/^[A-Za-z0-9_-]+$/, 'TELEGRAM_WEBHOOK_SECRET must use only letters, digits, "_" and "-"')
+      .optional(),
     DEV_AUTH_ENABLED: booleanString.optional(),
     CORS_ORIGINS: z.string().default('http://localhost:5173'),
     QUEUE_AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(10_000),

@@ -1,0 +1,55 @@
+# Alternative production Blueprint: Render web service + Render Postgres.
+#
+# Use this if you do not already have a Supabase project. Render provisions the
+# database, injects both connection strings, and applies Prisma migrations on
+# startup. During Blueprint setup you only need to provide the Telegram bot
+# token and username.
+#
+# If you already use Supabase, deploy render.yaml instead.
+databases:
+  - name: tictac-db
+    databaseName: tictac
+    user: tictac
+    plan: free
+    region: singapore
+
+services:
+  - type: web
+    name: tictac-game
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "false"
+      - key: DB_MODE
+        value: postgres
+      - key: DEV_AUTH_ENABLED
+        value: "false"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: LOG_LEVEL
+        value: info
+      - key: SESSION_SECRET
+        generateValue: true
+      # TELEGRAM_WEBHOOK_SECRET is derived from SESSION_SECRET at startup.
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tictac-db
+          property: connectionString
+      - key: DIRECT_URL
+        fromDatabase:
+          name: tictac-db
+          property: connectionString
+      # Fill these in the Render dashboard during Blueprint setup.
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false

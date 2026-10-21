@@ -52,14 +52,53 @@ describe('Render defaults', () => {
     const result = applyRenderDefaults(env);
 
     expect(result.demoMode).toBe(false);
+    expect(result.derivedWebhookSecret).toBe(true);
     expect(env.DB_MODE).toBe('memory');
     expect(env.DEMO_MODE).toBeUndefined();
+    expect(env.TELEGRAM_WEBHOOK_URL).toBe('https://tictactoe-demo.onrender.com/api/telegram/webhook');
+    expect(env.TELEGRAM_WEBHOOK_SECRET).toMatch(/^[a-f0-9]{64}$/);
+    expect(env.TELEGRAM_WEBHOOK_SECRET).not.toBe(env.SESSION_SECRET);
 
     const config = loadConfig(env);
     expect(config.demoMode).toBe(false);
     expect(config.devAuthEnabled).toBe(false);
     expect(config.telegramBotToken).toBe(TEST_BOT_TOKEN);
+    expect(config.telegramWebhookUrl).toBe('https://tictactoe-demo.onrender.com/api/telegram/webhook');
+    expect(config.telegramWebhookSecret).toBe(env.TELEGRAM_WEBHOOK_SECRET);
     expect(config.databaseMode).toBe('memory');
+  });
+
+  it('uses a custom Mini App domain for the Telegram webhook', () => {
+    const env: NodeJS.ProcessEnv = {
+      NODE_ENV: 'production',
+      RENDER: 'true',
+      RENDER_EXTERNAL_URL: 'https://tictactoe.onrender.com',
+      MINI_APP_URL: 'https://game.example.com',
+      TELEGRAM_BOT_TOKEN: TEST_BOT_TOKEN,
+      TELEGRAM_BOT_USERNAME: 'tictactoe_bot',
+      SESSION_SECRET: 'explicit-session-secret-with-more-than-32-characters',
+      DB_MODE: 'memory',
+    };
+    applyRenderDefaults(env);
+    expect(env.TELEGRAM_WEBHOOK_URL).toBe('https://game.example.com/api/telegram/webhook');
+  });
+
+  it('preserves an explicitly configured webhook', () => {
+    const env: NodeJS.ProcessEnv = {
+      NODE_ENV: 'production',
+      RENDER: 'true',
+      RENDER_EXTERNAL_URL: 'https://tictactoe.onrender.com',
+      TELEGRAM_BOT_TOKEN: TEST_BOT_TOKEN,
+      TELEGRAM_BOT_USERNAME: 'tictactoe_bot',
+      TELEGRAM_WEBHOOK_URL: 'https://hooks.example.com/telegram',
+      TELEGRAM_WEBHOOK_SECRET: 'explicit-webhook-secret',
+      SESSION_SECRET: 'explicit-session-secret-with-more-than-32-characters',
+      DB_MODE: 'memory',
+    };
+    const result = applyRenderDefaults(env);
+    expect(result.derivedWebhookSecret).toBe(false);
+    expect(env.TELEGRAM_WEBHOOK_URL).toBe('https://hooks.example.com/telegram');
+    expect(env.TELEGRAM_WEBHOOK_SECRET).toBe('explicit-webhook-secret');
   });
 
   it('can explicitly disable the guest demo fallback', () => {

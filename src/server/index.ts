@@ -13,6 +13,12 @@ async function main(): Promise<void> {
       'SESSION_SECRET was not set; generated an ephemeral one for this Render instance. Set SESSION_SECRET to keep sessions across restarts.',
     );
   }
+  if (renderDefaults.derivedWebhookSecret) {
+    logger.warn(
+      { event: 'render_derived_webhook_secret' },
+      'TELEGRAM_WEBHOOK_SECRET was not set; derived a Telegram-safe one from SESSION_SECRET. Set TELEGRAM_WEBHOOK_SECRET explicitly to rotate it independently.',
+    );
+  }
   if (renderDefaults.demoMode) {
     logger.warn(
       { event: 'demo_mode' },

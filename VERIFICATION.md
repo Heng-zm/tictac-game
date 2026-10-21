@@ -32,14 +32,16 @@ No real secrets were committed or used.
 | --- | --- |
 | `npm run typecheck` | Passed (server + client) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 138 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **148 passed / 148** across 14 test files |
-| `npm run test:coverage` with PostgreSQL | Passed; **85.89% statements**, 82.42% branches, 89.80% functions |
+| `npm test` without `TEST_DATABASE_URL` | 144 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **154 passed / 154** across 15 test files |
+| `npm run test:coverage` with PostgreSQL | Passed; **85.95% statements**, 82.03% branches, 89.84% functions |
 | Prisma repository coverage | **91.47% statements** (up from 5.13% before integration tests) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
+| `npm run start:prod` | Applied migrations, then started the production server |
 | `npm run db:migrate` | Applied `20261021000000_init` to PostgreSQL 17.11 |
 | `npm run db:migrate` again | “No pending migrations to apply” |
 | `npm run db:migrate` with only `DATABASE_URL` | Passed; wrapper correctly falls back when `DIRECT_URL` is absent |
+| Render Blueprint schema | `render.yaml` and `render.postgres.yaml` valid against Render's published schema |
 
 The PostgreSQL integration suite covers:
 
@@ -56,10 +58,13 @@ The PostgreSQL integration suite covers:
 
 ## Production-mode smoke test
 
-The built server was started with `NODE_ENV=production`, `npm start`, PostgreSQL, and a format-valid test bot token.
+The built server was started with `NODE_ENV=production`, `npm run start:prod`, PostgreSQL, a format-valid test bot token, and Render-style environment derivation (`RENDER=true`, `RENDER_EXTERNAL_URL` set, no explicit `MINI_APP_URL` or `CORS_ORIGINS`).
 
 | Check | Result |
 | --- | --- |
+| Startup migrations | `npm run start:prod` applied migrations, then booted the server |
+| Render-derived Mini App URL | `https://tictac-smoke.onrender.com` |
+| Render-derived Telegram webhook | `https://tictac-smoke.onrender.com/api/telegram/webhook` |
 | `GET /health` | `200`, status `ok` |
 | `GET /ready` | `200`, database `ok` |
 | `GET /` | `200`, built client HTML served |
@@ -93,6 +98,15 @@ The server was also started with `NODE_ENV=production`, `RENDER=true`, and a sim
 | `GET /api/me` | `200` |
 
 This verifies that a first Render deployment starts without dashboard configuration. It is a guest demo only; data is lost on restart.
+
+### Production deployment scaffolding
+
+- `render.yaml` deploys the web service with Supabase PostgreSQL. It sets `DEMO_MODE=false`, `DB_MODE=postgres`, `DEV_AUTH_ENABLED=false`, generates a persistent session secret, derives a Telegram-safe webhook secret, applies migrations before startup, and uses `/health` as the Render health check.
+- `render.postgres.yaml` is the alternative one-click path that provisions Render Postgres and requires only the Telegram bot token and username.
+- `npm run start:prod` runs `prisma migrate deploy` through `DIRECT_URL` (falling back to `DATABASE_URL`) before importing the built server.
+- `npm run check:prod -- https://...` verifies HTTPS, `/health`, `/ready`, `demoMode=false`, production environment, disabled dev auth, Telegram bot configuration, HSTS, and rejection of `POST /api/auth/dev`.
+- `.github/workflows/ci.yml` runs typecheck, lint, PostgreSQL integration tests, and the production build; the Blueprint waits for checks before auto-deploying.
+- The app derives the Telegram webhook URL from the public Render/custom Mini App origin and registers it at startup. Webhook registration failure is logged but does not prevent the game server from booting.
 
 ### Same-origin LAN/custom-domain smoke test
 
@@ -168,7 +182,7 @@ These items could not be verified in this environment and must be checked during
 2. **Real Telegram Web / mobile iframe cookies.** `SameSite=None; Secure` is configured and was observed in the smoke test, but browser third-party-cookie behavior inside Telegram Web was not exercised.
 3. **Live Supabase project.** No Supabase URL or credentials were available. PostgreSQL 17.11 compatibility and the migration were verified locally; Supabase's pooler, TLS termination, and network path were not.
 4. **Telegram bot commands and webhook delivery.** The bot failure path was tested with a fake token. Real `/start`, `/play`, `/help`, menu-button setup, invitation deep links, and webhook secret validation were not exercised against Telegram.
-5. **HTTPS deployment.** TLS, reverse proxy, `TRUST_PROXY`, domain configuration, and Telegram's HTTPS requirement were not deployed or tested.
+5. **HTTPS deployment.** TLS, reverse proxy, `TRUST_PROXY`, domain configuration, and Telegram's HTTPS requirement were not deployed or tested. The production Blueprints were schema-validated locally but have not been executed in a live Render account.
 6. **Visual UI verification.** The client builds and the socket/HTTP flows work, but screens were not visually inspected in a real browser or Telegram WebView in this verification pass.
 7. **Load, concurrency, and multi-instance behavior.** The app is intentionally single-instance for in-memory queues and Socket.IO rooms. No Redis adapter or distributed queue was tested.
 8. **Real user data and moderation.** No production user data, abuse testing, or Telegram rate-limit behavior was exercised.
@@ -177,15 +191,15 @@ These items could not be verified in this environment and must be checked during
 
 Before calling the deployment production-verified:
 
-- [ ] Create the Supabase project and run `npm run db:migrate` with `DATABASE_URL` (pooler) and `DIRECT_URL` (direct/session pooler).
-- [ ] Set a strong `SESSION_SECRET`, real `TELEGRAM_BOT_TOKEN`, `TELEGRAM_BOT_USERNAME`, and HTTPS `MINI_APP_URL`.
-- [ ] Deploy behind HTTPS with the correct `TRUST_PROXY` value.
-- [ ] Configure BotFather Mini App/menu button and the Telegram webhook.
+- [ ] Create the Supabase project and copy `DATABASE_URL` (pooler) and `DIRECT_URL` (direct/session pooler), or choose the Render Postgres Blueprint.
+- [ ] Deploy `render.yaml` or `render.postgres.yaml`; Render generates `SESSION_SECRET` and `TELEGRAM_WEBHOOK_SECRET` and applies migrations during startup.
+- [ ] Provide a real `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` in the Render dashboard. Never send them in chat or commit them.
+- [ ] Confirm the Render service is healthy and `npm run check:prod -- https://your-service` passes.
+- [ ] Configure the BotFather Mini App/menu button URL to the deployed origin; confirm the webhook was registered.
 - [ ] Open the Mini App from a real Telegram account on mobile and Telegram Web.
 - [ ] Play one random game and one invitation game between two real accounts.
 - [ ] Verify reconnect behavior by backgrounding/killing the Telegram WebView.
-- [ ] Verify leaderboard, history, and profile persistence against Supabase.
-- [ ] Confirm `/health` and `/ready` from the deployed origin.
+- [ ] Verify leaderboard, history, and profile persistence against Supabase/Render Postgres.
 - [ ] Confirm logs contain no tokens, `initData`, or session cookies.
 
 ## Known limitations

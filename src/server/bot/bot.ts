@@ -123,12 +123,21 @@ export function createBotController(deps: BotControllerDependencies): BotControl
     }
 
     if (config.telegramWebhookUrl) {
-      await bot.api.setWebhook(config.telegramWebhookUrl, {
-        ...(config.telegramWebhookSecret ? { secret_token: config.telegramWebhookSecret } : {}),
-        allowed_updates: ['message', 'callback_query'],
-        drop_pending_updates: false,
-      });
-      log.info({ event: 'bot_webhook_registered' }, 'Telegram webhook registered');
+      try {
+        await bot.api.setWebhook(config.telegramWebhookUrl, {
+          ...(config.telegramWebhookSecret ? { secret_token: config.telegramWebhookSecret } : {}),
+          allowed_updates: ['message', 'callback_query'],
+          drop_pending_updates: false,
+        });
+        log.info({ event: 'bot_webhook_registered' }, 'Telegram webhook registered');
+      } catch (error) {
+        // The game server must still boot if Telegram is briefly unavailable.
+        // The previous webhook remains registered and will retry delivery.
+        log.error(
+          { event: 'bot_webhook_registration_failed', errorName: error instanceof Error ? error.name : 'unknown' },
+          'Could not register the Telegram webhook',
+        );
+      }
       return;
     }
 

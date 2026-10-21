@@ -4,6 +4,8 @@ A production-oriented, real-time Tic Tac Toe game that runs as a Telegram Mini A
 
 ![Stack](https://img.shields.io/badge/React%2019-TypeScript-3178C6) ![Server](https://img.shields.io/badge/Node.js-Express%205%20%2B%20Socket.IO%204-339933) ![Database](https://img.shields.io/badge/PostgreSQL-Prisma%206-4169E1)
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/Heng-zm/tictac-game)
+
 ## Features
 
 - **Three game modes**
@@ -135,6 +137,33 @@ Notes:
 - Prisma connects with the database role in the URL and does not use Supabase Row Level Security policies. The committed Supabase migration enables RLS on all game tables and revokes Data API grants from Supabase's `anon` and `authenticated` roles. This is intentional: the game server is the only database writer and enforces authorization. If you add a Supabase client or direct browser access, add explicit RLS policies and grants first.
 - The Telegram login remains server-side `initData` verification; Supabase Auth is not required and is not used.
 
+### Deploy production on Render
+
+Two production Blueprints are included. Both set `DEMO_MODE=false`, `DB_MODE=postgres`, disable development auth, generate a persistent `SESSION_SECRET`, derive a Telegram-safe webhook secret from it, run Prisma migrations before the server starts, and expose `GET /health` for Render's health check. `MINI_APP_URL` and `CORS_ORIGINS` are derived from the Render service URL, and the Telegram webhook is registered automatically.
+
+**Option A — Supabase (`render.yaml`)**
+
+1. Create a Supabase project and copy the two PostgreSQL connection strings from **Project Settings → Database**:
+   - `DATABASE_URL`: transaction pooler, port `6543`
+   - `DIRECT_URL`: direct connection or session pooler, port `5432`
+2. Create a bot with [@BotFather](https://t.me/BotFather) and note its token and username.
+3. Open the [Render Blueprint](https://render.com/deploy?repo=https://github.com/Heng-zm/tictac-game), connect the repository, and keep `render.yaml` as the Blueprint file.
+4. Fill in `DATABASE_URL`, `DIRECT_URL`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_BOT_USERNAME`. Do **not** use a Supabase `anon` or `service_role` key; this app connects directly to PostgreSQL.
+5. Wait for the deploy and the `/health` check to pass, then set the bot's menu button to the service URL:
+   **@BotFather → `/setmenubutton`**.
+6. Verify the live service:
+   ```bash
+   npm run check:prod -- https://your-service.onrender.com
+   ```
+
+The first boot applies the committed migrations through `DIRECT_URL`. Render generates `SESSION_SECRET` once and keeps it across deploys; `TELEGRAM_WEBHOOK_SECRET` is derived from it unless you set one explicitly.
+
+**Option B — Render Postgres (`render.postgres.yaml`)**
+
+If you do not already have Supabase, use the alternative Blueprint. Render provisions the PostgreSQL database, injects both connection strings, and you only need to provide the Telegram bot token and username. When creating the Blueprint, select `render.postgres.yaml` as the Blueprint file.
+
+> The included Blueprints use Render's free plan, which sleeps after inactivity. Sleep does not lose PostgreSQL data, but use a paid instance for an always-on game server. Supabase free projects may also pause after inactivity. Run a single instance: matchmaking queues and Socket.IO rooms are process-local.
+
 ### Temporary in-memory mode
 
 For a demo where you do not want to connect a database yet, set:
@@ -145,9 +174,9 @@ DB_MODE=memory
 
 This keeps users, matches, ratings, and history in process memory. **Everything is lost when the server restarts**, and it only works with one application instance. It is intended for temporary demos, not real production use. Telegram authentication is still required, so `SESSION_SECRET`, `MINI_APP_URL`, `TELEGRAM_BOT_TOKEN`, and `TELEGRAM_BOT_USERNAME` must still be configured. Omit `DATABASE_URL`/`DIRECT_URL` in this mode.
 
-### Render zero-config demo
+### Render zero-config demo (not production)
 
-When the app is deployed to Render with **no** `DATABASE_URL` and **no** `TELEGRAM_BOT_TOKEN`, it automatically starts a guest demo:
+When the app is deployed to Render with **no** `DATABASE_URL` and **no** `TELEGRAM_BOT_TOKEN`, and `DEMO_MODE` is not explicitly disabled, it automatically starts a guest demo. The production Blueprints above set `DEMO_MODE=false`, so this fallback cannot activate there.
 
 - `DB_MODE=memory` — no database, data resets on restart.
 - `DEMO_MODE=true` — guest login is enabled; no Telegram bot is required.
@@ -167,13 +196,13 @@ Copy `.env.example` to `.env`. Important variables:
 | `DATABASE_URL` | PostgreSQL URL. Required in production unless `DB_MODE=memory`. For Supabase, use the transaction pooler URL. |
 | `DB_MODE` | `postgres` or `memory`. Defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory` outside production. `memory` in production is explicit and ephemeral. |
 | `DEMO_MODE` | `true` enables guest login without Telegram and allows in-memory data. Render enables it automatically when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. Set `false` to require real configuration. |
-| `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate`. Required when running migrations with Supabase. |
+| `DIRECT_URL` | Direct/session-pooler PostgreSQL URL used by `prisma migrate` and `start:prod`. Required when running migrations with Supabase. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
-| `MINI_APP_URL` | Public HTTPS origin in production. |
+| `MINI_APP_URL` | Public HTTPS origin in production. Automatically set from `RENDER_EXTERNAL_URL` on Render when unset. |
 | `TELEGRAM_BOT_TOKEN` | Server-only bot token. Required in production. |
 | `TELEGRAM_BOT_USERNAME` | Bot username without `@`. Required for invite links in production. |
-| `TELEGRAM_WEBHOOK_URL` | Optional. When set, the bot uses a webhook; otherwise it long-polls. |
-| `TELEGRAM_WEBHOOK_SECRET` | Required with the webhook URL (16–256 chars). |
+| `TELEGRAM_WEBHOOK_URL` | Optional. On Render with a bot token, derived automatically from `MINI_APP_URL`; otherwise set it to use a webhook instead of long polling. |
+| `TELEGRAM_WEBHOOK_SECRET` | Required with an explicit webhook URL (16–256 chars; letters, digits, `_`, `-` only). On Render it is derived from `SESSION_SECRET` when unset; set it explicitly to rotate it independently. |
 | `DEV_AUTH_ENABLED` | Local guest auth. Rejected in production. |
 | `CORS_ORIGINS` | Comma-separated allowed browser origins. `MINI_APP_URL` is added automatically. |
 | `DISCONNECT_GRACE_MS` | Reconnect grace period before a disconnect can forfeit (default 30s). |
@@ -200,15 +229,14 @@ Production startup fails fast if required secrets, the HTTPS Mini App URL, or Te
 4. In **@BotFather**:
    - `/setmenubutton` → choose the bot → set the Mini App URL.
    - `/newapp` (or Mini App settings) → configure the Web App URL and short name.
-5. Optional webhook (recommended in production):
+5. Webhook. On Render, the app registers it automatically using the derived public URL and a Telegram-safe `TELEGRAM_WEBHOOK_SECRET` derived from `SESSION_SECRET`; no manual `setWebhook` call is needed. For other hosts, set both variables below or let the bot use long polling:
 
-   ```bash
-   curl "https://api.telegram.org/bot<TOKEN>/setWebhook" \
-     -H "Content-Type: application/json" \
-     -d '{"url":"https://your-domain.example/api/telegram/webhook","secret_token":"<TELEGRAM_WEBHOOK_SECRET>"}'
+   ```dotenv
+   TELEGRAM_WEBHOOK_URL=https://your-domain.example/api/telegram/webhook
+   TELEGRAM_WEBHOOK_SECRET=<random 16-256 chars, letters/digits/_/->
    ```
 
-   The app serves the webhook at `/api/telegram/webhook` and validates Telegram's secret header. If `TELEGRAM_WEBHOOK_URL` is unset, the bot starts long polling.
+   The app serves the webhook at `/api/telegram/webhook` and validates Telegram's secret header. If `TELEGRAM_WEBHOOK_URL` is unset outside Render, the bot starts long polling.
 
 6. Invitations use `https://t.me/<BOT_USERNAME>?startapp=invite_<TOKEN>`. The bot's `/start` handler also recognizes `invite_<TOKEN>` payloads and opens the Mini App with the invitation.
 
@@ -224,35 +252,45 @@ Production startup fails fast if required secrets, the HTTPS Mini App URL, or Te
 
 ```bash
 npm ci
-npm run db:generate
-npm run build          # client → dist/client, server → dist/server
-npm run db:migrate     # apply Prisma migrations
-NODE_ENV=production npm start
+npm run build          # generates Prisma Client, client → dist/client, server → dist/server
+npm run start:prod     # applies migrations, then starts dist/server/index.js
 ```
 
-`npm start` runs `node dist/server/index.js`, which serves the built client and API on one port. Put it behind a TLS-terminating reverse proxy (Caddy, nginx, a platform load balancer) and set `TRUST_PROXY` appropriately.
+`npm run start:prod` is the recommended production entrypoint because it applies committed migrations through `DIRECT_URL` (falling back to `DATABASE_URL`) before boot. If migrations are handled separately, `NODE_ENV=production npm start` runs the server only. Put the process behind a TLS-terminating reverse proxy (Caddy, nginx, a platform load balancer) and set `TRUST_PROXY` appropriately.
 
 Minimum production environment:
 
 ```dotenv
 NODE_ENV=production
 PORT=3000
-# Either provide DATABASE_URL/DIRECT_URL, or use DB_MODE=memory for an ephemeral demo.
+DEMO_MODE=false
+DB_MODE=postgres
+DEV_AUTH_ENABLED=false
 DATABASE_URL=postgresql://...
 DIRECT_URL=postgresql://...
-# DB_MODE=memory
 SESSION_SECRET=<random 32+ chars>
 MINI_APP_URL=https://your-domain.example
 TELEGRAM_BOT_TOKEN=123456:...
 TELEGRAM_BOT_USERNAME=your_bot
 CORS_ORIGINS=https://your-domain.example
 TRUST_PROXY=1
+# Optional: set both to use a webhook instead of long polling.
+# TELEGRAM_WEBHOOK_URL=https://your-domain.example/api/telegram/webhook
+# TELEGRAM_WEBHOOK_SECRET=<random 16-256 chars, letters/digits/_/->
 ```
 
 Health checks:
 
 - `GET /health` — process is up.
 - `GET /ready` — database is reachable (HTTP 503 when not ready).
+
+Verify a deployed HTTPS instance, including production auth and demo-mode settings:
+
+```bash
+npm run check:prod -- https://your-service.onrender.com
+```
+
+GitHub Actions runs typecheck, lint, the PostgreSQL integration tests, and the production build on every push and pull request. Render's `checksPass` auto-deploy trigger waits for those checks before deploying.
 
 ### Single-instance note
 

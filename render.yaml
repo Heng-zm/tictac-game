@@ -1,0 +1,43 @@
+# Production Blueprint: Render web service + Supabase PostgreSQL.
+#
+# Create the Supabase project first, then point Render at this file and fill in
+# DATABASE_URL (transaction pooler, port 6543) and DIRECT_URL (direct/session
+# connection, port 5432). The app applies Prisma migrations on startup.
+#
+# If you do not already have Supabase, use render.postgres.yaml instead.
+services:
+  - type: web
+    name: tictac-game
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /health
+    autoDeployTrigger: checksPass
+    maxShutdownDelaySeconds: 30
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DEMO_MODE
+        value: "false"
+      - key: DB_MODE
+        value: postgres
+      - key: DEV_AUTH_ENABLED
+        value: "false"
+      - key: TRUST_PROXY
+        value: "1"
+      - key: LOG_LEVEL
+        value: info
+      - key: SESSION_SECRET
+        generateValue: true
+      # TELEGRAM_WEBHOOK_SECRET is derived from SESSION_SECRET at startup.
+      # Fill these in the Render dashboard during Blueprint setup.
+      - key: DATABASE_URL
+        sync: false
+      - key: DIRECT_URL
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_BOT_USERNAME
+        sync: false

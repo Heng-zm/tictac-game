@@ -98,6 +98,13 @@ describe('configuration', () => {
         TELEGRAM_WEBHOOK_URL: 'https://game.example.com/api/telegram/webhook',
       }),
     ).toThrow(/TELEGRAM_WEBHOOK_SECRET/);
+    expect(() =>
+      loadConfig({
+        ...PRODUCTION_ENV,
+        TELEGRAM_WEBHOOK_URL: 'https://game.example.com/api/telegram/webhook',
+        TELEGRAM_WEBHOOK_SECRET: 'base64+secret/with=invalid',
+      }),
+    ).toThrow(/must use only letters, digits/);
     const withoutBotToken = { ...PRODUCTION_ENV, TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32) };
     delete withoutBotToken.TELEGRAM_BOT_TOKEN;
     expect(() => loadConfig(withoutBotToken)).toThrow(/Requires TELEGRAM_BOT_TOKEN/);
