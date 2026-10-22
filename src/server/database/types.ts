@@ -70,6 +70,7 @@ export interface MatchEntity {
   board: Board;
   currentTurn: Side | null;
   turnNumber: number;
+  lastMove: { cell: number; side: Side } | null;
   winnerSide: Side | null;
   result: MatchResult | null;
   finishReason: FinishReason | null;

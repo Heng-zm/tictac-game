@@ -37,18 +37,27 @@ import type {
 } from './types';
 
 type Tx = Prisma.TransactionClient;
-type MatchWithParticipants = PrismaMatch & { participants: PrismaMatchParticipant[] };
 type UserWithStats = PrismaUser & { stats: PrismaUserStats | null };
+
+const matchInclude = {
+  participants: true,
+  moves: {
+    orderBy: { moveNumber: 'desc' },
+    take: 1,
+    select: { cell: true, participantSide: true },
+  },
+} satisfies Prisma.MatchInclude;
+
+type MatchWithParticipants = Prisma.MatchGetPayload<{ include: typeof matchInclude }>;
 type InvitationFull = PrismaInvitation & {
   inviter: PrismaUser;
   match: MatchWithParticipants;
 };
 
-const matchInclude = { participants: true } satisfies Prisma.MatchInclude;
 const userInclude = { stats: true } satisfies Prisma.UserInclude;
 const invitationInclude = {
   inviter: true,
-  match: { include: { participants: true } },
+  match: { include: matchInclude },
 } satisfies Prisma.InvitationInclude;
 
 export class PrismaGameRepository implements GameRepository {
@@ -578,7 +587,12 @@ export class PrismaGameRepository implements GameRepository {
   async getLeaderboard(limit: number): Promise<LeaderboardRow[]> {
     const rows = await this.prisma.userStats.findMany({
       where: { ratingGames: { gt: 0 } },
-      orderBy: [{ rating: 'desc' }, { wins: 'desc' }, { ratingGames: 'desc' }],
+      orderBy: [
+        { rating: 'desc' },
+        { wins: 'desc' },
+        { ratingGames: 'desc' },
+        { userId: 'asc' },
+      ],
       take: limit,
       include: { user: true },
     });
@@ -749,12 +763,18 @@ async function applyFinalization(
 
     if (participant.userId && finalization.countStats) {
       const stats = statsDeltaFor(match.mode, outcome);
+      const existing = await tx.userStats.findUnique({
+        where: { userId: participant.userId },
+        select: { rating: true },
+      });
+      const nextRating = Math.max(0, (existing?.rating ?? 1000) + delta);
+
       await tx.userStats.upsert({
         where: { userId: participant.userId },
         create: {
           userId: participant.userId,
           ...stats,
-          rating: 1000 + delta,
+          rating: nextRating,
         },
         update: {
           gamesPlayed: { increment: stats.gamesPlayed },
@@ -767,7 +787,7 @@ async function applyFinalization(
           aiLosses: { increment: stats.aiLosses },
           aiDraws: { increment: stats.aiDraws },
           ratingGames: { increment: stats.ratingGames },
-          rating: { increment: delta },
+          rating: nextRating,
         },
       });
     }
@@ -891,6 +911,9 @@ function mapMatch(match: MatchWithParticipants): MatchEntity {
     board: boardFromString(match.board),
     currentTurn: match.currentTurn as Side | null,
     turnNumber: match.turnNumber,
+    lastMove: match.moves[0]
+      ? { cell: match.moves[0].cell, side: match.moves[0].participantSide as Side }
+      : null,
     winnerSide: match.winnerSide as Side | null,
     result: match.result as MatchResult | null,
     finishReason: match.finishReason as FinishReason | null,

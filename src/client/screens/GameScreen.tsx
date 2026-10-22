@@ -117,7 +117,10 @@ export function GameScreen({
       : board;
   const activeBoard = match?.status === 'FINISHED' ? board : displayBoard;
   const winningLine = match ? findWinningLine(activeBoard) : null;
-  const lastMoveCell = client.lastMove && client.match?.id === match?.id ? client.lastMove.cell : null;
+  const lastMoveCell =
+    (client.lastMove && client.match?.id === match?.id ? client.lastMove.cell : null) ??
+    match?.lastMove?.cell ??
+    null;
 
   async function playCell(cell: number): Promise<void> {
     if (!match || match.status !== 'ACTIVE' || !yourTurn || pendingCell !== null || board[cell] !== undefined) return;

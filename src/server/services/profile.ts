@@ -59,19 +59,36 @@ export function toLeaderboardResponse(
   currentUserId: string,
   currentUserRank: number | null,
 ): LeaderboardResponse {
-  const entries: LeaderboardEntry[] = rows.map((row, index) => ({
-    rank: index + 1,
-    userId: row.user.id,
-    displayName: row.user.firstName,
-    username: row.user.username,
-    photoUrl: row.user.photoUrl,
-    rating: row.stats.rating,
-    ratedGames: row.stats.ratingGames,
-    wins: row.stats.wins,
-    losses: row.stats.losses,
-    draws: row.stats.draws,
-    gamesPlayed: row.stats.gamesPlayed,
-    isYou: row.user.id === currentUserId,
-  }));
+  let rank = 0;
+  let previous: LeaderboardRow | null = null;
+
+  const entries: LeaderboardEntry[] = rows.map((row, index) => {
+    if (
+      !previous ||
+      row.stats.rating !== previous.stats.rating ||
+      row.stats.wins !== previous.stats.wins ||
+      row.stats.ratingGames !== previous.stats.ratingGames
+    ) {
+      // Competition ranking: tied players share the same displayed rank,
+      // matching getUserRank's "number of strictly better players + 1".
+      rank = index + 1;
+    }
+    previous = row;
+
+    return {
+      rank,
+      userId: row.user.id,
+      displayName: row.user.firstName,
+      username: row.user.username,
+      photoUrl: row.user.photoUrl,
+      rating: row.stats.rating,
+      ratedGames: row.stats.ratingGames,
+      wins: row.stats.wins,
+      losses: row.stats.losses,
+      draws: row.stats.draws,
+      gamesPlayed: row.stats.gamesPlayed,
+      isYou: row.user.id === currentUserId,
+    };
+  });
   return { entries, currentUserRank };
 }

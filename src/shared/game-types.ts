@@ -98,6 +98,7 @@ export interface PublicMatchState {
   board: Board;
   currentTurn: Side | null;
   turnNumber: number;
+  lastMove: { cell: number; side: Side } | null;
   version: number;
   youSide: Side;
   players: Record<Side, PublicPlayer | null>;

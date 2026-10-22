@@ -35,8 +35,8 @@ describe('infinite grid 5-in-a-row rules', () => {
 
   it('detects vertical 5-in-a-row win for O', () => {
     const board: Board = createEmptyBoard();
-    // 5 moves for X
-    for (let i = 0; i < 5; i++) board[encodeCell(i, 5)] = 'X';
+    // 4 moves for X, deliberately not a winning line
+    for (let i = 0; i < 4; i++) board[encodeCell(i, 5)] = 'X';
     // 5 in a row vertically for O at x=2, y=0..4
     for (let y = 0; y < 5; y++) board[encodeCell(2, y)] = 'O';
 

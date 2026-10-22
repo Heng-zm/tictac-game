@@ -60,7 +60,7 @@ export function createBotController(deps: BotControllerDependencies): BotControl
 
     const greeting = invitePayload
       ? `You have a Tic Tac Toe invitation${botUsername ? ` from a friend` : ''}. Tap below to accept it.`
-      : 'Challenge a friend, play a random opponent, or take on the unbeatable Hard bot.';
+      : 'Challenge a friend, play a random opponent, or take on the Hard bot.';
 
     await context.reply(greeting, {
       reply_markup: keyboard,
@@ -81,11 +81,12 @@ export function createBotController(deps: BotControllerDependencies): BotControl
   bot.command('help', async (context) => {
     await context.reply(
       [
-        'Tic Tac Toe is a classic three-in-a-row game inside Telegram.',
+        'Tic Tac Toe is a 5-in-a-row game on an infinite grid inside Telegram.',
+        'Connect five stones in any direction to win.',
         '',
         '• Random match — get paired with another player.',
         '• Invite a friend — share a private game link.',
-        '• Play a bot — Easy, Medium, or Hard (Hard cannot be beaten).',
+        '• Play a bot — Easy, Medium, or Hard.',
         '',
         'Every move is checked by the server. Unfinished games are not rated.',
       ].join('\n'),

@@ -211,9 +211,8 @@ export function Board({
     });
   };
 
-  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
-    const wasMoved = didMove.current;
-    activePointers.current.delete(e.pointerId);
+  const releasePointer = (pointerId: number) => {
+    activePointers.current.delete(pointerId);
 
     if (activePointers.current.size === 0) {
       setIsPanning(false);
@@ -228,25 +227,21 @@ export function Board({
       };
       initialPinchDist.current = null;
     }
+  };
 
-    // Clean tap without drag - mathematically compute and place stone
-    if (!wasMoved && !disabled && yourTurn) {
-      const el = containerRef.current;
-      if (!el) return;
-      const rect = el.getBoundingClientRect();
-      const clickX = e.clientX - rect.left;
-      const clickY = e.clientY - rect.top;
-      const centerX = rect.width / 2 + pan.x * zoom;
-      const centerY = rect.height / 2 + pan.y * zoom;
-      const gridX = Math.round((clickX - centerX) / (CELL_SIZE * zoom));
-      const gridY = Math.round((clickY - centerY) / (CELL_SIZE * zoom));
-      const cell = encodeCell(gridX, gridY);
+  const handlePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    // Ignore non-primary mouse buttons and pointers that were never tracked.
+    // Stone placement is handled by the cell buttons' click handlers so that
+    // HUD controls (zoom/recenter) can never submit a move through bubbling.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    if (!activePointers.current.has(e.pointerId)) return;
 
-      if (board[cell] === undefined) {
-        hapticImpact('medium');
-        onCell(cell);
-      }
-    }
+    releasePointer(e.pointerId);
+  };
+
+  const handlePointerCancel = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!activePointers.current.has(e.pointerId)) return;
+    releasePointer(e.pointerId);
   };
 
   // Compute visible grid window in grid coordinates (x, y) based on viewport and pan
@@ -308,7 +303,7 @@ export function Board({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerCancel={handlePointerCancel}
       >
         {/* Infinite Grid Plane - GPU Hardware Accelerated */}
         <div
@@ -417,7 +412,11 @@ export function Board({
             Pos: ({currentCenterX}, {currentCenterY}) · 5 to win
           </div>
 
-          <div className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface/92 p-1 shadow-sm backdrop-blur-md">
+          <div
+            data-board-hud
+            className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface/92 p-1 shadow-sm backdrop-blur-md"
+            onPointerDown={(e) => e.stopPropagation()}
+          >
             <button
               type="button"
               onClick={recenter}

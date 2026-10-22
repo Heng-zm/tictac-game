@@ -108,6 +108,24 @@ describe('MatchmakingQueue', () => {
     expect(statuses.at(-1)?.status.state).toBe('matched');
   });
 
+  it('starts the bot immediately when auto-fallback is enabled after the offer', async () => {
+    queue.join('user-a', false);
+    await advance(60_000);
+    expect(fallbacks).toEqual([]);
+
+    const status = queue.join('user-a', true);
+    expect(status.state).toBe('matched');
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(fallbacks).toEqual(['user-a']);
+    expect(queue.isQueued('user-a')).toBe(false);
+    expect(statuses.at(-1)?.status).toMatchObject({
+      state: 'matched',
+      autoFallback: true,
+      fallbackAvailable: true,
+    });
+  });
+
   it('expires entries after the maximum wait and clears all timers on shutdown', async () => {
     const expiringQueue = new MatchmakingQueue({
       config: makeTestConfig({ queueAiTimeoutMs: 60_000, queueMaxWaitMs: 5_000 }),

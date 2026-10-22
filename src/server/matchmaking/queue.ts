@@ -38,7 +38,13 @@ export class MatchmakingQueue {
     if (existing) {
       if (existing.autoAiFallback !== autoAiFallback) {
         existing.autoAiFallback = autoAiFallback;
-        if (!existing.fallbackOffered) this.scheduleFallback(existing);
+        if (!existing.fallbackOffered) {
+          this.scheduleFallback(existing);
+        } else if (autoAiFallback) {
+          // The fallback prompt was already offered. Enabling the preference
+          // now should start the bot immediately instead of waiting for expiry.
+          return this.startAutoFallback(existing);
+        }
       }
       return this.toStatus(existing);
     }
@@ -151,20 +157,33 @@ export class MatchmakingQueue {
     entry.fallbackTimer = null;
 
     if (entry.autoAiFallback) {
-      this.removeEntry(userId);
-      this.notify(userId, 'matched', 'No human players found. Starting a bot match.');
-      try {
-        await this.deps.onAutoFallback(userId);
-      } catch (error) {
-        this.deps.logger.warn(
-          { event: 'ai_fallback_failed', code: error instanceof AppError ? error.code : 'UNKNOWN' },
-          'AI fallback failed',
-        );
-        this.notify(userId, 'error', 'Could not start a bot match. Please try again.');
-      }
+      this.startAutoFallback(entry);
       return;
     }
     this.notify(userId, 'searching', undefined, true);
+  }
+
+  private startAutoFallback(entry: QueueEntry): QueueStatus {
+    this.removeEntry(entry.userId);
+    const status: QueueStatus = {
+      state: 'matched',
+      mode: QUEUE_MODE,
+      elapsedMs: Math.max(0, this.now().getTime() - entry.joinedAt.getTime()),
+      fallbackAt: null,
+      fallbackAvailable: true,
+      autoFallback: true,
+      waitingPlayers: this.entries.size,
+      message: 'No human players found. Starting a bot match.',
+    };
+    this.deps.notify(entry.userId, status);
+    void this.deps.onAutoFallback(entry.userId).catch((error: unknown) => {
+      this.deps.logger.warn(
+        { event: 'ai_fallback_failed', code: error instanceof AppError ? error.code : 'UNKNOWN' },
+        'AI fallback failed',
+      );
+      this.notify(entry.userId, 'error', 'Could not start a bot match. Please try again.');
+    });
+    return status;
   }
 
   private handleExpiry(userId: string): void {

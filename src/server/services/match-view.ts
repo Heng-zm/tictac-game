@@ -25,6 +25,7 @@ export function buildMatchView(match: MatchEntity, userId: string, options: Matc
     board: { ...match.board },
     currentTurn: match.currentTurn,
     turnNumber: match.turnNumber,
+    lastMove: match.lastMove ? { ...match.lastMove } : null,
     version: match.version,
     youSide: you.side,
     players: {

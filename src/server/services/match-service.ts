@@ -608,10 +608,38 @@ export class MatchService {
         now,
       );
     }
+    // After a restart the in-memory disconnect timers are gone. Once one player
+    // reconnects, give any still-offline opponent the normal grace period so the
+    // game cannot remain ACTIVE until maintenance runs.
+    this.ensureDisconnectTimers(game);
     this.joinMatchRooms(game.match);
     this.scheduleTimers(game);
     this.emitState(game);
     return true;
+  }
+
+  private ensureDisconnectTimers(game: ActiveGame): void {
+    const hasOnlineParticipant = game.match.participants.some(
+      (participant) => participant.userId !== null && this.online.has(participant.userId),
+    );
+    if (!hasOnlineParticipant) return;
+
+    for (const participant of game.match.participants) {
+      if (participant.isAi || !participant.userId) continue;
+      if (this.online.has(participant.userId)) continue;
+      if (game.disconnectTimers.has(participant.userId)) continue;
+
+      game.disconnectedUsers.add(participant.userId);
+      if (game.match.currentTurn === participant.side) {
+        // Mirror handleDisconnected: preserve the remaining turn time before
+        // scheduleTimers clears the deadline for an offline current player.
+        game.pausedTurnRemaining = game.match.turnDeadline
+          ? Math.max(0, game.match.turnDeadline.getTime() - this.now().getTime())
+          : null;
+        game.match.turnDeadline = null;
+      }
+      this.startDisconnectTimer(game, participant.userId);
+    }
   }
 
   private async createAiMatch(user: UserEntity, difficulty: AiDifficulty, playerSide: Side): Promise<MatchEntity> {

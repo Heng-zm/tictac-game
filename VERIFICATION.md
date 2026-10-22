@@ -150,7 +150,7 @@ This verifies that module assets and API calls work when the app is opened throu
 ### AI
 
 - Easy, Medium, and Hard difficulties are implemented server-side.
-- Hard uses alpha-beta minimax and is covered by tests for blocking, winning, and non-loss behavior.
+- Hard uses a one-ply heuristic that prioritizes immediate wins and blocks immediate threats; tests cover winning and blocking.
 - AI statistics are tracked without changing the human leaderboard.
 
 ### Security and operations

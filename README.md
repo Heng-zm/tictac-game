@@ -1,6 +1,6 @@
 # Tic Tac Toe — Telegram Mini App
 
-A production-oriented, real-time Tic Tac Toe game that runs as a Telegram Mini App. One Node.js server serves the React client, the HTTP API, Socket.IO, and the Telegram bot webhook from a single origin.
+A production-oriented, real-time 5-in-a-row Tic Tac Toe game that runs as a Telegram Mini App. One Node.js server serves the React client, the HTTP API, Socket.IO, and the Telegram bot webhook from a single origin.
 
 ![Stack](https://img.shields.io/badge/React%2019-TypeScript-3178C6) ![Server](https://img.shields.io/badge/Node.js-Express%205%20%2B%20Socket.IO%204-339933) ![Database](https://img.shields.io/badge/PostgreSQL-Prisma%206-4169E1)
 
@@ -11,7 +11,7 @@ A production-oriented, real-time Tic Tac Toe game that runs as a Telegram Mini A
 - **Three game modes**
   - Random online matchmaking with an optional AI fallback while waiting.
   - Private friend invitations via `https://t.me/<BOT_USERNAME>?startapp=invite_<TOKEN>`.
-  - AI opponent with Easy, Medium, and **unbeatable Hard** (alpha–beta minimax).
+  - AI opponent with Easy, Medium, and Hard difficulties (heuristic bot).
 - **Server-authoritative play** — moves, turns, results, ratings, and AI decisions are validated and computed on the server. The client cannot set a board state.
 - **Telegram-native authentication** — `initData` is verified with Telegram's documented HMAC-SHA256 scheme, then exchanged for a signed, HttpOnly session cookie. Bot tokens never reach the browser.
 - **Resilient real-time sessions** — Socket.IO rooms, participant authorization, reconnect grace, turn timers (optional), and idempotent move action IDs.
@@ -332,7 +332,7 @@ src/
     auth/                 Telegram initData verification + signed sessions
     bot/                  grammY bot and webhook
     database/             Repository contract, Prisma and memory implementations
-    game/                 Rules, scoring, AI (minimax)
+    game/                 Rules, scoring, AI (heuristic)
     matchmaking/          In-memory queue
     services/             Match lifecycle, invitations, profile, views
     sockets/              Socket.IO authentication, events, rate limits

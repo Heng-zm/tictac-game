@@ -136,6 +136,7 @@ describe('MemoryGameRepository', () => {
     expect(first.match.board[0]).toBe('X');
     expect(first.match.currentTurn).toBe('O');
     expect(first.match.turnNumber).toBe(1);
+    expect(first.match.lastMove).toEqual({ cell: 0, side: 'X' });
     expect(await repo.hasProcessedAction(matchId, actionA)).toBe(true);
     expect(await repo.hasProcessedAction(matchId, randomUUID())).toBe(false);
 

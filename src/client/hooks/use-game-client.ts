@@ -348,6 +348,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
           board,
           version: Math.max(current.version, event.version),
           turnNumber: current.turnNumber + 1,
+          lastMove: { cell: event.cell, side: event.side },
           currentTurn: event.side === 'X' ? 'O' : 'X',
         };
       });
@@ -663,7 +664,7 @@ export function resultHeadline(match: PublicMatchState): string {
 export function finishReasonText(reason: PublicMatchState['finishReason']): string {
   switch (reason) {
     case 'LINE':
-      return 'Three in a row.';
+      return 'Five in a row.';
     case 'DRAW':
       return 'The board is full — nobody gave an inch.';
     case 'DISCONNECT':

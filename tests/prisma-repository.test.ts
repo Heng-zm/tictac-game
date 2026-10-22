@@ -169,6 +169,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     const first = await repo.recordMove(moveInput(matchId, 0, 'X', 0, actionA, boardA, 1));
     expect(first.status).toBe('applied');
     expect(first.match).toMatchObject({ version: 1, currentTurn: 'O', turnNumber: 1 });
+    expect(first.match.lastMove).toEqual({ cell: 0, side: 'X' });
     expect(first.match.board[0]).toBe('X');
     expect(await repo.hasProcessedAction(matchId, actionA)).toBe(true);
     expect(await repo.hasProcessedAction(matchId, randomUUID())).toBe(false);

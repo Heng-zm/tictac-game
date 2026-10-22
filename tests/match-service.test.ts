@@ -160,6 +160,7 @@ describe('MatchService', () => {
     const state = await service.submitMove(aliceId, match.id, cell0, randomUUID());
     expect(state.board[cell0]).toBe('X');
     expect(state.currentTurn).toBe('O');
+    expect(state.lastMove).toEqual({ cell: cell0, side: 'X' });
     expect(state.version).toBe(1);
     expect(io.events('move:accepted')).toHaveLength(1);
     expect(io.lastForRoom<{ match: PublicMatchState }>(bob.id, 'match:state')?.match.board[cell0]).toBe('X');
@@ -214,6 +215,7 @@ describe('MatchService', () => {
     expect(retry.status).toBe('FINISHED');
     expect(retry.version).toBe(finalState.version);
     expect(retry.board).toEqual(finalState.board);
+    expect(retry.lastMove).toEqual({ cell: finalCell, side: 'X' });
   });
 
   it('rejects further moves and non-participants after a game ends', async () => {
@@ -414,6 +416,66 @@ describe('MatchService', () => {
 
     expect((await repo.getMatchById(match.id))?.status).toBe('ABANDONED');
     expect((await repo.getUserById(alice.id))?.stats.gamesPlayed).toBe(0);
+  });
+
+  it('restores a disconnect timer when one player reconnects after a restart', async () => {
+    const match = await createRandomMatch();
+    service.shutdown();
+
+    const restarted = new MatchService({
+      io: io.asGameServer(),
+      repository: repo,
+      config: makeTestConfig(BASE_CONFIG),
+      logger: makeTestLogger(),
+      now: clock.now,
+      random: () => 0.1,
+    });
+    services.push(restarted);
+
+    await restarted.handleConnected(bob);
+    expect(
+      io.lastForRoom<{ match: PublicMatchState }>(bob.id, 'match:state')?.match.opponentConnection,
+    ).toBe('disconnected');
+
+    await advance(1_000);
+    expect(await repo.getMatchById(match.id)).toMatchObject({
+      status: 'FINISHED',
+      result: 'O_WINS',
+      winnerSide: 'O',
+      finishReason: 'DISCONNECT',
+    });
+  });
+
+  it('preserves the remaining turn time across a restart', async () => {
+    service = await startService({ turnTimeoutMs: 1_000, disconnectGraceMs: 10_000 });
+    const match = await createRandomMatch();
+    await advance(250);
+    service.shutdown();
+
+    const restarted = new MatchService({
+      io: io.asGameServer(),
+      repository: repo,
+      config: makeTestConfig({ ...BASE_CONFIG, turnTimeoutMs: 1_000, disconnectGraceMs: 10_000 }),
+      logger: makeTestLogger(),
+      now: clock.now,
+      random: () => 0.1,
+    });
+    services.push(restarted);
+
+    await restarted.handleConnected(bob);
+    await advance(3_000);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ACTIVE');
+
+    await restarted.handleConnected(alice);
+    await advance(700);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ACTIVE');
+
+    await advance(60);
+    expect(await repo.getMatchById(match.id)).toMatchObject({
+      status: 'FINISHED',
+      result: 'O_WINS',
+      finishReason: 'TIMEOUT',
+    });
   });
 
   it('forfeits on turn timeout and pauses the timer while the player is offline', async () => {

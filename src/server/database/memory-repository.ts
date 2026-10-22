@@ -152,6 +152,7 @@ export class MemoryGameRepository implements GameRepository {
       board: createEmptyBoard(),
       currentTurn: input.currentTurn,
       turnNumber: 0,
+      lastMove: null,
       winnerSide: null,
       result: null,
       finishReason: null,
@@ -186,6 +187,7 @@ export class MemoryGameRepository implements GameRepository {
       board: createEmptyBoard(),
       currentTurn: 'X',
       turnNumber: 0,
+      lastMove: null,
       winnerSide: null,
       result: null,
       finishReason: null,
@@ -262,6 +264,7 @@ export class MemoryGameRepository implements GameRepository {
     match.board = { ...input.boardAfter };
     match.currentTurn = input.finalization ? null : input.nextTurn;
     match.turnNumber = input.moveNumber;
+    match.lastMove = { cell: input.cell, side: input.side };
     match.turnDeadline = input.finalization ? null : input.turnDeadline;
     match.lastActivityAt = input.lastActivityAt;
     match.version += 1;
@@ -478,7 +481,8 @@ export class MemoryGameRepository implements GameRepository {
         (a, b) =>
           b.stats.rating - a.stats.rating ||
           b.stats.wins - a.stats.wins ||
-          b.stats.ratingGames - a.stats.ratingGames,
+          b.stats.ratingGames - a.stats.ratingGames ||
+          (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
       )
       .slice(0, limit)
       .map((user) => ({ user: mapUserLite(user), stats: { ...user.stats } }));
@@ -588,7 +592,7 @@ export class MemoryGameRepository implements GameRepository {
           stats.aiLosses += increment.aiLosses;
           stats.aiDraws += increment.aiDraws;
           stats.ratingGames += increment.ratingGames;
-          stats.rating += delta;
+          stats.rating = Math.max(0, stats.rating + delta);
         }
       }
     }
@@ -641,6 +645,7 @@ function cloneMatch(match: MatchEntity): MatchEntity {
   return {
     ...match,
     board: { ...match.board },
+    lastMove: match.lastMove ? { ...match.lastMove } : null,
     participants: match.participants.map((participant) => ({ ...participant })),
   };
 }

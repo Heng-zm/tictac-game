@@ -18,15 +18,31 @@ export default tseslint.config(
   js.configs.recommended,
   ...tseslint.configs.recommended,
   {
-    files: ['src/server/**/*.ts', 'src/shared/**/*.ts', 'tests/**/*.ts', 'scripts/**/*.{ts,mjs}', 'prisma/**/*.ts'],
+    files: [
+      'src/server/**/*.ts',
+      'src/shared/**/*.ts',
+      'tests/**/*.{ts,tsx}',
+      'scripts/**/*.{ts,mjs}',
+      'prisma/**/*.ts',
+    ],
     languageOptions: {
       globals: { ...globals.node },
-      parserOptions: { ecmaVersion: 2022, sourceType: 'module' },
+      parserOptions: {
+        ecmaVersion: 2022,
+        sourceType: 'module',
+        ecmaFeatures: { jsx: true },
+      },
     },
     rules: {
       '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
       '@typescript-eslint/no-explicit-any': 'error',
       'no-console': ['error', { allow: ['warn', 'error'] }],
+    },
+  },
+  {
+    files: ['tests/**/*.tsx'],
+    languageOptions: {
+      globals: { ...globals.node, ...globals.browser },
     },
   },
   {
