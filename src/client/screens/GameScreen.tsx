@@ -314,95 +314,99 @@ export function GameScreen({
       : `Turn ${match.turnNumber + 1}`;
 
   return (
-    <Page className="flex min-h-[var(--app-vh)] flex-col !px-3 sm:!px-4 !pt-[calc(env(safe-area-inset-top)+6px)] !pb-[calc(env(safe-area-inset-bottom)+12px)]">
-      <GameHeader
-        onBack={() => navigate('/')}
-        onResign={() => setForfeitOpen(true)}
-        showResign={match.status === 'ACTIVE'}
-        mode={modeLabel(match.mode)}
-        rated={isRatedMatch(match)}
+    <div className="fixed inset-0 z-0 overflow-hidden overscroll-none bg-app">
+      <Board
+        board={displayBoard}
+        winningLine={winningLine}
+        lastMoveCell={lastMoveCell}
+        yourTurn={yourTurn}
+        disabled={
+          pendingCell !== null ||
+          match.status !== 'ACTIVE' ||
+          match.currentTurn !== match.youSide ||
+          connection !== 'online'
+        }
+        onCell={(cell) => void playCell(cell)}
       />
 
-      <div className="mb-2 sm:mb-3 grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-0.5">
-        <PlayerBadge
-          name={you?.displayName ?? 'You'}
-          photoUrl={you?.photoUrl}
-          side={match.youSide}
-          active={match.currentTurn === match.youSide && match.status === 'ACTIVE'}
-          connected
-          isYou
-          isAi={false}
-        />
-        <TurnClock
-          text={clockText}
-          label={clockLabel}
-          progress={clockProgress}
-          urgent={clockUrgent}
-          muted={match.turnTimerPaused || match.status === 'FINISHED'}
-        />
-        <PlayerBadge
-          name={opponent?.displayName ?? 'Opponent'}
-          photoUrl={opponent?.photoUrl}
-          side={opponent?.side ?? (match.youSide === 'X' ? 'O' : 'X')}
-          active={match.currentTurn !== match.youSide && match.status === 'ACTIVE'}
-          connected={match.opponentConnection === 'connected' || match.opponentConnection === 'not_applicable'}
-          isAi={Boolean(opponent?.isAi)}
-          align="right"
-        />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
+        <div className="pointer-events-auto border-b border-line/70 bg-app px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+6px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4">
+          <div className="mx-auto w-full max-w-[720px]">
+            <GameHeader
+              onBack={() => navigate('/')}
+              onResign={() => setForfeitOpen(true)}
+              showResign={match.status === 'ACTIVE'}
+              mode={modeLabel(match.mode)}
+              rated={isRatedMatch(match)}
+            />
+
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-0.5">
+              <PlayerBadge
+                name={you?.displayName ?? 'You'}
+                photoUrl={you?.photoUrl}
+                side={match.youSide}
+                active={match.currentTurn === match.youSide && match.status === 'ACTIVE'}
+                connected
+                isYou
+                isAi={false}
+              />
+              <TurnClock
+                text={clockText}
+                label={clockLabel}
+                progress={clockProgress}
+                urgent={clockUrgent}
+                muted={match.turnTimerPaused || match.status === 'FINISHED'}
+              />
+              <PlayerBadge
+                name={opponent?.displayName ?? 'Opponent'}
+                photoUrl={opponent?.photoUrl}
+                side={opponent?.side ?? (match.youSide === 'X' ? 'O' : 'X')}
+                active={match.currentTurn !== match.youSide && match.status === 'ACTIVE'}
+                connected={match.opponentConnection === 'connected' || match.opponentConnection === 'not_applicable'}
+                isAi={Boolean(opponent?.isAi)}
+                align="right"
+              />
+            </div>
+
+            {opponentDisconnected && match.status === 'ACTIVE' ? (
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-2.5 py-1.5">
+                <WifiOff className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
+                <p className="text-[10.5px] font-medium leading-tight text-ink">
+                  Opponent disconnected. Clock paused
+                  {graceRemaining !== null ? ` · ${formatDuration(graceRemaining)} to reconnect` : ''}.
+                </p>
+              </div>
+            ) : connection !== 'online' ? (
+              <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-2.5 py-1.5">
+                <Timer className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
+                <p className="text-[10.5px] font-medium leading-tight text-ink">
+                  {connection === 'idle' || connection === 'connecting'
+                    ? 'Connecting. Your board and rating are safe.'
+                    : 'Reconnecting. Your board and rating are safe.'}
+                </p>
+              </div>
+            ) : null}
+          </div>
+        </div>
       </div>
 
-      {opponentDisconnected && match.status === 'ACTIVE' ? (
-        <div className="mb-2 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-2.5 py-1.5">
-          <WifiOff className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
-          <p className="text-[10.5px] font-medium leading-tight text-ink">
-            Opponent disconnected. Clock paused
-            {graceRemaining !== null ? ` · ${formatDuration(graceRemaining)} to reconnect` : ''}.
-          </p>
-        </div>
-      ) : connection !== 'online' ? (
-        <div className="mb-2 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-2.5 py-1.5">
-          <Timer className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
-          <p className="text-[10.5px] font-medium leading-tight text-ink">
-            {connection === 'idle' || connection === 'connecting'
-              ? 'Connecting. Your board and rating are safe.'
-              : 'Reconnecting. Your board and rating are safe.'}
-          </p>
-        </div>
-      ) : null}
-
-      <div className="flex flex-1 flex-col justify-center py-1 sm:py-2">
-        <div className="relative">
-          <Board
-            board={displayBoard}
-            winningLine={winningLine}
-            lastMoveCell={lastMoveCell}
-            yourTurn={yourTurn}
-            disabled={
-              pendingCell !== null ||
-              match.status !== 'ACTIVE' ||
-              match.currentTurn !== match.youSide ||
-              connection !== 'online'
-            }
-            onCell={(cell) => void playCell(cell)}
-          />
-          {pendingCell !== null ? (
-            <span className="pointer-events-none absolute inset-x-0 -bottom-2 flex justify-center">
-              <span className="rounded-full border border-line bg-surface/95 px-2.5 py-0.5 text-[10px] font-medium text-muted shadow-soft">
-                Sending move…
-              </span>
+      <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+64px)] z-20 flex justify-center sm:inset-x-4">
+        <div className="pointer-events-auto flex max-w-full flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface px-3 py-1.5 text-center shadow-soft">
+          <div className="flex max-w-full items-center gap-2">
+            {pendingCell !== null ? (
+              <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted" aria-hidden />
+            ) : null}
+            <p className="min-w-0 truncate text-xs font-semibold text-ink" aria-live="polite">
+              {pendingCell !== null ? 'Sending move…' : statusText}
+            </p>
+            <span className="shrink-0 rounded-full bg-elevated px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted">
+              {turnLabel}
             </span>
-          ) : null}
-        </div>
-
-        <div className="mt-2.5 flex items-center justify-between gap-2 px-0.5">
-          <p className="min-w-0 truncate text-xs sm:text-sm font-semibold text-ink" aria-live="polite">
-            {statusText}
+          </div>
+          <p className="text-[9px] font-medium leading-tight text-muted">
+            {isRatedMatch(match) ? 'Rated' : 'Casual'} · 5 in a row · drag to pan · pinch to zoom
           </p>
-          <p className="shrink-0 text-[10px] sm:text-[11px] font-medium text-muted">{turnLabel}</p>
         </div>
-        <p className="mt-0.5 px-0.5 text-[10px] leading-relaxed text-muted">
-          {isRatedMatch(match) ? 'Rated game' : 'Unrated practice'} · 5 in a row to win · infinite grid · drag to pan
-        </p>
       </div>
 
       <GameResult
@@ -434,7 +438,7 @@ export function GameScreen({
           </Button>
         </div>
       </Modal>
-    </Page>
+    </div>
   );
 }
 

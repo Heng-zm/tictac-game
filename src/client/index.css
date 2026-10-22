@@ -113,14 +113,13 @@
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.03), 0 18px 40px -36px rgb(0 0 0 / 0.35);
   }
 
-  /* The board is square, so its width also sets its height. Cap it against the
-     visible viewport height to keep all nine cells on screen in short Telegram
-     windows (for example wide desktop windows or tablets). */
-  .game-board-frame {
-    width: 100%;
-    max-width: 100%;
-    max-width: min(100%, max(12rem, calc(var(--app-vh, 100dvh) - 16rem)));
-    margin-inline: auto;
+  /* The immersive board owns the viewport, so stop native selection and the
+     mobile long-press callout from competing with drag-to-pan gestures. */
+  .game-grid-surface {
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-user-select: none;
+    user-select: none;
   }
 }
 
