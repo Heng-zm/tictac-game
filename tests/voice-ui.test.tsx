@@ -184,6 +184,46 @@ describe('Walkie-Talkie Voice UI Components (Popup-Free Audio Engine)', () => {
       expect(screen.queryByRole('dialog')).toBeNull();
       expect(onError).toHaveBeenCalledWith('Microphone permission was denied in browser.');
     });
+
+    it('cancels and cleans up recorder when component is unmounted during recording', async () => {
+      vi.spyOn(audioRadio, 'checkMicrophoneSupport').mockReturnValue({ supported: true });
+      const cancelMock = vi.fn();
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'start').mockResolvedValue({ success: true });
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'cancel').mockImplementation(cancelMock);
+
+      const { unmount } = render(
+        <WalkieTalkieButton matchId="test-match-1" onSendVoice={vi.fn()} />,
+      );
+
+      const pttButton = screen.getByRole('button', { name: /hold to record/i });
+      await act(async () => {
+        fireEvent.pointerDown(pttButton, { clientX: 100, clientY: 500, pointerId: 1 });
+      });
+
+      unmount();
+      expect(cancelMock).toHaveBeenCalled();
+    });
+
+    it('cleans up when lostpointercapture event fires', async () => {
+      vi.spyOn(audioRadio, 'checkMicrophoneSupport').mockReturnValue({ supported: true });
+      const cancelMock = vi.fn();
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'start').mockResolvedValue({ success: true });
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'cancel').mockImplementation(cancelMock);
+
+      render(<WalkieTalkieButton matchId="test-match-1" onSendVoice={vi.fn()} />);
+
+      const pttButton = screen.getByRole('button', { name: /hold to record/i });
+      await act(async () => {
+        fireEvent.pointerDown(pttButton, { clientX: 100, clientY: 500, pointerId: 1 });
+      });
+
+      act(() => {
+        fireEvent.lostPointerCapture(pttButton, { pointerId: 1 });
+      });
+
+      expect(cancelMock).toHaveBeenCalled();
+      expect(pttButton.textContent).toContain('PTT');
+    });
   });
 
   describe('Auto-Play Audio Engine (Zero UI Popup)', () => {

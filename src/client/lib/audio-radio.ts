@@ -238,6 +238,7 @@ export class WalkieTalkieRecorder {
   private animFrameId: number | null = null;
   private recordedWaveformSamples: number[][] = [];
   private isCancelled = false;
+  private selectedMime = '';
 
   constructor(
     private readonly onLiveWaveform?: (bars: number[]) => void,
@@ -285,6 +286,7 @@ export class WalkieTalkieRecorder {
       for (const type of candidateTypes) {
         if (MediaRecorder.isTypeSupported(type)) {
           selectedMime = type;
+          this.selectedMime = type;
           break;
         }
       }
@@ -366,7 +368,7 @@ export class WalkieTalkieRecorder {
       return null;
     }
 
-    const durationMs = Math.max(400, Date.now() - this.startTime);
+    const durationMs = this.startTime > 0 ? Math.max(400, Date.now() - this.startTime) : 400;
 
     return new Promise((resolve) => {
       if (!this.recorder || this.recorder.state === 'inactive') {
@@ -376,7 +378,7 @@ export class WalkieTalkieRecorder {
       }
 
       this.recorder.onstop = () => {
-        const mimeType = this.recorder?.mimeType || 'audio/webm';
+        const mimeType = this.recorder?.mimeType || this.selectedMime || 'audio/webm';
         const blob = new Blob(this.chunks, { type: mimeType });
         this.cleanup();
 
@@ -454,6 +456,9 @@ export function playVoiceAudio(
   playPttStartChirp();
 
   const audio = new Audio(audioData);
+  audio.preload = 'auto';
+  audio.setAttribute('playsinline', '');
+  audio.setAttribute('webkit-playsinline', '');
   let isStopped = false;
 
   const handleTimeUpdate = () => {

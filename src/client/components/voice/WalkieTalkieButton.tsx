@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Mic, Trash2, Loader2 } from 'lucide-react';
 import {
   checkMicrophoneSupport,
+  getAudioContext,
   playCancelBeep,
   WalkieTalkieRecorder,
 } from '../../lib/audio-radio';
@@ -26,30 +27,43 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const recorderRef = useRef<WalkieTalkieRecorder | null>(null);
+  const startingPromiseRef = useRef<Promise<{ success: boolean; error?: string }> | null>(null);
+  const isCommittingRef = useRef(false);
   const startPointerY = useRef(0);
   const startPointerX = useRef(0);
   const startTimeRef = useRef(0);
-  const statusRef = useRef(status);
-  statusRef.current = status;
+  const statusRef = useRef<'idle' | 'recording' | 'cancelling' | 'sending'>(status);
   const isHeldRef = useRef(false);
+  const getStatus = useCallback(() => statusRef.current, []);
+
+  const setStatusSafe = useCallback((newStatus: 'idle' | 'recording' | 'cancelling' | 'sending') => {
+    statusRef.current = newStatus;
+    setStatus(newStatus);
+  }, []);
 
   const commitRecording = useCallback(
     async (recorder: WalkieTalkieRecorder) => {
-      setStatus('sending');
+      if (isCommittingRef.current) return;
+      isCommittingRef.current = true;
+      setStatusSafe('sending');
       try {
         const result = await recorder.stop();
         if (result && result.audioData) {
           await onSendVoice(result.audioData, result.durationMs, result.waveform);
+        } else {
+          playCancelBeep();
         }
-      } catch {
-        // Voice sending error
+      } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : 'Voice transmission failed';
+        onError?.(message);
       } finally {
-        setStatus('idle');
+        isCommittingRef.current = false;
+        setStatusSafe('idle');
         setElapsedMs(0);
         recorderRef.current = null;
       }
     },
-    [onSendVoice],
+    [onSendVoice, onError, setStatusSafe],
   );
 
   // Auto-send when reaching MAX_RECORDING_MS (10 seconds)
@@ -61,8 +75,20 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     }
   }, [status, elapsedMs, commitRecording]);
 
+  // Clean up any pending recording if component unmounts
+  useEffect(() => {
+    return () => {
+      isHeldRef.current = false;
+      if (recorderRef.current) {
+        recorderRef.current.cancel();
+        recorderRef.current = null;
+      }
+    };
+  }, []);
+
   const handlePointerDown = async (e: React.PointerEvent) => {
-    if (disabled || status !== 'idle') return;
+    if (disabled || getStatus() !== 'idle') return;
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     // Fast check for microphone capability
     const support = checkMicrophoneSupport();
@@ -70,6 +96,9 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       onError?.(support.message || 'Microphone is not supported.');
       return;
     }
+
+    // Synchronously unlock AudioContext during direct touch interaction
+    getAudioContext();
 
     startPointerY.current = e.clientY;
     startPointerX.current = e.clientX;
@@ -88,38 +117,57 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     );
     recorderRef.current = recorder;
 
-    const res = await recorder.start();
+    const startPromise = recorder.start();
+    startingPromiseRef.current = startPromise;
+
+    const res = await startPromise;
+    startingPromiseRef.current = null;
+
     if (!res.success) {
       isHeldRef.current = false;
       recorderRef.current = null;
+      setStatusSafe('idle');
+      setElapsedMs(0);
       onError?.(res.error || 'Microphone permission denied.');
       return;
     }
 
-    // If pointer was already released while permission was prompting
+    // If pointer was already released while permission was prompting or initializing
     if (!isHeldRef.current) {
-      recorder.cancel();
-      recorderRef.current = null;
+      const holdDuration = Date.now() - startTimeRef.current;
+      const currentStatus = getStatus();
+
+      if (currentStatus === 'cancelling' || holdDuration < MIN_HOLD_DURATION_MS) {
+        recorder.cancel();
+        recorderRef.current = null;
+        setStatusSafe('idle');
+        setElapsedMs(0);
+        return;
+      }
+
+      // Valid hold duration -> commit
+      void commitRecording(recorder);
       return;
     }
 
-    setStatus('recording');
+    setStatusSafe('recording');
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
-    if (!isHeldRef.current || (status !== 'recording' && status !== 'cancelling')) return;
+    const currentStatus = getStatus();
+    if (!isHeldRef.current || (currentStatus !== 'recording' && currentStatus !== 'cancelling')) return;
 
     const deltaY = startPointerY.current - e.clientY;
-    const deltaX = Math.abs(e.clientX - startPointerX.current);
+    const distance = Math.hypot(e.clientX - startPointerX.current, e.clientY - startPointerY.current);
 
-    // Slide up or drag away by > 50px to cancel
-    if (deltaY > CANCEL_SLIDE_DISTANCE_PX || deltaX > CANCEL_SLIDE_DISTANCE_PX * 1.5) {
-      if (status !== 'cancelling') {
-        setStatus('cancelling');
+    // Slide up > 50px or drag away > 75px to cancel
+    if (deltaY > CANCEL_SLIDE_DISTANCE_PX || distance > CANCEL_SLIDE_DISTANCE_PX * 1.5) {
+      if (getStatus() !== 'cancelling') {
+        setStatusSafe('cancelling');
       }
     } else {
-      if (status !== 'recording') {
-        setStatus('recording');
+      if (getStatus() !== 'recording') {
+        setStatusSafe('recording');
       }
     }
   };
@@ -135,33 +183,43 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     }
 
     const holdDuration = Date.now() - startTimeRef.current;
-    const currentStatus = statusRef.current;
+    const currentStatus = getStatus();
     const rec = recorderRef.current;
 
-    // 1. Accidental short tap (<500ms) prevention: discard quietly without popup
+    // 1. Accidental short tap (<500ms) prevention: discard cleanly without double beep
     if (holdDuration < MIN_HOLD_DURATION_MS) {
-      if (rec) rec.cancel();
-      recorderRef.current = null;
-      setStatus('idle');
+      if (rec) {
+        rec.cancel();
+        recorderRef.current = null;
+      } else {
+        playCancelBeep();
+      }
+      setStatusSafe('idle');
       setElapsedMs(0);
-      playCancelBeep();
       return;
     }
 
     // 2. Drag-to-cancel check: discard cleanly
     if (currentStatus === 'cancelling') {
-      if (rec) rec.cancel();
-      recorderRef.current = null;
-      setStatus('idle');
+      if (rec) {
+        rec.cancel();
+        recorderRef.current = null;
+      }
+      setStatusSafe('idle');
       setElapsedMs(0);
       return;
     }
 
-    // 3. Valid recording completed -> Commit and send
+    // 3. If recorder is still initializing, handlePointerDown will commit upon resolution
+    if (startingPromiseRef.current) {
+      return;
+    }
+
+    // 4. Valid recording completed -> Commit and send
     if (rec) {
       await commitRecording(rec);
     } else {
-      setStatus('idle');
+      setStatusSafe('idle');
     }
   };
 
@@ -177,7 +235,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       recorderRef.current.cancel();
       recorderRef.current = null;
     }
-    setStatus('idle');
+    setStatusSafe('idle');
     setElapsedMs(0);
   };
 
@@ -190,9 +248,12 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerCancel}
+      onLostPointerCapture={handlePointerCancel}
+      onContextMenu={(e) => e.preventDefault()}
       disabled={disabled}
       aria-label="Hold to record voice, release to send, slide to cancel"
       title="Hold to talk (Icom Walkie-Talkie)"
+      style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
       className={`pointer-events-auto relative flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-2xl border font-bold text-xs shadow-soft transition-all duration-150 select-none touch-none ${
         status === 'idle' ? 'w-10 px-0 sm:w-auto sm:px-3' : 'px-3'
       } ${
