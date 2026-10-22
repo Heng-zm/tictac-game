@@ -7,6 +7,7 @@ import {
   History,
   Medal,
   RefreshCw,
+  Send,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -326,6 +327,7 @@ function SettingsTab({
   const { profile, connection } = client;
   const [saving, setSaving] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
+  const [sendingTestNotification, setSendingTestNotification] = useState(false);
   if (!profile) return null;
 
   async function toggle(value: boolean): Promise<void> {
@@ -356,6 +358,26 @@ function SettingsTab({
       });
     } finally {
       setSavingNotifications(false);
+    }
+  }
+
+  async function testNotification(): Promise<void> {
+    setSendingTestNotification(true);
+    try {
+      await client.sendTestNotification();
+      client.pushToast({
+        type: 'success',
+        title: 'Test notification sent',
+        message: 'Check your Telegram chat with the bot.',
+      });
+    } catch (error) {
+      client.pushToast({
+        type: 'error',
+        title: 'Test notification failed',
+        message: errorMessage(error),
+      });
+    } finally {
+      setSendingTestNotification(false);
     }
   }
 
@@ -395,11 +417,28 @@ function SettingsTab({
           </div>
           <Toggle
             checked={profile.turnNotifications}
-            disabled={savingNotifications || !config?.botUsername}
+            disabled={savingNotifications || sendingTestNotification || !config?.botUsername}
             onChange={(value) => void toggleNotifications(value)}
             label="Send a Telegram message when it is my turn"
           />
         </div>
+        {profile.turnNotifications && config?.botUsername ? (
+          <div className="mt-3 flex items-center justify-between gap-3 border-t border-line pt-3">
+            <p className="text-[10px] leading-relaxed text-muted">
+              Send a one-off message to confirm Telegram delivery.
+            </p>
+            <Button
+              size="sm"
+              variant="ghost"
+              icon={Send}
+              loading={sendingTestNotification}
+              disabled={savingNotifications}
+              onClick={() => void testNotification()}
+            >
+              Send test
+            </Button>
+          </div>
+        ) : null}
       </Card>
 
       <Card className="p-4">

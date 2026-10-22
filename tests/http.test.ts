@@ -1,13 +1,14 @@
 import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import type { Express } from 'express';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/server/app';
 import { createSessionToken } from '../src/server/auth/session';
 import { buildTelegramInitDataForTest } from '../src/server/auth/telegram';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import type { UserProfile } from '../src/shared/game-types';
 import { MatchService } from '../src/server/services/match-service';
+import type { TurnNotificationTestService } from '../src/server/services/turn-notifier';
 import {
   FakeIo,
   TEST_BOT_TOKEN,
@@ -42,7 +43,11 @@ describe('HTTP API', () => {
     current.service.shutdown();
   });
 
-  function buildTestApp(overrides: Partial<AppConfig> = {}): TestApp {
+  function buildTestApp(
+    overrides: Partial<AppConfig> = {},
+    turnNotificationTester?: TurnNotificationTestService,
+    disableRateLimits = true,
+  ): TestApp {
     const config = makeTestConfig(overrides);
     const repo = new MemoryGameRepository();
     const io = new FakeIo();
@@ -57,7 +62,8 @@ describe('HTTP API', () => {
       repository: repo,
       logger: makeTestLogger(),
       matchService: service,
-      disableRateLimits: true,
+      ...(turnNotificationTester ? { turnNotificationTester } : {}),
+      disableRateLimits,
     });
     return { app, repo, service, config };
   }
@@ -271,6 +277,73 @@ describe('HTTP API', () => {
 
     const invalid = await session.agent.patch('/api/me/preferences').send({ autoAiFallback: 'yes' });
     expect(invalid.status).toBe(400);
+  });
+
+  it('sends test notifications only when configured and enabled', async () => {
+    const unauthenticated = await request(current.app).post('/api/me/notifications/test');
+    expect(unauthenticated.status).toBe(401);
+
+    const unavailableSession = await authenticate(current.app, 'device-key-notify-unavailable');
+    await unavailableSession.agent.patch('/api/me/preferences').send({ turnNotifications: true });
+    const unavailable = await unavailableSession.agent.post('/api/me/notifications/test');
+    expect(unavailable.status).toBe(503);
+    expect(unavailable.body.error.code).toBe('NOTIFICATIONS_UNAVAILABLE');
+
+    const sendTestNotification = vi.fn(async () => 'sent' as const);
+    const tester: TurnNotificationTestService = { sendTestNotification };
+    const testApp = buildTestApp({}, tester);
+    const session = await authenticate(testApp.app, 'device-key-notify-enabled');
+    const disabled = await session.agent.post('/api/me/notifications/test');
+    expect(disabled.status).toBe(409);
+    expect(disabled.body.error.code).toBe('NOTIFICATIONS_DISABLED');
+
+    await session.agent.patch('/api/me/preferences').send({ turnNotifications: true });
+    const sent = await session.agent.post('/api/me/notifications/test');
+    expect(sent.status).toBe(200);
+    expect(sent.body).toEqual({ status: 'sent' });
+    expect(sendTestNotification).toHaveBeenCalledWith(
+      expect.objectContaining({ id: session.user.id, turnNotifications: true }),
+    );
+    testApp.service.shutdown();
+  });
+
+  it('maps blocked and transient test notification failures to distinct errors', async () => {
+    const tester: TurnNotificationTestService = {
+      sendTestNotification: vi
+        .fn()
+        .mockResolvedValueOnce('blocked' as const)
+        .mockResolvedValueOnce('failed' as const),
+    };
+    const testApp = buildTestApp({}, tester);
+    const session = await authenticate(testApp.app, 'device-key-notify-failures');
+    await session.agent.patch('/api/me/preferences').send({ turnNotifications: true });
+
+    const blocked = await session.agent.post('/api/me/notifications/test');
+    expect(blocked.status).toBe(409);
+    expect(blocked.body.error.code).toBe('NOTIFICATIONS_DISABLED');
+
+    const failed = await session.agent.post('/api/me/notifications/test');
+    expect(failed.status).toBe(502);
+    expect(failed.body.error.code).toBe('NOTIFICATION_DELIVERY_FAILED');
+    testApp.service.shutdown();
+  });
+
+  it('rate-limits test notifications per user', async () => {
+    const tester: TurnNotificationTestService = {
+      sendTestNotification: vi.fn(async () => 'sent' as const),
+    };
+    const testApp = buildTestApp({}, tester, false);
+    const session = await authenticate(testApp.app, 'device-key-notify-rate-limit');
+    await session.agent.patch('/api/me/preferences').send({ turnNotifications: true });
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const response = await session.agent.post('/api/me/notifications/test');
+      expect(response.status).toBe(200);
+    }
+    const limited = await session.agent.post('/api/me/notifications/test');
+    expect(limited.status).toBe(429);
+    expect(limited.body.error.code).toBe('NOTIFICATION_RATE_LIMITED');
+    testApp.service.shutdown();
   });
 
   it('returns history, stats and leaderboard for completed games', async () => {

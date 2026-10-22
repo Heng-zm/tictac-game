@@ -91,6 +91,10 @@ export function updatePreferences(patch: PreferencesPatch): Promise<{ user: User
   });
 }
 
+export function sendTestNotification(): Promise<{ status: 'sent' }> {
+  return request<{ status: 'sent' }>('/api/me/notifications/test', { method: 'POST' });
+}
+
 export interface HistoryPage {
   items: HistoryItem[];
   nextCursor: string | null;

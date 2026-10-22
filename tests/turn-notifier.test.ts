@@ -44,6 +44,49 @@ describe('TurnNotifier', () => {
     );
   });
 
+  it('sends a test notification to the opted-in player', async () => {
+    const repo = new MemoryGameRepository();
+    const { aliceId } = await humanMatch(repo);
+    const alice = await repo.getUserById(aliceId);
+    if (!alice) throw new Error('Missing test user');
+    await repo.setTurnNotifications(alice.id, true);
+
+    const config = makeTestConfig({ miniAppUrl: 'https://game.example.com' });
+    const sender = { sendTurnNotification: vi.fn(async () => 'sent' as const) };
+    const notifier = new TurnNotifier({
+      repository: repo,
+      config,
+      logger: makeTestLogger(),
+      sender,
+    });
+
+    await expect(notifier.sendTestNotification(alice)).resolves.toBe('sent');
+    expect(sender.sendTurnNotification).toHaveBeenCalledWith(
+      alice.telegramId,
+      expect.stringContaining('Test notification'),
+      'https://game.example.com',
+    );
+  });
+
+  it('disables notifications when a test notification is blocked', async () => {
+    const repo = new MemoryGameRepository();
+    const { aliceId } = await humanMatch(repo);
+    const alice = await repo.getUserById(aliceId);
+    if (!alice) throw new Error('Missing test user');
+    await repo.setTurnNotifications(alice.id, true);
+
+    const sender = { sendTurnNotification: vi.fn(async () => 'blocked' as const) };
+    const notifier = new TurnNotifier({
+      repository: repo,
+      config: makeTestConfig(),
+      logger: makeTestLogger(),
+      sender,
+    });
+
+    await expect(notifier.sendTestNotification(alice)).resolves.toBe('blocked');
+    expect((await repo.getUserById(alice.id))?.turnNotifications).toBe(false);
+  });
+
   it('does not send when the player has not opted in', async () => {
     const repo = new MemoryGameRepository();
     const { match, aliceId } = await humanMatch(repo);

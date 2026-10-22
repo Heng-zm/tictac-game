@@ -32,9 +32,9 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 | --- | --- |
 | `npm run typecheck` | Passed (server, client, and tests via `tsconfig.test.json`) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 177 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **187 passed / 187** across 19 test files |
-| `npm run test:coverage` with PostgreSQL | Passed; **85.49% statements**, 82.34% branches, 90.14% functions |
+| `npm test` without `TEST_DATABASE_URL` | 182 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **192 passed / 192** across 19 test files |
+| `npm run test:coverage` with PostgreSQL | Passed; **86.03% statements**, 82.58% branches, 90.28% functions |
 | Prisma repository coverage | **91.40% statements** (up from 5.13% before integration tests) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
 | `npm run start:prod` | Applied migrations, then started the production server |
@@ -155,6 +155,8 @@ This verifies that module assets and API calls work when the app is opened throu
 - Notification failures are logged asynchronously and never block move processing.
 - Permanent Telegram delivery failures, such as a blocked bot or deactivated recipient, disable the preference to prevent repeated failed sends; transient failures leave it enabled.
 - Error classification keeps rate limits and server errors retryable while treating blocked or unreachable recipients as permanent.
+- Settings offers an authenticated test-notification action, limited to three sends per user per minute, with distinct unavailable, disabled, blocked and transient-failure responses.
+- A blocked test notification disables the preference and refreshes the client setting; transient failures can be retried.
 - Buttons deep-link back into the active Mini App match through `startapp=game_<uuid>`.
 - Unit, HTTP, match-service and repository tests cover the preference, offline gating, deep-link URL and delivery-failure paths.
 

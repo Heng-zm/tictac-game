@@ -22,6 +22,7 @@ import {
   fetchConfig,
   fetchMe,
   getDeviceKey,
+  sendTestNotification as requestTestNotification,
   updatePreferences,
 } from '../lib/api';
 import { createGameSocket, request, SocketRequestError, type GameClientSocket } from '../lib/socket';
@@ -98,6 +99,7 @@ export interface GameClient {
   refreshProfile: () => Promise<void>;
   setAutoAiFallback: (value: boolean) => Promise<void>;
   setTurnNotifications: (value: boolean) => Promise<void>;
+  sendTestNotification: () => Promise<void>;
   clearPendingInvite: () => void;
   clearCreatedInvite: () => void;
   reconnect: () => void;
@@ -641,6 +643,21 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     }
   }, []);
 
+  const sendTestNotification = useCallback(async (): Promise<void> => {
+    try {
+      await requestTestNotification();
+    } catch (error) {
+      if (error instanceof ApiRequestError && error.status === 409) {
+        await refreshProfile();
+      }
+      throw new ApiRequestError(
+        error instanceof ApiRequestError ? error.code : 'NOTIFICATION_TEST_FAILED',
+        errorMessage(error),
+        error instanceof ApiRequestError ? error.status : 0,
+      );
+    }
+  }, [refreshProfile]);
+
   const retryBoot = useCallback(() => {
     setBootAttempt((attempt) => attempt + 1);
   }, []);
@@ -688,6 +705,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     refreshProfile,
     setAutoAiFallback,
     setTurnNotifications,
+    sendTestNotification,
     clearPendingInvite,
     clearCreatedInvite,
     reconnect,

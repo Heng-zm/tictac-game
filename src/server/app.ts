@@ -40,6 +40,7 @@ import type { Logger } from 'pino';
 import { AppError, RepositoryConflictError } from './errors';
 import type { MatchService } from './services/match-service';
 import { hashInvitationToken } from './services/invitations';
+import type { TurnNotificationTestService } from './services/turn-notifier';
 import { toHistoryItem, toLeaderboardResponse, toUserProfile } from './services/profile';
 
 export interface BotWebhookMount {
@@ -53,6 +54,7 @@ export interface AppDependencies {
   logger: Logger;
   matchService: MatchService;
   botWebhook?: BotWebhookMount;
+  turnNotificationTester?: TurnNotificationTestService;
   beforeMatchAction?: (userId: string) => void;
   disableRateLimits?: boolean;
 }
@@ -220,6 +222,21 @@ export function createApp(deps: AppDependencies): express.Express {
         },
       });
 
+  const notificationTestLimiter = deps.disableRateLimits
+    ? passthrough
+    : rateLimit({
+        windowMs: 60_000,
+        limit: 3,
+        standardHeaders: 'draft-7',
+        legacyHeaders: false,
+        keyGenerator: (req) => (req.authUser as UserEntity).id,
+        handler: (req, res) => {
+          res
+            .status(429)
+            .json(errorBody(req, 'NOTIFICATION_RATE_LIMITED', 'Too many test notifications. Try again later.'));
+        },
+      });
+
   app.get('/api/config', (_req, res) => {
     const payload: AppConfigPayload = {
       protocol: PROTOCOL_VERSION,
@@ -312,6 +329,40 @@ export function createApp(deps: AppDependencies): express.Express {
     }
     res.json({ user: toUserProfile(user) });
   });
+
+  app.post(
+    '/api/me/notifications/test',
+    requireAuth,
+    notificationTestLimiter,
+    async (req, res) => {
+      const tester = deps.turnNotificationTester;
+      if (!tester) {
+        throw new AppError(503, 'NOTIFICATIONS_UNAVAILABLE', 'Turn notifications are not configured');
+      }
+      const user = req.authUser as UserEntity;
+      if (!user.turnNotifications) {
+        throw new AppError(409, 'NOTIFICATIONS_DISABLED', 'Enable turn notifications first');
+      }
+
+      const delivery = await tester.sendTestNotification(user);
+      if (delivery === 'sent') {
+        res.json({ status: 'sent' });
+        return;
+      }
+      if (delivery === 'blocked') {
+        throw new AppError(
+          409,
+          'NOTIFICATIONS_DISABLED',
+          'Telegram could not reach you, so turn notifications were disabled',
+        );
+      }
+      throw new AppError(
+        502,
+        'NOTIFICATION_DELIVERY_FAILED',
+        'Telegram could not deliver the test notification. Try again later.',
+      );
+    },
+  );
 
   app.get('/api/me/stats', requireAuth, (req, res) => {
     res.setHeader('cache-control', 'no-store');

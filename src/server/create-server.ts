@@ -107,6 +107,7 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     logger,
     matchService,
     ...(bot ? { botWebhook: bot.webhook } : {}),
+    ...(turnNotifier ? { turnNotificationTester: turnNotifier } : {}),
     beforeMatchAction: (userId) => {
       gateway.queue.cancel(userId, false);
     },
