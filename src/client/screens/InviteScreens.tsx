@@ -35,6 +35,7 @@ export function InviteWaitingScreen({
   const [error, setError] = useState<string | null>(null);
   const attempted = useRef(false);
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
+  const activeFriendMatch = activeMatch?.mode === 'FRIEND';
 
   const storedLink = pendingInvite
     ? readStoredLink(pendingInvite.id)
@@ -145,10 +146,16 @@ export function InviteWaitingScreen({
       {activeMatch ? (
         <Card className="p-5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Game in progress</p>
-          <h2 className="mt-2 text-xl font-bold text-ink">Your friend already joined</h2>
-          <p className="mt-1 text-sm text-muted">The invitation was accepted. Jump back into the board.</p>
+          <h2 className="mt-2 text-xl font-bold text-ink">
+            {activeFriendMatch ? 'Your friend already joined' : 'You already have a game'}
+          </h2>
+          <p className="mt-1 text-sm text-muted">
+            {activeFriendMatch
+              ? 'The invitation was accepted. Jump back into the board.'
+              : 'Only one game can be active at a time. Finish your current board before inviting a friend.'}
+          </p>
           <Button className="mt-4 w-full" onClick={() => navigate(`/game/${activeMatch.id}`)}>
-            Open game
+            {activeFriendMatch ? 'Open game' : 'Resume game'}
           </Button>
         </Card>
       ) : (

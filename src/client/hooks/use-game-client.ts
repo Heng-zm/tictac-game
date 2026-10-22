@@ -506,6 +506,9 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     const result = await request<{ invitation: CreatedInvitation }>((ack) => {
       socket.emit('invite:create', ack);
     });
+    // The server leaves matchmaking as part of creating an invitation and does
+    // not emit a queue status event, so clear the local queue as well.
+    setQueue(null);
     setCreatedInvite(result.invitation);
     setPendingInvite({
       id: result.invitation.id,
@@ -541,6 +544,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       const result = await request<{ matchId: string }>((ack) => {
         socket.emit('invite:accept', { token }, ack);
       });
+      // Accepting also removes the player from matchmaking on the server.
+      setQueue(null);
       setPendingInvite(null);
       return result;
     },

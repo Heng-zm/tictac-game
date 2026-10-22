@@ -101,6 +101,13 @@ export function MatchmakingScreen({
     }
   }
 
+  function inviteFriend(): void {
+    // Leave the queue before generating a private invitation. Otherwise a
+    // match could arrive while the invitation link is being created.
+    void client.cancelQueue();
+    navigate('/invite/waiting');
+  }
+
   async function toggleAutoFallback(next: boolean): Promise<void> {
     setAutoFallback(next);
     try {
@@ -232,10 +239,10 @@ export function MatchmakingScreen({
               </div>
 
               <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line/60 pt-3">
-                <Button size="sm" icon={Bot} variant="secondary" onClick={() => void playBot()}>
+                <Button size="sm" icon={Bot} variant="secondary" disabled={joining} onClick={() => void playBot()}>
                   Play Bot
                 </Button>
-                <Button size="sm" icon={UserPlus} variant="secondary" onClick={() => navigate('/invite/waiting')}>
+                <Button size="sm" icon={UserPlus} variant="secondary" disabled={joining} onClick={inviteFriend}>
                   Invite friend
                 </Button>
               </div>

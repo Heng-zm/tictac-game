@@ -24,7 +24,7 @@ It is **not yet verified against a real Telegram client or a live Supabase proje
 | Supabase credentials | None |
 | HTTPS deployment | None; production mode ran locally on HTTP port 3200 |
 
-No real secrets were committed or used. The automated checks and PostgreSQL migration run were repeated on 2026-10-22 after the active-game navigation UI and its component tests; the production-mode smoke tests below were run on 2026-10-21.
+No real secrets were committed or used. The automated checks and PostgreSQL migration run were repeated on 2026-10-22 after the active-game navigation and invitation-flow UX changes; the production-mode smoke tests below were run on 2026-10-21.
 
 ## Automated checks
 
@@ -32,9 +32,9 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 | --- | --- |
 | `npm run typecheck` | Passed (server, client, and tests via `tsconfig.test.json`) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 193 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **203 passed / 203** across 21 test files |
-| `npm run test:coverage` with PostgreSQL | Passed; **88.61% statements**, 81.92% branches, 90.78% functions |
+| `npm test` without `TEST_DATABASE_URL` | 196 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **206 passed / 206** across 22 test files |
+| `npm run test:coverage` with PostgreSQL | Passed; **88.63% statements**, 81.97% branches, 90.78% functions |
 | Prisma repository coverage | **91.40% statements** (up from 5.13% before integration tests) |
 | Telegram bot controller coverage | **76.38% statements** (up from 5.12% before the fake Bot API suite) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
@@ -46,7 +46,7 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 
 The bot-controller suite runs the real grammY client against a local fake Telegram Bot API. It verifies outgoing message payloads, permanent versus transient delivery responses, bot command/menu/webhook registration, startup resilience when Telegram metadata or webhook registration fails, webhook secret rejection, and the `/help` and `/start` handlers without contacting Telegram.
 
-The client component suite exercises the active-game bar's turn, waiting, paused, reconnecting, and bot states, including its live clock, screen-reader label, and resume action.
+The client component suite exercises the active-game bar's turn, waiting, paused, reconnecting, and bot states, including its live clock, screen-reader label, and resume action. It also covers the invitation handoff from Quick Match and the invite screen's active-game copy, including the distinction between an accepted friend game and an unrelated bot or random game.
 
 The PostgreSQL integration suite covers:
 
@@ -150,6 +150,9 @@ This verifies that module assets and API calls work when the app is opened throu
 - Reconnect grace prevents immediate loss on disconnect; E2E tests cover reconnect and grace expiry.
 - Finished games emit a final state to both participants; rematch and leave flows are covered by tests.
 - Invitations are single-use, expiring, hashed at rest, and protected against self-acceptance and busy acceptors.
+- Opening the invite screen from Quick Match leaves the queue before generating a link, preventing a random match from taking over while an invitation is being prepared.
+- Creating or accepting an invitation clears the client's local queue state as well as the server queue, so a later visit to Quick Match cannot show a phantom search.
+- The invite screen distinguishes an accepted friend game from an unrelated active bot or random match instead of always claiming a friend joined.
 - Maintenance closes expired invitations and pending invitations attached to abandoned/stale waiting matches.
 
 ### Turn notifications
