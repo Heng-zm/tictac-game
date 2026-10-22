@@ -150,7 +150,7 @@ export function Page({
     <div
       className={cn(
         'mx-auto w-full max-w-[520px] px-5 pt-[calc(env(safe-area-inset-top)+16px)]',
-        withNav ? 'pb-[calc(env(safe-area-inset-bottom)+100px)]' : 'pb-[calc(env(safe-area-inset-bottom)+28px)]',
+        withNav ? 'page-with-nav' : 'pb-[calc(env(safe-area-inset-bottom)+28px)]',
         className,
       )}
     >

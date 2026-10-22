@@ -314,14 +314,21 @@ const toastStyles = {
 export function ToastViewport({
   toasts,
   onDismiss,
+  raised = false,
 }: {
   toasts: ToastMessage[];
   onDismiss: (id: string) => void;
+  raised?: boolean;
 }) {
   if (toasts.length === 0) return null;
   return createPortal(
     <div
-      className="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-3 pb-[calc(env(safe-area-inset-bottom)+88px)]"
+      className={cn(
+        'pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col items-center gap-2 px-3',
+        raised
+          ? 'pb-[calc(env(safe-area-inset-bottom)+164px)]'
+          : 'pb-[calc(env(safe-area-inset-bottom)+88px)]',
+      )}
       aria-live="polite"
       aria-atomic="false"
     >

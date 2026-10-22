@@ -113,6 +113,12 @@
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.03), 0 18px 40px -36px rgb(0 0 0 / 0.35);
   }
 
+  /* Reserve room for the fixed bottom navigation and, when present, the
+     compact active-game bar above it. */
+  .page-with-nav {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 100px + var(--nav-clearance, 0px));
+  }
+
   /* The immersive board owns the viewport, so stop native selection and the
      mobile long-press callout from competing with drag-to-pan gestures. */
   .game-grid-surface {

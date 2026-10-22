@@ -19,12 +19,12 @@ It is **not yet verified against a real Telegram client or a live Supabase proje
 | Node.js | v26.10.0 |
 | npm | 11.19.1 |
 | PostgreSQL | 17.11 (local Windows service) |
-| Database | `tictactoe_notify_verify` (disposable PostgreSQL 17.11 database) |
+| Database | `tictactoe_ui_verify` (disposable PostgreSQL 17.11 database) |
 | Telegram credentials | Synthetic, format-valid test bot token only |
 | Supabase credentials | None |
 | HTTPS deployment | None; production mode ran locally on HTTP port 3200 |
 
-No real secrets were committed or used. The automated checks and PostgreSQL migration run were repeated on 2026-10-22 after the turn-notification and bot-controller test changes; the production-mode smoke tests below were run on 2026-10-21.
+No real secrets were committed or used. The automated checks and PostgreSQL migration run were repeated on 2026-10-22 after the active-game navigation UI and its component tests; the production-mode smoke tests below were run on 2026-10-21.
 
 ## Automated checks
 
@@ -32,9 +32,9 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 | --- | --- |
 | `npm run typecheck` | Passed (server, client, and tests via `tsconfig.test.json`) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 189 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **199 passed / 199** across 20 test files |
-| `npm run test:coverage` with PostgreSQL | Passed; **88.61% statements**, 81.77% branches, 90.78% functions |
+| `npm test` without `TEST_DATABASE_URL` | 193 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **203 passed / 203** across 21 test files |
+| `npm run test:coverage` with PostgreSQL | Passed; **88.61% statements**, 81.92% branches, 90.78% functions |
 | Prisma repository coverage | **91.40% statements** (up from 5.13% before integration tests) |
 | Telegram bot controller coverage | **76.38% statements** (up from 5.12% before the fake Bot API suite) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
@@ -45,6 +45,8 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 | Render Blueprint schema | `render.yaml` and `render.postgres.yaml` valid against Render's published schema |
 
 The bot-controller suite runs the real grammY client against a local fake Telegram Bot API. It verifies outgoing message payloads, permanent versus transient delivery responses, bot command/menu/webhook registration, startup resilience when Telegram metadata or webhook registration fails, webhook secret rejection, and the `/help` and `/start` handlers without contacting Telegram.
+
+The client component suite exercises the active-game bar's turn, waiting, paused, reconnecting, and bot states, including its live clock, screen-reader label, and resume action.
 
 The PostgreSQL integration suite covers:
 
@@ -164,6 +166,14 @@ This verifies that module assets and API calls work when the app is opened throu
 - Unit, HTTP, match-service and repository tests cover the preference, offline gating, deep-link URL and delivery-failure paths.
 - The real bot controller is exercised against a local fake Bot API: turn notifications use the expected message payload and Mini App/URL button, permanent failures map to `blocked`, transient failures map to `failed`, startup continues when metadata or webhook registration fails, and command/menu/webhook setup plus signed webhook dispatch are covered.
 
+### Client UI and active-game navigation
+
+- The responsive client was inspected at a `390x844` CSS viewport with 2x device-pixel ratio in headless Chrome: Home, Quick Match queue, an active bot board, Profile Stats, Settings, Leaderboard, invite waiting, and the scrolled bottom of long pages.
+- Profile and Leaderboard keep an active match reachable through a compact resume bar above the bottom navigation. It shows your-turn, waiting, paused, or reconnecting status, the opponent name, an optional live countdown, and a labelled one-tap return to the board.
+- The bar is intentionally not duplicated on Home, which retains its full active-game card, and disappears when the match finishes.
+- Bottom-page clearance and raised toast placement account for both the bar and the bottom navigation, so long pages can scroll fully clear of the fixed controls.
+- Safe-area padding and fixed navigation were checked at the target mobile viewport; no horizontal overflow appeared in the inspected screens.
+
 ### AI
 
 - Easy, Medium, and Hard difficulties are implemented server-side.
@@ -201,7 +211,7 @@ These items could not be verified in this environment and must be checked during
 3. **Live Supabase project.** No Supabase URL or credentials were available. PostgreSQL 17.11 compatibility and the migration were verified locally; Supabase's pooler, TLS termination, and network path were not.
 4. **Telegram bot commands, webhook delivery and turn notifications.** Bot command handlers, menu/webhook registration, webhook secret rejection, message payloads, invitation deep links and delivery-error mapping were exercised against a local fake Bot API. Delivery of real webhook updates from Telegram, menu-button rendering in a real client, and notification delivery to a real Telegram account were not exercised against Telegram.
 5. **HTTPS deployment.** TLS, reverse proxy, `TRUST_PROXY`, domain configuration, and Telegram's HTTPS requirement were not deployed or tested. The production Blueprints were schema-validated locally but have not been executed in a live Render account.
-6. **Visual UI verification.** The client builds and the socket/HTTP flows work, but screens were not visually inspected in a real browser or Telegram WebView in this verification pass.
+6. **Real Telegram WebView visual verification.** The responsive client was inspected in headless Chrome at a `390x844` mobile viewport, including the active-game bar and safe-area layout. It was not opened inside a real Telegram iOS, Android, or Web client, so Telegram iframe chrome, dynamic viewport changes, theme transitions, swipe-to-close suppression, and on-device font rendering remain unverified.
 7. **Load, concurrency, and multi-instance behavior.** The app is intentionally single-instance for in-memory queues and Socket.IO rooms. No Redis adapter or distributed queue was tested.
 8. **Real user data and moderation.** No production user data, abuse testing, or Telegram rate-limit behavior was exercised.
 

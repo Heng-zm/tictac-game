@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useGameClient } from './hooks/use-game-client';
 import { useHashRoute, useTelegramBackButton } from './hooks/use-hash-route';
 import { AuthGate } from './screens/AuthGate';
@@ -10,6 +10,7 @@ import { ProfileScreen } from './screens/ProfileScreen';
 import { LeaderboardScreen } from './screens/LeaderboardScreen';
 import { NotFoundScreen } from './screens/NotFoundScreen';
 import { BottomNav, ConnectionBanner } from './components/Layout';
+import { ActiveGameBar } from './components/ActiveGameBar';
 import { ToastViewport } from './components/ui';
 
 export default function App() {
@@ -105,6 +106,10 @@ export default function App() {
         : route.name
       : null;
 
+  const activeMatch = client.match?.status === 'ACTIVE' ? client.match : null;
+  const showActiveGameBar =
+    Boolean(activeMatch) && (route.name === 'profile' || route.name === 'leaderboard');
+
   const showConnectionBanner = route.name !== 'game' && route.name !== 'search';
   // The result modal already communicates the outcome while the player is on
   // the board, so keep its toast out of the modal's action area.
@@ -114,15 +119,29 @@ export default function App() {
       : client.toasts;
 
   return (
-    <div className="min-h-[var(--app-vh)]">
+    <div
+      className="min-h-[var(--app-vh)]"
+      style={{ '--nav-clearance': showActiveGameBar ? '76px' : '0px' } as CSSProperties}
+    >
       {showConnectionBanner ? (
         <ConnectionBanner connection={client.connection} onRetry={client.reconnect} />
       ) : null}
       {screen}
+      {showActiveGameBar && activeMatch ? (
+        <ActiveGameBar
+          match={activeMatch}
+          connection={client.connection}
+          onResume={() => navigate(`/game/${activeMatch.id}`)}
+        />
+      ) : null}
       {nav ? (
         <BottomNav active={nav} onNavigate={navigate} hasActiveGame={client.match?.status === 'ACTIVE'} />
       ) : null}
-      <ToastViewport toasts={visibleToasts} onDismiss={client.dismissToast} />
+      <ToastViewport
+        toasts={visibleToasts}
+        onDismiss={client.dismissToast}
+        raised={showActiveGameBar}
+      />
     </div>
   );
 }
