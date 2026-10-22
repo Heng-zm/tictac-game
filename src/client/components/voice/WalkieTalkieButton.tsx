@@ -34,6 +34,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   }> | null>(null);
   const isCommittingRef = useRef(false);
   const activePointerIdRef = useRef<number | null>(null);
+  const cancelIntentRef = useRef(false);
   const mountedRef = useRef(true);
   const startPointerY = useRef(0);
   const startPointerX = useRef(0);
@@ -120,6 +121,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     getAudioContext();
 
     activePointerIdRef.current = e.pointerId;
+    cancelIntentRef.current = false;
     startPointerY.current = e.clientY;
     startPointerX.current = e.clientX;
     startTimeRef.current = Date.now();
@@ -149,6 +151,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     if (!res.success) {
       isHeldRef.current = false;
       activePointerIdRef.current = null;
+      cancelIntentRef.current = false;
       recorderRef.current = null;
       setStatusSafe('idle');
       setElapsedMs(0);
@@ -162,10 +165,11 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       const holdDuration = Date.now() - startTimeRef.current;
       const currentStatus = getStatus();
 
-      if (currentStatus === 'cancelling' || holdDuration < MIN_HOLD_DURATION_MS) {
+      if (currentStatus === 'cancelling' || cancelIntentRef.current || holdDuration < MIN_HOLD_DURATION_MS) {
         recorder.cancel();
         recorderRef.current = null;
         activePointerIdRef.current = null;
+        cancelIntentRef.current = false;
         setStatusSafe('idle');
         setElapsedMs(0);
         return;
@@ -176,19 +180,26 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       return;
     }
 
+    if (cancelIntentRef.current) {
+      setStatusSafe('cancelling');
+      return;
+    }
+
     setStatusSafe('recording');
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (activePointerIdRef.current !== e.pointerId) return;
+    const deltaY = startPointerY.current - e.clientY;
+    const distance = Math.hypot(e.clientX - startPointerX.current, e.clientY - startPointerY.current);
+    const movedAway = deltaY > CANCEL_SLIDE_DISTANCE_PX || distance > CANCEL_SLIDE_DISTANCE_PX * 1.5;
+    cancelIntentRef.current = movedAway;
+
     const currentStatus = getStatus();
     if (!isHeldRef.current || (currentStatus !== 'recording' && currentStatus !== 'cancelling')) return;
 
-    const deltaY = startPointerY.current - e.clientY;
-    const distance = Math.hypot(e.clientX - startPointerX.current, e.clientY - startPointerY.current);
-
     // Slide up > 50px or drag away > 75px to cancel
-    if (deltaY > CANCEL_SLIDE_DISTANCE_PX || distance > CANCEL_SLIDE_DISTANCE_PX * 1.5) {
+    if (movedAway) {
       if (getStatus() !== 'cancelling') {
         setStatusSafe('cancelling');
       }

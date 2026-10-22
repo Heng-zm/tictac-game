@@ -245,28 +245,24 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function Logo({ size = 'md', className }: { size?: 'sm' | 'md' | 'lg'; className?: string }) {
-  const box = { sm: 'h-9 w-9 gap-0.5 p-1', md: 'h-11 w-11 gap-0.5 p-1.5', lg: 'h-16 w-16 gap-1 p-2' }[size];
-  const cell = { sm: 'h-[9px] w-[9px]', md: 'h-[11px] w-[11px]', lg: 'h-3.5 w-3.5' }[size];
+  const box = {
+    sm: 'h-8 w-8 rounded-lg',
+    md: 'h-11 w-11 rounded-xl',
+    lg: 'h-16 w-16 rounded-2xl shadow-lg',
+  }[size];
+
   return (
-    <span
-      className={cn('inline-grid shrink-0 grid-cols-3 rounded-xl border border-line bg-surface', box, className)}
-      aria-hidden
-    >
-      {Array.from({ length: 9 }, (_, index) => (
-        <span
-          key={index}
-          className={cn(
-            'rounded-[3px]',
-            cell,
-            index === 0 || index === 4 || index === 8
-              ? 'bg-accent'
-              : index === 2 || index === 6
-                ? 'bg-danger/80'
-                : 'bg-line/80',
-          )}
-        />
-      ))}
-    </span>
+    <img
+      src="/icons/icon-192.png"
+      alt="Tic Tac Toe Logo"
+      width={size === 'lg' ? 64 : size === 'sm' ? 32 : 44}
+      height={size === 'lg' ? 64 : size === 'sm' ? 32 : 44}
+      className={cn(
+        'shrink-0 object-cover shadow-sm ring-1 ring-white/10 transition-transform duration-200 hover:scale-105 active:scale-95 select-none',
+        box,
+        className,
+      )}
+    />
   );
 }
 

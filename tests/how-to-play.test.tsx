@@ -17,7 +17,7 @@ describe('HowToPlayModal', () => {
     render(<HowToPlayModal open={true} onClose={onClose} languageCode="km" />);
 
     expect(screen.getByRole('dialog', { name: 'របៀបលេង' })).toBeTruthy();
-    expect(screen.getByText('របៀបលេង · How to Play')).toBeTruthy();
+    expect(screen.getByText('របៀបលេង')).toBeTruthy();
     expect(screen.getByText('ក្តារគ្មានដែនកំណត់ & ការបញ្ជា')).toBeTruthy();
     expect(screen.getByText(/Board Controls/i)).toBeTruthy();
     expect(screen.getByText('បន្ទាប់')).toBeTruthy();
@@ -27,7 +27,7 @@ describe('HowToPlayModal', () => {
     render(<HowToPlayModal open={true} onClose={vi.fn()} />);
 
     expect(screen.getByRole('dialog', { name: 'How to play' })).toBeTruthy();
-    expect(screen.getByText('How to Play · របៀបលេង')).toBeTruthy();
+    expect(screen.getByText('How to Play')).toBeTruthy();
     expect(screen.getByText('Infinite Grid & Controls')).toBeTruthy();
     expect(
       screen.getByText('The board is an infinite grid. Pan, zoom, and place your stones freely anywhere.'),
@@ -58,10 +58,10 @@ describe('HowToPlayModal', () => {
     // Step 3 -> Step 4
     fireEvent.click(screen.getByRole('button', { name: /បន្ទាប់/ }));
     expect(screen.getByText('Walkie-Talkie & របៀបប្រកួត')).toBeTruthy();
-    expect(screen.getByText('យល់ហើយ ចាប់ផ្តើមលេង!')).toBeTruthy();
+    expect(screen.getByText('យល់ហើយ')).toBeTruthy();
 
     // Step 4 completion
-    fireEvent.click(screen.getByRole('button', { name: /យល់ហើយ ចាប់ផ្តើមលេង!/ }));
+    fireEvent.click(screen.getByRole('button', { name: /យល់ហើយ/ }));
     expect(onClose).toHaveBeenCalledTimes(1);
     expect(localStorage.getItem(HOW_TO_PLAY_STORAGE_KEY)).toBe('true');
   });

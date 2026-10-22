@@ -282,15 +282,15 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
       >
         {/* Header Bar */}
         <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
-          <div className="flex items-center gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
               <BookOpen className="h-4 w-4" aria-hidden />
             </span>
-            <div>
-              <h2 className="text-sm font-bold text-ink">
-                {isKm ? 'របៀបលេង · How to Play' : 'How to Play · របៀបលេង'}
+            <div className="min-w-0">
+              <h2 className="truncate text-sm font-bold text-ink">
+                {isKm ? 'របៀបលេង' : 'How to Play'}
               </h2>
-              <p className="text-[10.5px] font-medium text-muted">
+              <p className="truncate text-[10.5px] font-medium text-muted">
                 {isKm ? step.badgeKhmer : step.badgeEnglish} ({currentStep + 1}/{STEPS.length})
               </p>
             </div>
@@ -352,10 +352,10 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
         <div ref={contentRef} className="p-5 sm:p-6">
           {/* Visual SVG Graphic for the Active Step */}
           <div className="relative mb-5 overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-surface via-elevated/50 to-surface p-4 shadow-inner">
-            {currentStep === 0 && <BoardControlsIllustration />}
-            {currentStep === 1 && <WinConditionIllustration />}
-            {currentStep === 2 && <TacticsIllustration />}
-            {currentStep === 3 && <VoiceModesIllustration />}
+            {currentStep === 0 && <BoardControlsIllustration isKm={isKm} />}
+            {currentStep === 1 && <WinConditionIllustration isKm={isKm} />}
+            {currentStep === 2 && <TacticsIllustration isKm={isKm} />}
+            {currentStep === 3 && <VoiceModesIllustration isKm={isKm} />}
           </div>
 
           {/* Step Text Info */}
@@ -364,7 +364,10 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
               <span className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
                 {isKm ? step.badgeKhmer : step.badgeEnglish}
               </span>
-              <span className="text-[10px] font-semibold text-muted tracking-wide uppercase">
+              <span
+                aria-hidden="true"
+                className="text-[10px] font-semibold text-muted tracking-wide uppercase"
+              >
                 {isKm ? step.badgeEnglish : step.badgeKhmer}
               </span>
             </div>
@@ -438,7 +441,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
                   : 'bg-accent text-accent-ink hover:opacity-95 shadow-accent/20',
               )}
             >
-              <span>{isLast ? (isKm ? 'យល់ហើយ ចាប់ផ្តើមលេង!' : 'Got it') : isKm ? 'បន្ទាប់' : 'Next'}</span>
+              <span>{isLast ? (isKm ? 'យល់ហើយ' : 'Got it') : isKm ? 'បន្ទាប់' : 'Next'}</span>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </button>
           </div>
@@ -453,7 +456,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
    ========================================================================= */
 
 /** Step 1: Infinite Board, Panning & Gestures */
-function BoardControlsIllustration() {
+function BoardControlsIllustration({ isKm }: { isKm: boolean }) {
   return (
     <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
       {/* Grid Canvas representation */}
@@ -515,7 +518,7 @@ function BoardControlsIllustration() {
           <path d="M232 86 L228 90 L232 94" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           <path d="M268 86 L272 90 L268 94" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
           <text x="250" y="132" textAnchor="middle" className="fill-ink text-[9px] font-bold">
-            អូសដើម្បីរំកិល (Drag)
+            {isKm ? 'អូសដើម្បីរំកិល (Drag)' : 'Drag to pan'}
           </text>
         </g>
 
@@ -525,7 +528,7 @@ function BoardControlsIllustration() {
           <circle cx="16" cy="13" r="6" stroke="currentColor" strokeWidth="1.5" className="text-accent" />
           <path d="M20 17 L24 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent" />
           <text x="32" y="16" className="fill-ink text-[9.5px] font-bold">
-            Pinch Zoom
+            {isKm ? 'ពង្រីកម្រាមពីរ' : 'Pinch to zoom'}
           </text>
         </g>
       </svg>
@@ -534,7 +537,7 @@ function BoardControlsIllustration() {
 }
 
 /** Step 2: 5-in-a-Row Gomoku Goal & Directions */
-function WinConditionIllustration() {
+function WinConditionIllustration({ isKm }: { isKm: boolean }) {
   return (
     <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
       <svg
@@ -613,14 +616,14 @@ function WinConditionIllustration() {
         <g transform="translate(170, 25)">
           <rect x="-85" y="-12" width="170" height="24" rx="12" className="fill-amber-500 shadow-md" />
           <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[11px] font-black tracking-wide">
-            🏆 ៥ គ្រាប់ = ឈ្នះភ្លាមៗ (WIN!)
+            {isKm ? '🏆 ៥ គ្រាប់ = ឈ្នះភ្លាមៗ (WIN!)' : '🏆 5 in a row = WIN!'}
           </text>
         </g>
 
         {/* Subtitle directions footer */}
         <g transform="translate(170, 165)">
           <text x="0" y="0" textAnchor="middle" className="fill-muted text-[10px] font-bold">
-            ជួរដេក ↔ · ជួរឈរ ↕ · អង្កត់ទ្រូង ⤢
+            {isKm ? 'ជួរដេក ↔ · ជួរឈរ ↕ · អង្កត់ទ្រូង ⤢' : 'Row ↔ · Column ↕ · Diagonal ⤢'}
           </text>
         </g>
       </svg>
@@ -629,7 +632,7 @@ function WinConditionIllustration() {
 }
 
 /** Step 3: Attack vs Defense Strategy */
-function TacticsIllustration() {
+function TacticsIllustration({ isKm }: { isKm: boolean }) {
   return (
     <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
       <svg
@@ -672,7 +675,7 @@ function TacticsIllustration() {
         <g transform="translate(230, 42)">
           <rect x="-42" y="-11" width="84" height="22" rx="11" className="fill-rose-600 shadow-md" />
           <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[9.5px] font-black">
-            🚨 ត្រូវបិទ! (BLOCK)
+            {isKm ? '🚨 ត្រូវបិទ! (BLOCK)' : '🚨 BLOCK!'}
           </text>
           <path d="M0 11 L-4 15 L4 15 Z" fill="#e11d48" />
         </g>
@@ -691,7 +694,9 @@ function TacticsIllustration() {
         <g transform="translate(170, 155)">
           <rect x="-115" y="-10" width="230" height="22" rx="11" className="fill-surface stroke-line shadow-xs" />
           <text x="0" y="4.5" textAnchor="middle" className="fill-ink text-[10px] font-bold">
-            ⚔️ បិទក្បាលគូប្រកួត + បង្កើតផ្លូវវាយលុក ២ ច្រក
+            {isKm
+              ? '⚔️ បិទក្បាលគូប្រកួត + បង្កើតផ្លូវវាយលុក ២ ច្រក'
+              : '⚔️ Block the threat + create two attack lines'}
           </text>
         </g>
       </svg>
@@ -700,7 +705,7 @@ function TacticsIllustration() {
 }
 
 /** Step 4: Walkie-Talkie Push-to-Talk & Game Modes */
-function VoiceModesIllustration() {
+function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
   return (
     <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
       <svg
@@ -752,7 +757,7 @@ function VoiceModesIllustration() {
           </g>
 
           <text x="0" y="58" textAnchor="middle" className="fill-ink text-[10px] font-black">
-            ចុចសង្កត់ដើម្បីនិយាយ
+            {isKm ? 'ចុចសង្កត់ដើម្បីនិយាយ' : 'Hold to talk'}
           </text>
         </g>
 
@@ -769,7 +774,7 @@ function VoiceModesIllustration() {
               Quick Match
             </text>
             <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
-              ប្រកួតចៃដន្យ Rated
+              {isKm ? 'ប្រកួតចៃដន្យ Rated' : 'Rated match'}
             </text>
           </g>
 
@@ -781,7 +786,7 @@ function VoiceModesIllustration() {
               Invite Friend
             </text>
             <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
-              តំណ link ជាមួយមិត្ត
+              {isKm ? 'តំណ link ជាមួយមិត្ត' : 'Private link'}
             </text>
           </g>
 
@@ -793,7 +798,7 @@ function VoiceModesIllustration() {
               Practice Bot
             </text>
             <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
-              ហ្វឹកហាត់ Unrated
+              {isKm ? 'ហ្វឹកហាត់ Unrated' : 'Unrated practice'}
             </text>
           </g>
         </g>
