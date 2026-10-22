@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Logger } from 'pino';
-import type { MatchReactionEvent } from '../../shared/events';
+import type { MatchReactionEvent, MatchVoiceEvent, MatchVoiceResult } from '../../shared/events';
 import type {
   AiDifficulty,
   CreatedInvitation,
@@ -82,17 +82,30 @@ export class MatchService {
   }
 
   async assertAvailable(userId: string, freshUser?: UserEntity): Promise<void> {
+    // Callers that just loaded the user can pass it in to avoid a duplicate query.
+    const user = freshUser ?? (await this.deps.repository.getUserById(userId));
+    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+
     const knownMatchId = this.userMatchIds.get(userId);
     if (knownMatchId) {
       const game = this.games.get(knownMatchId);
       if (game?.match.status === 'ACTIVE') {
-        throw new AppError(409, 'PLAYER_BUSY', 'You are already in a game');
+        if (user.activeMatchId === knownMatchId) {
+          throw new AppError(409, 'PLAYER_BUSY', 'You are already in a game');
+        }
+        // The repository is the source of truth. Maintenance can abandon a
+        // paused match directly in the database, so drop the stale in-memory
+        // copy instead of blocking the player forever with PLAYER_BUSY.
+        const persisted = await this.deps.repository.getMatchById(knownMatchId);
+        if (persisted?.status === 'ACTIVE') {
+          throw new AppError(409, 'PLAYER_BUSY', 'You are already in a game');
+        }
+        this.clearAllGameTimers(game);
+        this.removeUserMatch(game.match);
+        if (this.games.get(game.match.id) === game) this.games.delete(game.match.id);
       }
     }
 
-    // Callers that just loaded the user can pass it in to avoid a duplicate query.
-    const user = freshUser ?? (await this.deps.repository.getUserById(userId));
-    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
     if (!user.activeMatchId) return;
 
     const match = await this.deps.repository.getMatchById(user.activeMatchId);
@@ -626,6 +639,89 @@ export class MatchService {
         reactionId: randomUUID(),
       });
     }, 700 + Math.floor(this.random() * 400));
+    timer.unref?.();
+  }
+
+  async sendVoice(
+    userId: string,
+    matchId: string,
+    audioData: string,
+    durationMs: number,
+    waveform?: number[],
+  ): Promise<MatchVoiceResult> {
+    const match = await this.loadMatch(matchId);
+    if (!match) throw new AppError(404, 'MATCH_NOT_FOUND', 'That game could not be found');
+    const player = match.participants.find((participant) => participant.userId === userId);
+    if (!player) throw new AppError(403, 'MATCH_FORBIDDEN', 'You are not part of this game');
+
+    if (match.status !== 'ACTIVE' && match.status !== 'FINISHED') {
+      throw new AppError(409, 'GAME_NOT_ACTIVE', 'Voice messages are only available during or after a game');
+    }
+
+    const defaultWaveform = [0.2, 0.5, 0.8, 0.4, 0.7, 0.9, 0.6, 0.3, 0.7, 0.8, 0.4, 0.2];
+    const safeWaveform = waveform && waveform.length > 0 ? waveform : defaultWaveform;
+
+    const event: MatchVoiceEvent = {
+      matchId: match.id,
+      senderSide: player.side,
+      audioData,
+      durationMs,
+      waveform: safeWaveform,
+      timestamp: this.now().toISOString(),
+      voiceId: randomUUID(),
+    };
+
+    this.deps.io.to(matchRoom(match.id)).emit('match:voice', event);
+
+    if (match.mode === 'AI' && match.status === 'ACTIVE') {
+      const ai = match.participants.find((p) => p.isAi);
+      if (ai) {
+        this.scheduleAiVoiceReply(match, ai.side);
+      }
+    }
+
+    return { sent: true };
+  }
+
+  private scheduleAiVoiceReply(match: MatchEntity, aiSide: Side): void {
+    const timer = setTimeout(() => {
+      const game = this.games.get(match.id);
+      if (!game || (game.match.status !== 'ACTIVE' && game.match.status !== 'FINISHED')) return;
+
+      // Synthesize a quick 200ms roger-beep wav transmission from the bot
+      const sampleRate = 8000;
+      const numSamples = 1600;
+      const buffer = Buffer.alloc(44 + numSamples);
+      buffer.write('RIFF', 0);
+      buffer.writeUInt32LE(36 + numSamples, 4);
+      buffer.write('WAVE', 8);
+      buffer.write('fmt ', 12);
+      buffer.writeUInt32LE(16, 16);
+      buffer.writeUInt16LE(1, 20);
+      buffer.writeUInt16LE(1, 22);
+      buffer.writeUInt32LE(sampleRate, 24);
+      buffer.writeUInt32LE(sampleRate, 28);
+      buffer.writeUInt16LE(1, 32);
+      buffer.writeUInt16LE(8, 34);
+      buffer.write('data', 36);
+      buffer.writeUInt32LE(numSamples, 40);
+      for (let i = 0; i < numSamples; i++) {
+        const env = Math.max(0, 1 - i / numSamples);
+        const sample = Math.sin((2 * Math.PI * 2400 * i) / sampleRate) * env * 110 + 128;
+        buffer.writeUInt8(Math.floor(sample), 44 + i);
+      }
+      const botAudio = `data:audio/wav;base64,${buffer.toString('base64')}`;
+
+      this.deps.io.to(matchRoom(match.id)).emit('match:voice', {
+        matchId: match.id,
+        senderSide: aiSide,
+        audioData: botAudio,
+        durationMs: 800,
+        waveform: [0.1, 0.3, 0.8, 0.9, 0.7, 0.4, 0.2],
+        timestamp: this.now().toISOString(),
+        voiceId: randomUUID(),
+      });
+    }, 1200 + Math.floor(this.random() * 800));
     timer.unref?.();
   }
 

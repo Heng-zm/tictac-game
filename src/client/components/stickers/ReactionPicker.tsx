@@ -86,18 +86,18 @@ export function ReactionPicker({
       {/* Floating Tray Bottom Sheet */}
       <div
         ref={trayRef}
-        className="relative z-10 w-full max-w-lg mx-auto rounded-t-3xl border-t border-line bg-surface/95 backdrop-blur-md px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+16px)] shadow-2xl transition-transform animate-in slide-in-from-bottom duration-200"
+        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 shadow-2xl backdrop-blur-md transition-transform animate-in slide-in-from-bottom duration-200 sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:pb-5"
       >
         {/* Grab Handle */}
-        <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted/30" />
+        <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted/30 sm:hidden" />
 
         {/* Header */}
-        <div className="flex items-center justify-between pb-2 border-b border-line/60">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <div className="flex items-center justify-between gap-3 border-b border-line/60 pb-2">
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/10 text-accent">
               <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             </span>
-            <h3 className="text-sm font-semibold text-ink">
+            <h3 className="truncate text-sm font-semibold text-ink">
               {isKm ? 'ស្ទីគ័រប្រតិកម្ម & ជជែករហ័ស' : 'Sticker Reactions & Quick Chat'}
             </h3>
           </div>
@@ -124,10 +124,10 @@ export function ReactionPicker({
                   hapticImpact('light');
                   setSelectedCategory(cat.id);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors active:scale-95 ${
+                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors active:scale-95 ${
                   active
-                    ? 'bg-accent text-accent-contrast shadow-sm'
-                    : 'bg-elevated text-muted hover:text-ink hover:bg-elevated/80'
+                    ? 'bg-accent text-accent-ink shadow-sm'
+                    : 'bg-elevated text-muted hover:bg-elevated/80 hover:text-ink'
                 }`}
               >
                 <Icon className="h-3 w-3" aria-hidden="true" />
@@ -137,8 +137,8 @@ export function ReactionPicker({
           })}
         </div>
 
-        {/* Sticker Grid (4 columns on mobile) */}
-        <div className="grid grid-cols-4 gap-2 max-h-[46vh] overflow-y-auto overscroll-contain py-1 pr-0.5">
+        {/* Sticker Grid (4 columns on mobile, 6 on wider sheets) */}
+        <div className="no-scrollbar grid max-h-[46vh] grid-cols-4 gap-2 overflow-y-auto overscroll-contain py-1 pr-0.5 sm:max-h-[52vh] sm:grid-cols-6 sm:gap-2.5">
           {filteredStickers.map((sticker) => {
             const isSending = sendingId === sticker.id;
             const label = getStickerLabel(sticker.id, languageCode);

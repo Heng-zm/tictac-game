@@ -21,6 +21,8 @@ import { Board } from '../components/Board';
 import { GameResult } from '../components/GameResult';
 import { ReactionPicker } from '../components/stickers/ReactionPicker';
 import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
+import { WalkieTalkieButton } from '../components/voice/WalkieTalkieButton';
+import { IncomingVoiceBubble } from '../components/voice/IncomingVoiceBubble';
 
 export function GameScreen({
   client,
@@ -223,6 +225,22 @@ export function GameScreen({
     [client, match],
   );
 
+  const handleSendVoice = useCallback(
+    async (audioData: string, durationMs: number, waveform: number[]): Promise<void> => {
+      if (!match) return;
+      try {
+        await client.sendVoice(match.id, audioData, durationMs, waveform);
+      } catch (error) {
+        client.pushToast({
+          type: 'error',
+          title: 'Voice transmission failed',
+          message: errorMessage(error),
+        });
+      }
+    },
+    [client, match],
+  );
+
   if (otherActive) {
     return (
       <Page>
@@ -378,7 +396,7 @@ export function GameScreen({
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
         <div className="pointer-events-auto border-b border-line/70 bg-app px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+6px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4">
-          <div className="mx-auto w-full max-w-[720px]">
+          <div className="mx-auto w-full max-w-[720px] lg:max-w-[840px]">
             <GameHeader
               onBack={() => navigate('/')}
               onResign={() => setForfeitOpen(true)}
@@ -404,6 +422,17 @@ export function GameScreen({
                     <ReactionOverlay reaction={youReaction} languageCode={client.profile?.languageCode} />
                   </div>
                 ) : null}
+                {client.incomingVoice && client.incomingVoice.senderSide === match.youSide ? (
+                  <div className="absolute top-12 left-0 z-40">
+                    <IncomingVoiceBubble
+                      voice={client.incomingVoice}
+                      onDismiss={client.clearIncomingVoice}
+                      senderName={you?.displayName ?? 'You'}
+                      isYou={true}
+                      align="left"
+                    />
+                  </div>
+                ) : null}
               </div>
 
               <TurnClock
@@ -427,6 +456,17 @@ export function GameScreen({
                 {opponentReaction ? (
                   <div className="absolute top-11 right-1 z-30">
                     <ReactionOverlay reaction={opponentReaction} languageCode={client.profile?.languageCode} />
+                  </div>
+                ) : null}
+                {client.incomingVoice && client.incomingVoice.senderSide !== match.youSide ? (
+                  <div className="absolute top-12 right-0 z-40">
+                    <IncomingVoiceBubble
+                      voice={client.incomingVoice}
+                      onDismiss={client.clearIncomingVoice}
+                      senderName={opponent?.displayName ?? 'Opponent'}
+                      isYou={false}
+                      align="right"
+                    />
                   </div>
                 ) : null}
               </div>
@@ -477,6 +517,12 @@ export function GameScreen({
           </p>
         </div>
 
+        <WalkieTalkieButton
+          matchId={match.id}
+          onSendVoice={handleSendVoice}
+          disabled={match.status !== 'ACTIVE' && match.status !== 'FINISHED'}
+        />
+
         <button
           type="button"
           onClick={() => setReactionPickerOpen(true)}
@@ -484,7 +530,7 @@ export function GameScreen({
           title="Send animated sticker reaction or quick chat"
           aria-label="Send animated sticker reaction or quick chat"
         >
-          <Sparkles className="h-4.5 w-4.5" aria-hidden="true" />
+          <Sparkles className="h-4 w-4" aria-hidden="true" />
         </button>
       </div>
 

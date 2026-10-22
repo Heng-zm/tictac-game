@@ -657,4 +657,19 @@ describe('MatchService', () => {
       code: 'PLAYER_BUSY',
     });
   });
+
+  it('recovers when maintenance abandons an active match behind the service', async () => {
+    const stale = await service.startAi(alice.id, 'EASY', 'X');
+    // Maintenance writes directly to the repository. A paused AI game can stay
+    // in the in-memory map after its database reservation has been released.
+    await repo.abandonMatch({
+      matchId: stale.id,
+      finishReason: 'SERVER_SHUTDOWN',
+      finishedAt: clock.now(),
+    });
+
+    const next = await service.startAi(alice.id, 'EASY', 'X');
+    expect(next.id).not.toBe(stale.id);
+    expect((await repo.getMatchById(stale.id))?.status).toBe('ABANDONED');
+  });
 });

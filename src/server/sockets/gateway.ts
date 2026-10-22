@@ -16,11 +16,12 @@ import {
   matchIdOnlySchema,
   matchJoinSchema,
   matchReactionSchema,
+  matchVoiceSchema,
   moveSubmitSchema,
   queueJoinSchema,
 } from '../../shared/schemas/payloads';
 import type { GameServer, GameSocket } from './types';
-import { matchRoom, userRoom } from './types';
+import { userRoom } from './types';
 
 const EVENT_LIMITS: Record<string, { max: number; windowMs: number }> = {
   'queue:join': { max: 8, windowMs: 60_000 },
@@ -34,6 +35,7 @@ const EVENT_LIMITS: Record<string, { max: number; windowMs: number }> = {
   'match:rematch': { max: 12, windowMs: 60_000 },
   'match:leave': { max: 12, windowMs: 60_000 },
   'match:reaction': { max: 10, windowMs: 10_000 },
+  'match:voice': { max: 8, windowMs: 15_000 },
 };
 
 interface SocketGatewayDependencies {
@@ -251,6 +253,26 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
         async () => {
           const parsed = matchReactionSchema.parse(payload);
           return matchService.sendReaction(userId, parsed.matchId, parsed.stickerId);
+        },
+        limiter,
+        log,
+        socket,
+      );
+    });
+
+    socket.on('match:voice', (payload, ack) => {
+      void handleEvent(
+        'match:voice',
+        ack,
+        async () => {
+          const parsed = matchVoiceSchema.parse(payload);
+          return matchService.sendVoice(
+            userId,
+            parsed.matchId,
+            parsed.audioData,
+            parsed.durationMs,
+            parsed.waveform,
+          );
         },
         limiter,
         log,

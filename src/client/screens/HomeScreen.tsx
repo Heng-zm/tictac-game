@@ -6,6 +6,8 @@ import {
   Info,
   Link2,
   Play,
+  ShieldCheck,
+  Sparkles,
   Swords,
   type LucideIcon,
 } from 'lucide-react';
@@ -55,8 +57,8 @@ export function HomeScreen({
   }
 
   return (
-    <Page withNav>
-      <header className="flex items-center justify-between gap-4 pb-5 pt-1">
+    <Page withNav width="wide">
+      <header className="flex items-center justify-between gap-4 pb-5 pt-1 sm:pb-6">
         <div className="flex min-w-0 items-center gap-3">
           <Logo />
           <div className="min-w-0">
@@ -126,35 +128,36 @@ export function HomeScreen({
         </div>
       ) : null}
 
-      <Card className="p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Ladder rating</p>
-            <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-ink">{stats.rating}</p>
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-5">
+        <Card className="p-4 lg:col-start-2 lg:row-start-1">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Ladder rating</p>
+              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-ink">{stats.rating}</p>
+            </div>
+            <div className="flex flex-col items-end gap-1.5">
+              <RankBadge rating={stats.rating} />
+              <span className="text-[10px] font-medium text-muted">{stats.ratingGames} rated</span>
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-1.5">
-            <RankBadge rating={stats.rating} />
-            <span className="text-[10px] font-medium text-muted">{stats.ratingGames} rated</span>
+          <RankProgress rating={stats.rating} className="mt-3" />
+          <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
+            <div>
+              <p className="text-sm font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
+              <p className="mt-0.5 text-[10px] text-muted">Games</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold tabular-nums text-ink">{stats.wins}</p>
+              <p className="mt-0.5 text-[10px] text-muted">Wins</p>
+            </div>
+            <div>
+              <p className="text-sm font-semibold tabular-nums text-ink">{stats.winRate}%</p>
+              <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
+            </div>
           </div>
-        </div>
-        <RankProgress rating={stats.rating} className="mt-3" />
-        <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
-          <div>
-            <p className="text-sm font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
-            <p className="mt-0.5 text-[10px] text-muted">Games</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold tabular-nums text-ink">{stats.wins}</p>
-            <p className="mt-0.5 text-[10px] text-muted">Wins</p>
-          </div>
-          <div>
-            <p className="text-sm font-semibold tabular-nums text-ink">{stats.winRate}%</p>
-            <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
-          </div>
-        </div>
-      </Card>
+        </Card>
 
-      <section className="mt-6">
+      <section className="lg:col-start-1 lg:row-start-1">
         <h2 className="mb-2.5 text-sm font-semibold text-ink">Play</h2>
         <div className="grid grid-cols-2 gap-2.5">
           <ModeTile
@@ -180,7 +183,7 @@ export function HomeScreen({
         ) : null}
       </section>
 
-      <Card className="mt-5 p-4">
+      <Card className="p-4 lg:col-start-1 lg:row-start-2">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-ink">
             <Bot className="h-5 w-5" aria-hidden />
@@ -229,10 +232,28 @@ export function HomeScreen({
         </div>
       </Card>
 
-      <p className="mt-4 px-4 text-balance text-center text-[11px] leading-relaxed text-muted">
-        Moves are verified by the server. Disconnects pause the clock for{' '}
-        {formatDuration(config?.disconnectGraceMs ?? 0)}.
-      </p>
+      <Card className="p-4 lg:col-start-2 lg:row-start-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+            <ShieldCheck className="h-4 w-4" aria-hidden />
+          </span>
+          <div>
+            <h2 className="text-sm font-semibold text-ink">Fair play</h2>
+            <p className="text-[11px] text-muted">Every move is checked by the server.</p>
+          </div>
+        </div>
+        <div className="mt-3 space-y-2.5 border-t border-line pt-3 text-[11px] leading-relaxed text-muted">
+          <p className="flex items-start gap-2">
+            <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+            <span>Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)}.</span>
+          </p>
+          <p className="flex items-start gap-2">
+            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+            <span>Line up five in a row on the infinite board to win.</span>
+          </p>
+        </div>
+      </Card>
+      </div>
     </Page>
   );
 }

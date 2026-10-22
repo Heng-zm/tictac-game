@@ -139,7 +139,7 @@ export function MatchmakingScreen({
     Boolean(queue && (queue.fallbackAvailable || fallbackRemaining === 0)) && !expired && !fallbackDismissed;
 
   return (
-    <Page>
+    <Page width="medium">
       <ScreenHeader
         title="Quick match"
         subtitle="Rated · random opponent"
@@ -213,6 +213,7 @@ export function MatchmakingScreen({
         </Card>
       ) : (
         <>
+          <div className="md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-start md:gap-3">
           <Card className="p-6">
             <div className="relative mx-auto flex h-28 w-28 items-center justify-center">
               <span className="absolute inset-0 rounded-full bg-accent/5 animate-pulse-ring" />
@@ -268,7 +269,8 @@ export function MatchmakingScreen({
             ) : null}
           </Card>
 
-          <Card className="mt-3 p-4">
+          <div className="mt-3 space-y-3 md:mt-0">
+          <Card className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-medium text-ink">Auto-play a bot</p>
@@ -285,7 +287,7 @@ export function MatchmakingScreen({
           </Card>
 
           {fallbackReady ? (
-            <Card className="mt-3 border-accent/20 bg-accent/[0.03] p-4 animate-fade-up">
+            <Card className="border-accent/20 bg-accent/[0.03] p-4 animate-fade-up">
               <div className="flex items-start gap-3">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
                   <Bot className="h-4 w-4" aria-hidden />
@@ -308,6 +310,8 @@ export function MatchmakingScreen({
               </div>
             </Card>
           ) : null}
+          </div>
+          </div>
 
           <div className="mt-4 flex flex-col items-center gap-2">
             <Button variant="ghost" icon={X} className="w-full max-w-xs" onClick={() => void cancelAndHome()}>

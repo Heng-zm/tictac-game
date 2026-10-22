@@ -26,6 +26,7 @@ export const SOCKET_EVENTS = {
   MATCH_REMATCH: 'match:rematch',
   MATCH_LEAVE: 'match:leave',
   MATCH_REACTION: 'match:reaction',
+  MATCH_VOICE: 'match:voice',
   // Server -> client
   SESSION_READY: 'session:ready',
   QUEUE_STATUS: 'queue:status',
@@ -168,6 +169,27 @@ export interface MatchReactionEvent {
   reactionId: string;
 }
 
+export interface MatchVoicePayload {
+  matchId: string;
+  audioData: string;
+  durationMs: number;
+  waveform?: number[];
+}
+
+export interface MatchVoiceResult {
+  sent: true;
+}
+
+export interface MatchVoiceEvent {
+  matchId: string;
+  senderSide: Side;
+  audioData: string;
+  durationMs: number;
+  waveform: number[];
+  timestamp: string;
+  voiceId: string;
+}
+
 export interface ClientToServerEvents {
   'queue:join': (payload: QueueJoinPayload, ack: (result: SocketAck<QueueJoinResult>) => void) => void;
   'queue:cancel': (ack: (result: SocketAck<{ cancelled: true }>) => void) => void;
@@ -189,6 +211,10 @@ export interface ClientToServerEvents {
     payload: MatchReactionPayload,
     ack: (result: SocketAck<MatchReactionResult>) => void,
   ) => void;
+  'match:voice': (
+    payload: MatchVoicePayload,
+    ack: (result: SocketAck<MatchVoiceResult>) => void,
+  ) => void;
 }
 
 export interface ServerToClientEvents {
@@ -205,6 +231,7 @@ export interface ServerToClientEvents {
   'invite:pending': (payload: { invitation: PendingInvitation }) => void;
   'rematch:status': (payload: RematchStatusEvent) => void;
   'match:reaction': (payload: MatchReactionEvent) => void;
+  'match:voice': (payload: MatchVoiceEvent) => void;
   'server:error': (payload: ServerErrorEvent) => void;
   'server:shutdown': (payload: { message: string }) => void;
 }

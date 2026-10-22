@@ -113,6 +113,15 @@
     box-shadow: 0 1px 2px rgb(0 0 0 / 0.03), 0 18px 40px -36px rgb(0 0 0 / 0.35);
   }
 
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
   /* Reserve room for the fixed bottom navigation and, when present, the
      compact active-game bar above it. */
   .page-with-nav {

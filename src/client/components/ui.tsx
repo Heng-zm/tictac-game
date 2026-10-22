@@ -284,7 +284,7 @@ export function ScreenHeader({
   eyebrow?: string;
 }) {
   return (
-    <header className="flex items-start justify-between gap-3 pb-5 pt-1">
+    <header className="flex items-start justify-between gap-3 pb-4 pt-1 sm:pb-5">
       <div className="flex min-w-0 items-center gap-3">
         {onBack ? (
           <IconButton label="Go back" onClick={onBack}>
@@ -433,8 +433,8 @@ export function Modal({
           aria-modal="true"
           aria-labelledby={title ? titleId : undefined}
           className={cn(
-            'relative max-h-[88vh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 shadow-soft animate-fade-up sm:rounded-3xl',
-            'pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-5',
+            'relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 shadow-soft animate-fade-up sm:max-w-lg sm:rounded-3xl sm:p-6',
+            'pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-6',
             className,
           )}
         >
@@ -449,7 +449,7 @@ export function Modal({
             </button>
           ) : null}
           {title ? (
-            <h2 id={titleId} className="pr-8 text-lg font-bold tracking-tight text-ink">
+            <h2 id={titleId} className="pr-8 text-lg font-bold tracking-tight text-ink sm:text-xl">
               {title}
             </h2>
           ) : null}
@@ -484,7 +484,7 @@ export function StatTile({
         {Icon ? <Icon className="h-3.5 w-3.5" aria-hidden /> : null}
         <span className="text-[10px] font-semibold uppercase tracking-[0.08em]">{label}</span>
       </div>
-      <p className={cn('mt-1 text-lg font-bold tabular-nums', accent ? 'text-accent' : 'text-ink')}>{value}</p>
+      <p className={cn('mt-1 text-lg font-bold tabular-nums sm:text-xl', accent ? 'text-accent' : 'text-ink')}>{value}</p>
       {hint ? <p className="mt-0.5 text-[10px] text-muted">{hint}</p> : null}
     </div>
   );
@@ -531,7 +531,7 @@ export function EmptyState({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center px-6 py-9 text-center">
+    <div className="flex flex-col items-center px-5 py-8 text-center sm:px-6 sm:py-10">
       <span className="mb-3 flex h-12 w-12 items-center justify-center rounded-xl border border-line bg-elevated text-muted">
         <Icon className="h-5 w-5" aria-hidden />
       </span>

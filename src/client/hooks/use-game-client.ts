@@ -11,6 +11,8 @@ import type {
 import type {
   MatchJoinResult,
   MatchReactionResult,
+  MatchVoiceEvent,
+  MatchVoiceResult,
   MoveSubmitResult,
   QueueJoinResult,
   RematchResult,
@@ -112,6 +114,9 @@ export interface GameClient {
   sendTestNotification: () => Promise<void>;
   reactions: DisplayReaction[];
   sendReaction: (matchId: string, stickerId: StickerId) => Promise<MatchReactionResult>;
+  incomingVoice: MatchVoiceEvent | null;
+  sendVoice: (matchId: string, audioData: string, durationMs: number, waveform?: number[]) => Promise<MatchVoiceResult>;
+  clearIncomingVoice: () => void;
   clearPendingInvite: () => void;
   clearCreatedInvite: () => void;
   reconnect: () => void;
@@ -143,6 +148,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const [initialGameMatchId, setInitialGameMatchId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [reactions, setReactions] = useState<DisplayReaction[]>([]);
+  const [incomingVoice, setIncomingVoice] = useState<MatchVoiceEvent | null>(null);
   const [bootAttempt, setBootAttempt] = useState(0);
 
   const socketRef = useRef<GameClientSocket | null>(null);
@@ -475,6 +481,14 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       }, 3200);
     });
 
+    socket.on('match:voice', (event) => {
+      if (!active) return;
+      const currentMatch = matchRef.current;
+      if (!currentMatch || currentMatch.id !== event.matchId) return;
+      setIncomingVoice(event);
+      hapticImpact('light');
+    });
+
     socket.on('server:shutdown', ({ message }) => {
       if (!active) return;
       setConnection('shutdown');
@@ -644,6 +658,25 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     [requireSocket],
   );
 
+  const sendVoice = useCallback(
+    async (
+      matchId: string,
+      audioData: string,
+      durationMs: number,
+      waveform?: number[],
+    ): Promise<MatchVoiceResult> => {
+      const socket = requireSocket();
+      return request<MatchVoiceResult>((ack) => {
+        socket.emit('match:voice', { matchId, audioData, durationMs, waveform }, ack);
+      });
+    },
+    [requireSocket],
+  );
+
+  const clearIncomingVoice = useCallback(() => {
+    setIncomingVoice(null);
+  }, []);
+
   const refreshProfile = useCallback(async (): Promise<void> => {
     try {
       const payload = await fetchMe();
@@ -758,6 +791,9 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     requestRematch,
     leaveMatch,
     sendReaction,
+    incomingVoice,
+    sendVoice,
+    clearIncomingVoice,
     refreshProfile,
     setAutoAiFallback,
     setTurnNotifications,

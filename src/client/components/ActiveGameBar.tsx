@@ -53,7 +53,7 @@ export function ActiveGameBar({
         onClick={onResume}
         aria-label={`Resume active game. ${ariaStatus}. Playing ${opponentName}.`}
         className={cn(
-          'pointer-events-auto mx-auto flex w-full max-w-[520px] items-center gap-3 rounded-2xl border p-2.5 pl-3 text-left shadow-soft backdrop-blur-xl transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+          'pointer-events-auto mx-auto flex w-full max-w-[560px] items-center gap-3 rounded-2xl border p-2.5 pl-3 text-left shadow-soft backdrop-blur-xl transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
           reconnecting || paused
             ? 'border-amber-500/25 bg-surface/95'
             : yourTurn

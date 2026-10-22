@@ -47,7 +47,7 @@ export function ProfileScreen({
   const stats = profile.stats;
 
   return (
-    <Page withNav>
+    <Page withNav width="wide">
       <ScreenHeader
         title="Profile"
         subtitle="Your stats and match history"
@@ -58,68 +58,72 @@ export function ProfileScreen({
         }
       />
 
-      <Card className="p-4">
-        <div className="flex items-center gap-3.5">
-          <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="lg" ring />
-          <div className="min-w-0 flex-1">
-            <h2 className="truncate text-lg font-semibold tracking-tight text-ink">
-              {profile.firstName} {profile.lastName ?? ''}
-            </h2>
-            {profile.username ? <p className="truncate text-xs text-muted">@{profile.username}</p> : null}
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <RankBadge rating={stats.rating} />
-              <Pill tone="accent">
-                <Trophy className="h-3 w-3" aria-hidden />
-                {stats.rating}
-              </Pill>
-              <Pill>{stats.ratingGames} rated</Pill>
+      <div className="grid gap-4 lg:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.22fr)] lg:items-start lg:gap-6">
+        <Card className="p-4 lg:sticky lg:top-6">
+          <div className="flex items-center gap-3.5">
+            <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="lg" ring />
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-lg font-semibold tracking-tight text-ink">
+                {profile.firstName} {profile.lastName ?? ''}
+              </h2>
+              {profile.username ? <p className="truncate text-xs text-muted">@{profile.username}</p> : null}
+              <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <RankBadge rating={stats.rating} />
+                <Pill tone="accent">
+                  <Trophy className="h-3 w-3" aria-hidden />
+                  {stats.rating}
+                </Pill>
+                <Pill>{stats.ratingGames} rated</Pill>
+              </div>
             </div>
           </div>
-        </div>
-        <RankProgress rating={stats.rating} className="mt-4" />
-        <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
-          <div>
-            <p className="text-base font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
-            <p className="mt-0.5 text-[10px] text-muted">Games</p>
+          <RankProgress rating={stats.rating} className="mt-4" />
+          <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
+            <div>
+              <p className="text-base font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
+              <p className="mt-0.5 text-[10px] text-muted">Games</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums text-success">{stats.wins}</p>
+              <p className="mt-0.5 text-[10px] text-muted">Wins</p>
+            </div>
+            <div>
+              <p className="text-base font-semibold tabular-nums text-accent">{stats.winRate}%</p>
+              <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
+            </div>
           </div>
-          <div>
-            <p className="text-base font-semibold tabular-nums text-success">{stats.wins}</p>
-            <p className="mt-0.5 text-[10px] text-muted">Wins</p>
-          </div>
-          <div>
-            <p className="text-base font-semibold tabular-nums text-accent">{stats.winRate}%</p>
-            <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
-          </div>
-        </div>
-      </Card>
+        </Card>
 
-      <div className="mt-5 flex border-b border-line" role="tablist" aria-label="Profile sections">
-        {tabs.map((item) => {
-          const Icon = item.icon;
-          const selected = item.value === tab;
-          return (
-            <button
-              key={item.value}
-              type="button"
-              role="tab"
-              aria-selected={selected}
-              onClick={() => navigate(item.value === 'overview' ? '/profile' : `/profile/${item.value}`)}
-              className={cn(
-                'relative flex flex-1 items-center justify-center gap-1.5 pb-2.5 pt-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
-                selected ? 'text-accent' : 'text-muted hover:text-ink',
-              )}
-            >
-              <Icon className="h-3.5 w-3.5" aria-hidden />
-              {item.label}
-              {selected ? <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" /> : null}
-            </button>
-          );
-        })}
+        <div className="min-w-0">
+          <div className="mt-1 flex border-b border-line lg:mt-0" role="tablist" aria-label="Profile sections">
+            {tabs.map((item) => {
+              const Icon = item.icon;
+              const selected = item.value === tab;
+              return (
+                <button
+                  key={item.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => navigate(item.value === 'overview' ? '/profile' : `/profile/${item.value}`)}
+                  className={cn(
+                    'relative flex flex-1 items-center justify-center gap-1.5 pb-2.5 pt-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm',
+                    selected ? 'text-accent' : 'text-muted hover:text-ink',
+                  )}
+                >
+                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  {item.label}
+                  {selected ? <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" /> : null}
+                </button>
+              );
+            })}
+          </div>
+
+          {tab === 'overview' ? <OverviewTab client={client} navigate={navigate} /> : null}
+          {tab === 'history' ? <HistoryTab /> : null}
+          {tab === 'settings' ? <SettingsTab client={client} config={config} /> : null}
+        </div>
       </div>
-
-      {tab === 'overview' ? <OverviewTab client={client} navigate={navigate} /> : null}
-      {tab === 'history' ? <HistoryTab /> : null}
-      {tab === 'settings' ? <SettingsTab client={client} config={config} /> : null}
     </Page>
   );
 }
@@ -137,7 +141,7 @@ function OverviewTab({ client, navigate }: { client: GameClient; navigate: (path
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 grid gap-3 md:grid-cols-2">
       <Card className="p-4">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-sm font-semibold text-ink">Record</h3>
@@ -382,7 +386,7 @@ function SettingsTab({
   }
 
   return (
-    <div className="mt-4 space-y-3">
+    <div className="mt-4 grid gap-3 md:grid-cols-2">
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">

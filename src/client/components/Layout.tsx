@@ -99,10 +99,10 @@ export function BottomNav({
   ];
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)]"
+      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)] sm:px-4 md:pb-[calc(env(safe-area-inset-bottom)+14px)]"
       aria-label="Main navigation"
     >
-      <div className="mx-auto flex max-w-[520px] items-stretch gap-1 rounded-2xl border border-line bg-surface/95 p-1.5 shadow-soft backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[560px] items-stretch gap-1 rounded-2xl border border-line bg-surface/95 p-1.5 shadow-soft backdrop-blur-xl">
         {items.map((item) => {
           const selected = active === item.name;
           const Icon = item.icon;
@@ -115,7 +115,7 @@ export function BottomNav({
               aria-current={selected ? 'page' : undefined}
               aria-label={showActiveGame ? `${item.label} (game in progress)` : undefined}
               className={cn(
-                'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+                'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2.5 md:text-xs',
                 selected ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-elevated hover:text-ink',
               )}
             >
@@ -137,20 +137,31 @@ export function BottomNav({
   );
 }
 
+type PageWidth = 'narrow' | 'medium' | 'wide';
+
+const pageWidths: Record<PageWidth, string> = {
+  narrow: 'max-w-[520px]',
+  medium: 'max-w-[520px] md:max-w-[720px]',
+  wide: 'max-w-[520px] md:max-w-[760px] lg:max-w-[1040px]',
+};
+
 export function Page({
   children,
   className,
   withNav = false,
+  width = 'narrow',
 }: {
   children: ReactNode;
   className?: string;
   withNav?: boolean;
+  width?: PageWidth;
 }) {
   return (
     <div
       className={cn(
-        'mx-auto w-full max-w-[520px] px-5 pt-[calc(env(safe-area-inset-top)+16px)]',
-        withNav ? 'page-with-nav' : 'pb-[calc(env(safe-area-inset-bottom)+28px)]',
+        'mx-auto w-full px-4 pt-[calc(env(safe-area-inset-top)+16px)] sm:px-5 md:px-6 md:pt-7',
+        pageWidths[width],
+        withNav ? 'page-with-nav' : 'pb-[calc(env(safe-area-inset-bottom)+28px)] md:pb-10',
         className,
       )}
     >

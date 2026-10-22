@@ -44,7 +44,7 @@ export function LeaderboardScreen({
       : 'Outside top 50';
 
   return (
-    <Page withNav>
+    <Page withNav width="medium">
       <ScreenHeader
         title="Leaderboard"
         subtitle="Top rated players"
@@ -135,7 +135,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
           : 'border-line bg-elevated text-muted';
 
   return (
-    <div className={cn('flex items-center gap-3 px-3.5 py-3', entry.isYou && 'bg-accent/5')}>
+    <div className={cn('flex items-center gap-3 px-3.5 py-3 sm:px-5 sm:py-3.5', entry.isYou && 'bg-accent/5')}>
       <span
         className={cn(
           'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold tabular-nums',
