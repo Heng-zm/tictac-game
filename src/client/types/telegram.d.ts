@@ -45,6 +45,9 @@ export interface TelegramWebApp {
   setBackgroundColor: (color: string) => void;
   enableClosingConfirmation: () => void;
   disableClosingConfirmation: () => void;
+  // Bot API 7.7+. Optional because older Telegram clients do not expose them.
+  disableVerticalSwipes?: () => void;
+  enableVerticalSwipes?: () => void;
   openTelegramLink: (url: string) => void;
   openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
   HapticFeedback?: {

@@ -159,6 +159,22 @@ export function updateViewportHeight(): void {
   document.documentElement.style.setProperty('--app-vh', `${height}px`);
 }
 
+/**
+ * Telegram treats a downward swipe at the top of a Mini App as a close/minimize
+ * gesture. The game screen owns vertical drags, so disable that gesture while
+ * the board is open and restore it when the player leaves.
+ */
+export function setVerticalSwipeLock(locked: boolean): void {
+  const tg = getWebApp();
+  if (!tg) return;
+  try {
+    if (locked) tg.disableVerticalSwipes?.();
+    else tg.enableVerticalSwipes?.();
+  } catch {
+    // Optional API; older clients may not support vertical swipe control.
+  }
+}
+
 export function hapticImpact(style: 'light' | 'medium' | 'heavy' = 'light'): void {
   try {
     getWebApp()?.HapticFeedback?.impactOccurred(style);

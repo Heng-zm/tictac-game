@@ -12,7 +12,7 @@ import {
   opponentFor,
 } from '../lib/game';
 import { cn } from '../lib/cn';
-import { hapticImpact } from '../lib/telegram';
+import { hapticImpact, setVerticalSwipeLock } from '../lib/telegram';
 import { formatDuration, useCountdown } from '../hooks/use-time';
 import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spinner } from '../components/ui';
 import { Page } from '../components/Layout';
@@ -90,6 +90,13 @@ export function GameScreen({
     setPendingCell(null);
     setPendingActionId(null);
   }, [match?.version, match?.currentTurn]);
+
+  // The game screen owns the viewport and vertical drags pan the board. Keep
+  // Telegram from treating those gestures as swipe-to-close/minimize.
+  useEffect(() => {
+    setVerticalSwipeLock(true);
+    return () => setVerticalSwipeLock(false);
+  }, []);
 
   useEffect(() => {
     if (!client.lastRejection || !pendingActionId) return;

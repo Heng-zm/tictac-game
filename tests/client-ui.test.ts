@@ -1,7 +1,7 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { formatClock, formatDuration, formatLongDuration } from '../src/client/hooks/use-time';
 import { parseHash } from '../src/client/hooks/use-hash-route';
-import { readStartParam } from '../src/client/lib/telegram';
+import { readStartParam, setVerticalSwipeLock } from '../src/client/lib/telegram';
 import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink } from '../src/client/lib/invites';
 import { rankForRating } from '../src/client/lib/ranks';
 
@@ -102,5 +102,34 @@ describe('client UI formatting', () => {
     expect(rankForRating(1099)).toMatchObject({ name: 'Bronze', pointsToNext: 1 });
     expect(rankForRating(1100)).toMatchObject({ name: 'Silver', nextRank: { name: 'Gold' } });
     expect(rankForRating(1800)).toMatchObject({ name: 'Master', nextRank: null, progress: 1 });
+  });
+});
+
+describe('Telegram vertical swipe lock', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('disables and restores vertical swipes around the game screen', () => {
+    const disableVerticalSwipes = vi.fn();
+    const enableVerticalSwipes = vi.fn();
+    vi.stubGlobal('window', {
+      Telegram: { WebApp: { disableVerticalSwipes, enableVerticalSwipes } },
+    });
+
+    setVerticalSwipeLock(true);
+    expect(disableVerticalSwipes).toHaveBeenCalledOnce();
+    expect(enableVerticalSwipes).not.toHaveBeenCalled();
+
+    setVerticalSwipeLock(false);
+    expect(enableVerticalSwipes).toHaveBeenCalledOnce();
+  });
+
+  it('is a no-op on clients without vertical swipe controls', () => {
+    vi.stubGlobal('window', { Telegram: { WebApp: {} } });
+    expect(() => setVerticalSwipeLock(true)).not.toThrow();
+
+    vi.stubGlobal('window', {});
+    expect(() => setVerticalSwipeLock(false)).not.toThrow();
   });
 });
