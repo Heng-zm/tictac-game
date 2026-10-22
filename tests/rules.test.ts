@@ -14,6 +14,7 @@ import {
   createEmptyBoard,
   decodeCell,
   encodeCell,
+  isInBounds,
   type Board,
 } from '../src/shared/game-types';
 
@@ -80,6 +81,48 @@ describe('infinite grid 5-in-a-row rules', () => {
 
     expect(getWinner(board)).toBeNull();
     expect(getWinnerAt(board, encodeCell(COORD_OFFSET - 1, 0))).toBeNull();
+  });
+
+  it('uses a half-open coordinate range so edge cells cannot alias', () => {
+    expect(encodeCell(COORD_OFFSET, 0)).toBe(encodeCell(-COORD_OFFSET, 1));
+
+    expect(isInBounds(-COORD_OFFSET, -COORD_OFFSET)).toBe(true);
+    expect(isInBounds(COORD_OFFSET - 1, COORD_OFFSET - 1)).toBe(true);
+    expect(isInBounds(COORD_OFFSET, 0)).toBe(false);
+    expect(isInBounds(0, COORD_OFFSET)).toBe(false);
+    expect(isInBounds(-COORD_OFFSET - 1, 0)).toBe(false);
+    expect(isInBounds(0, -COORD_OFFSET - 1)).toBe(false);
+
+    const empty = createEmptyBoard();
+    // A cell index is canonical: the aliased index is the valid cell at
+    // (-COORD_OFFSET, 1), not a way to reach the out-of-range (COORD_OFFSET, 0).
+    const aliasCell = encodeCell(COORD_OFFSET, 0);
+    expect(decodeCell(aliasCell)).toEqual({ x: -COORD_OFFSET, y: 1 });
+    expect(applyMove(empty, 'X', aliasCell)).toMatchObject({ ok: true });
+    expect(applyMove(empty, 'X', encodeCell(0, COORD_OFFSET))).toEqual({
+      ok: false,
+      code: 'INVALID_CELL',
+    });
+
+    const minCell = encodeCell(-COORD_OFFSET, -COORD_OFFSET);
+    expect(minCell).toBe(0);
+    expect(decodeCell(minCell)).toEqual({ x: -COORD_OFFSET, y: -COORD_OFFSET });
+    expect(applyMove(empty, 'X', minCell)).toMatchObject({ ok: true });
+  });
+
+  it('does not complete five in a row through an aliased edge cell', () => {
+    const board: Board = createEmptyBoard();
+    for (let x = COORD_OFFSET - 4; x < COORD_OFFSET; x++) {
+      board[encodeCell(x, 0)] = 'X';
+    }
+    // This shares its encoded index with the out-of-range (COORD_OFFSET, 0),
+    // which used to complete a false five-in-a-row at the boundary.
+    board[encodeCell(-COORD_OFFSET, 1)] = 'X';
+    for (let x = 0; x < 4; x++) board[encodeCell(x, 5)] = 'O';
+
+    expect(board[encodeCell(COORD_OFFSET, 0)]).toBe('X');
+    expect(getWinner(board)).toBeNull();
+    expect(getWinnerAt(board, encodeCell(COORD_OFFSET - 4, 0))).toBeNull();
   });
 
   it('applies a move and returns its status in one pass', () => {

@@ -15,11 +15,12 @@ import {
   inviteCancelSchema,
   matchIdOnlySchema,
   matchJoinSchema,
+  matchReactionSchema,
   moveSubmitSchema,
   queueJoinSchema,
 } from '../../shared/schemas/payloads';
 import type { GameServer, GameSocket } from './types';
-import { userRoom } from './types';
+import { matchRoom, userRoom } from './types';
 
 const EVENT_LIMITS: Record<string, { max: number; windowMs: number }> = {
   'queue:join': { max: 8, windowMs: 60_000 },
@@ -32,6 +33,7 @@ const EVENT_LIMITS: Record<string, { max: number; windowMs: number }> = {
   'move:submit': { max: 20, windowMs: 2_000 },
   'match:rematch': { max: 12, windowMs: 60_000 },
   'match:leave': { max: 12, windowMs: 60_000 },
+  'match:reaction': { max: 10, windowMs: 10_000 },
 };
 
 interface SocketGatewayDependencies {
@@ -230,8 +232,23 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
         ack,
         async () => {
           const parsed = matchJoinSchema.parse(payload);
+          socket.join(matchRoom(parsed.matchId));
           const match = await matchService.joinMatch(userId, parsed.matchId);
           return { match };
+        },
+        limiter,
+        log,
+        socket,
+      );
+    });
+
+    socket.on('match:reaction', (payload, ack) => {
+      void handleEvent(
+        'match:reaction',
+        ack,
+        async () => {
+          const parsed = matchReactionSchema.parse(payload);
+          return matchService.sendReaction(userId, parsed.matchId, parsed.stickerId);
         },
         limiter,
         log,

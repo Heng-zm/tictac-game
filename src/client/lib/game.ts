@@ -6,7 +6,7 @@ import type {
   PublicPlayer,
   Side,
 } from '../../shared/game-types';
-import { decodeCell, encodeCell, oppositeSide } from '../../shared/game-types';
+import { decodeCell, encodeCell, isInBounds, oppositeSide } from '../../shared/game-types';
 
 const DIRECTIONS = [
   [1, 0],
@@ -24,12 +24,14 @@ export function findWinningLine(board: Board): number[] | null {
     const { x, y } = decodeCell(cell);
 
     for (const [dx, dy] of DIRECTIONS) {
-      const prevCell = encodeCell(x - dx, y - dy);
-      if (board[prevCell] === side) continue;
+      if (isInBounds(x - dx, y - dy) && board[encodeCell(x - dx, y - dy)] === side) continue;
 
       const line = [cell];
       for (let step = 1; step < 5; step++) {
-        const nextCell = encodeCell(x + dx * step, y + dy * step);
+        const nextX = x + dx * step;
+        const nextY = y + dy * step;
+        if (!isInBounds(nextX, nextY)) break;
+        const nextCell = encodeCell(nextX, nextY);
         if (board[nextCell] === side) {
           line.push(nextCell);
         } else {

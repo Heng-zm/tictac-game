@@ -34,6 +34,16 @@ export function decodeCell(cell: number): { x: number; y: number } {
   return { x, y };
 }
 
+/**
+ * The encoded grid is the half-open square [-COORD_OFFSET, COORD_OFFSET) on
+ * both axes. Using the same bound on the positive and negative sides would
+ * make `encodeCell(COORD_OFFSET, y)` alias `encodeCell(-COORD_OFFSET, y + 1)`,
+ * so coordinate scans could wrap to the opposite edge.
+ */
+export function isInBounds(x: number, y: number): boolean {
+  return x >= -COORD_OFFSET && x < COORD_OFFSET && y >= -COORD_OFFSET && y < COORD_OFFSET;
+}
+
 export function createEmptyBoard(): Board {
   return {};
 }

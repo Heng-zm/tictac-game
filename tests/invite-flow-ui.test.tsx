@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameClient } from '../src/client/hooks/use-game-client';
 import type {
@@ -7,6 +7,7 @@ import type {
   PublicMatchState,
   PublicPlayer,
   QueueStatus,
+  UserProfile,
 } from '../src/shared/game-types';
 import { MatchmakingScreen } from '../src/client/screens/MatchmakingScreen';
 import { InviteWaitingScreen } from '../src/client/screens/InviteScreens';
@@ -66,6 +67,30 @@ function matchFor(mode: MatchMode): PublicMatchState {
     },
   };
 }
+
+const profile: UserProfile = {
+  id: 'user-1',
+  firstName: 'You',
+  lastName: null,
+  username: null,
+  photoUrl: null,
+  autoAiFallback: false,
+  turnNotifications: false,
+  stats: {
+    gamesPlayed: 0,
+    wins: 0,
+    losses: 0,
+    draws: 0,
+    humanGames: 0,
+    aiGames: 0,
+    aiWins: 0,
+    aiLosses: 0,
+    aiDraws: 0,
+    rating: 1000,
+    ratingGames: 0,
+    winRate: 0,
+  },
+};
 
 function makeClient(overrides: Partial<GameClient> = {}): GameClient {
   return {
@@ -144,5 +169,39 @@ describe('invite flow UI', () => {
 
     expect(screen.getByText('Your friend already joined')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Open game' })).toBeTruthy();
+  });
+});
+
+describe('matchmaking preference UI', () => {
+  it('rolls back an unsaved auto-fallback preference without re-queueing', async () => {
+    const setAutoAiFallback = vi.fn(async () => {
+      throw new Error('offline');
+    });
+    const joinQueue = vi.fn(async () => searchingQueue);
+    const pushToast = vi.fn();
+    const client = makeClient({
+      queue: searchingQueue,
+      profile,
+      setAutoAiFallback,
+      joinQueue,
+      pushToast,
+    });
+
+    render(<MatchmakingScreen client={client} navigate={() => undefined} />);
+    const toggle = screen.getByRole('switch', {
+      name: 'Automatically play a bot if no human is found',
+    });
+    expect(toggle.getAttribute('aria-checked')).toBe('false');
+
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-checked')).toBe('true');
+
+    await waitFor(() => expect(toggle.getAttribute('aria-checked')).toBe('false'));
+    expect(setAutoAiFallback).toHaveBeenCalledWith(true);
+    // Re-queueing here would silently apply the preference the server rejected.
+    expect(joinQueue).not.toHaveBeenCalled();
+    expect(pushToast).toHaveBeenCalledWith(
+      expect.objectContaining({ type: 'warning', title: 'Preference not saved' }),
+    );
   });
 });

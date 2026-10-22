@@ -1,10 +1,10 @@
 import {
   type Board,
   type Side,
-  COORD_OFFSET,
   COORD_STRIDE,
   decodeCell,
   encodeCell,
+  isInBounds,
 } from '../../shared/game-types';
 
 export type MoveErrorCode =
@@ -49,10 +49,6 @@ const NEIGHBOR_OFFSETS = [
   [1, 1, COORD_STRIDE + 1],
 ] as const;
 
-function inBounds(x: number, y: number): boolean {
-  return Math.abs(x) <= COORD_OFFSET && Math.abs(y) <= COORD_OFFSET;
-}
-
 export function isValidBoard(board: unknown): board is Board {
   if (!board || typeof board !== 'object' || Array.isArray(board)) return false;
   return Object.values(board).every((cell) => cell === 'X' || cell === 'O');
@@ -79,13 +75,13 @@ export function getWinner(board: Board): WinResult | null {
 
     for (const [dx, dy] of DIRECTIONS) {
       // Avoid redundant line checks: only evaluate if previous cell is NOT the same side
-      if (inBounds(x - dx, y - dy) && board[encodeCell(x - dx, y - dy)] === side) continue;
+      if (isInBounds(x - dx, y - dy) && board[encodeCell(x - dx, y - dy)] === side) continue;
 
       const line = [cell];
       for (let step = 1; step < 5; step++) {
         const nx = x + dx * step;
         const ny = y + dy * step;
-        if (!inBounds(nx, ny)) break;
+        if (!isInBounds(nx, ny)) break;
         const nextCell = encodeCell(nx, ny);
         if (board[nextCell] === side) {
           line.push(nextCell);
@@ -119,7 +115,7 @@ export function getWinnerAt(board: Board, cellIndex: number): WinResult | null {
     for (let step = 1; step < 5; step++) {
       const nx = x - dx * step;
       const ny = y - dy * step;
-      if (!inBounds(nx, ny)) break;
+      if (!isInBounds(nx, ny)) break;
       const cell = encodeCell(nx, ny);
       if (board[cell] !== side) break;
       line.unshift(cell);
@@ -128,7 +124,7 @@ export function getWinnerAt(board: Board, cellIndex: number): WinResult | null {
     for (let step = 1; step < 5; step++) {
       const nx = x + dx * step;
       const ny = y + dy * step;
-      if (!inBounds(nx, ny)) break;
+      if (!isInBounds(nx, ny)) break;
       const cell = encodeCell(nx, ny);
       if (board[cell] !== side) break;
       line.push(cell);
@@ -165,7 +161,7 @@ export function getAvailableMoves(board: Board): number[] {
     for (const [dx, dy, offset] of NEIGHBOR_OFFSETS) {
       const nx = x + dx;
       const ny = y + dy;
-      if (!inBounds(nx, ny)) continue;
+      if (!isInBounds(nx, ny)) continue;
       const candidate = cell + offset;
       if (board[candidate] === undefined && !seen.has(candidate)) {
         seen.add(candidate);
@@ -184,7 +180,7 @@ function validatePlacement(
 ): MoveErrorCode | null {
   if (!Number.isInteger(cellIndex) || cellIndex < 0) return 'INVALID_CELL';
   const { x, y } = decodeCell(cellIndex);
-  if (!inBounds(x, y)) return 'INVALID_CELL';
+  if (!isInBounds(x, y)) return 'INVALID_CELL';
   if (board[cellIndex] !== undefined) return 'OCCUPIED_CELL';
   if (checkFinished && getWinner(board)) return 'GAME_FINISHED';
   return null;

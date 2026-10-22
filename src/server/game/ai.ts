@@ -1,11 +1,21 @@
 import type { AiDifficulty, Board, Side } from '../../shared/game-types';
-import { decodeCell, encodeCell } from '../../shared/game-types';
+import { decodeCell, encodeCell, isInBounds } from '../../shared/game-types';
 import { DIRECTIONS, getAvailableMoves, getGameStatus } from './rules';
 
 export type RandomSource = () => number;
 
 function isActive(board: Board): boolean {
   return getGameStatus(board).status === 'ACTIVE';
+}
+
+/**
+ * Reads a cell for evaluation. Coordinates outside the encoded grid act as a
+ * wall, not as an empty cell, so lines cannot wrap across the boundary and
+ * inflate the score.
+ */
+function probeCell(board: Board, x: number, y: number): Side | undefined | null {
+  if (!isInBounds(x, y)) return null;
+  return board[encodeCell(x, y)];
 }
 
 function evaluateDirection(
@@ -23,20 +33,20 @@ function evaluateDirection(
     // Five or more in a row is already the maximum score, so there is no
     // need to walk arbitrarily long runs.
     let step = 1;
-    while (consecutive < 5 && board[encodeCell(x + dx * step, y + dy * step)] === side) {
+    while (consecutive < 5 && probeCell(board, x + dx * step, y + dy * step) === side) {
       consecutive++;
       step++;
     }
-    if (board[encodeCell(x + dx * step, y + dy * step)] === undefined) {
+    if (probeCell(board, x + dx * step, y + dy * step) === undefined) {
       openEnds++;
     }
 
     step = 1;
-    while (consecutive < 5 && board[encodeCell(x - dx * step, y - dy * step)] === side) {
+    while (consecutive < 5 && probeCell(board, x - dx * step, y - dy * step) === side) {
       consecutive++;
       step++;
     }
-    if (board[encodeCell(x - dx * step, y - dy * step)] === undefined) {
+    if (probeCell(board, x - dx * step, y - dy * step) === undefined) {
       openEnds++;
     }
 

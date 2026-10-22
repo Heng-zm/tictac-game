@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Logger } from 'pino';
+import type { MatchReactionEvent } from '../../shared/events';
 import type {
   AiDifficulty,
   CreatedInvitation,
@@ -11,6 +12,7 @@ import type {
   Side,
 } from '../../shared/game-types';
 import { oppositeSide } from '../../shared/game-types';
+import type { StickerId } from '../../shared/stickers';
 import type { AppConfig } from '../config';
 import type {
   FinalizationData,
@@ -551,6 +553,71 @@ export class MatchService {
       this.emitRematchStatus(match, tracker);
     }
     this.deps.io.in(userRoom(userId)).socketsLeave(matchRoom(matchId));
+  }
+
+  async sendReaction(userId: string, matchId: string, stickerId: StickerId): Promise<{ sent: true }> {
+    const match = await this.loadMatch(matchId);
+    if (!match) throw new AppError(404, 'MATCH_NOT_FOUND', 'That game could not be found');
+    const player = match.participants.find((participant) => participant.userId === userId);
+    if (!player) throw new AppError(403, 'MATCH_FORBIDDEN', 'You are not part of this game');
+
+    if (match.status !== 'ACTIVE' && match.status !== 'FINISHED') {
+      throw new AppError(409, 'GAME_NOT_ACTIVE', 'Reactions are only available during or after a game');
+    }
+
+    const event: MatchReactionEvent = {
+      matchId: match.id,
+      senderSide: player.side,
+      stickerId,
+      timestamp: this.now().toISOString(),
+      reactionId: randomUUID(),
+    };
+
+    this.deps.io.to(matchRoom(match.id)).emit('match:reaction', event);
+
+    if (match.mode === 'AI' && match.status === 'ACTIVE') {
+      const ai = match.participants.find((p) => p.isAi);
+      if (ai) {
+        this.scheduleAiReaction(match, ai.side, stickerId);
+      }
+    }
+
+    return { sent: true };
+  }
+
+  private scheduleAiReaction(match: MatchEntity, aiSide: Side, userStickerId: StickerId): void {
+    const botReplies: Partial<Record<StickerId, StickerId[]>> = {
+      greeting: ['greeting', 'respect'],
+      good_game: ['good_game', 'respect'],
+      rematch_invite: ['clapping', 'victory'],
+      clapping: ['respect', 'teasing'],
+      teasing: ['thinking', 'laughing'],
+      crying: ['clapping', 'respect'],
+      frustrated: ['teasing', 'clapping'],
+      victory: ['crying', 'respect'],
+      shocked: ['laughing', 'teasing'],
+      thinking: ['thinking'],
+      respect: ['respect', 'good_game'],
+      laughing: ['laughing', 'teasing'],
+    };
+
+    const choices = botReplies[userStickerId];
+    if (!choices || choices.length === 0) return;
+    const botChoice = choices[Math.floor(this.random() * choices.length)];
+    if (!botChoice) return;
+
+    const timer = setTimeout(() => {
+      const game = this.games.get(match.id);
+      if (!game || (game.match.status !== 'ACTIVE' && game.match.status !== 'FINISHED')) return;
+      this.deps.io.to(matchRoom(match.id)).emit('match:reaction', {
+        matchId: match.id,
+        senderSide: aiSide,
+        stickerId: botChoice,
+        timestamp: this.now().toISOString(),
+        reactionId: randomUUID(),
+      });
+    }, 700 + Math.floor(this.random() * 400));
+    timer.unref?.();
   }
 
   async shutdown(): Promise<void> {

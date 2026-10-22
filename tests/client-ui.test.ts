@@ -8,7 +8,14 @@ import {
   setVerticalSwipeLock,
 } from '../src/client/lib/telegram';
 import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink } from '../src/client/lib/invites';
+import { findWinningLine } from '../src/client/lib/game';
 import { rankForRating } from '../src/client/lib/ranks';
+import {
+  COORD_OFFSET,
+  createEmptyBoard,
+  encodeCell,
+  type Board,
+} from '../src/shared/game-types';
 
 const localConfig = {
   botUsername: null,
@@ -51,6 +58,18 @@ describe('client UI formatting', () => {
     expect(parseHash('#/search?foo=bar')).toEqual({ name: 'search' });
     expect(parseHash('#/profile/history?foo=bar')).toEqual({ name: 'profile', tab: 'history' });
     expect(parseHash('#/')).toEqual({ name: 'home' });
+  });
+
+  it('treats Telegram launch parameters in the hash as the home route', () => {
+    // Telegram appends the WebApp payload directly to the fragment instead of
+    // using an app path; this used to render the not-found screen on launch.
+    expect(
+      parseHash('#tgWebAppData=user%3Dabc&tgWebAppVersion=8.0&tgWebAppPlatform=web'),
+    ).toEqual({ name: 'home' });
+    expect(parseHash('#tgWebAppData=user%3Dabc&tgWebAppStartParam=invite_foo')).toEqual({
+      name: 'home',
+    });
+    expect(parseHash('#tgWebAppVersion=7.0')).toEqual({ name: 'home' });
   });
 
   it('keeps local invite links reachable from the app origin', () => {
@@ -115,6 +134,17 @@ describe('client UI formatting', () => {
     expect(rankForRating(1099)).toMatchObject({ name: 'Bronze', pointsToNext: 1 });
     expect(rankForRating(1100)).toMatchObject({ name: 'Silver', nextRank: { name: 'Gold' } });
     expect(rankForRating(1800)).toMatchObject({ name: 'Master', nextRank: null, progress: 1 });
+  });
+
+  it('does not highlight a winning line that wraps across the encoded grid edge', () => {
+    const board: Board = createEmptyBoard();
+    for (let x = COORD_OFFSET - 4; x < COORD_OFFSET; x++) {
+      board[encodeCell(x, 0)] = 'X';
+    }
+    board[encodeCell(-COORD_OFFSET, 1)] = 'X';
+    for (let x = 0; x < 4; x++) board[encodeCell(x, 5)] = 'O';
+
+    expect(findWinningLine(board)).toBeNull();
   });
 });
 

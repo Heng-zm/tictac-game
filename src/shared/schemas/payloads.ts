@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { STICKER_IDS } from '../stickers';
 
 export const SIDE_VALUES = ['X', 'O'] as const;
 export const DIFFICULTY_VALUES = ['EASY', 'MEDIUM', 'HARD'] as const;
@@ -43,6 +44,15 @@ export const inviteAcceptSchema = z.object({ token: inviteTokenSchema }).strict(
 export const inviteCancelSchema = z.object({ invitationId: uuidSchema }).strict();
 
 export const matchIdOnlySchema = z.object({ matchId: uuidSchema }).strict();
+
+export const matchReactionSchema = z
+  .object({
+    matchId: uuidSchema,
+    stickerId: z.enum(STICKER_IDS),
+  })
+  .strict();
+
+export type MatchReactionInput = z.infer<typeof matchReactionSchema>;
 
 export const telegramInitDataSchema = z
   .object({

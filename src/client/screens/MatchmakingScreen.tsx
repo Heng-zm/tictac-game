@@ -20,6 +20,7 @@ export function MatchmakingScreen({
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [fallbackDismissed, setFallbackDismissed] = useState(false);
   const autoJoined = useRef(false);
+  const autoFallbackRequest = useRef(0);
 
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
   const busy = Boolean(activeMatch || pendingInvite);
@@ -109,12 +110,21 @@ export function MatchmakingScreen({
   }
 
   async function toggleAutoFallback(next: boolean): Promise<void> {
+    const previous = autoFallback;
+    const requestId = ++autoFallbackRequest.current;
     setAutoFallback(next);
     try {
       await client.setAutoAiFallback(next);
     } catch (error) {
+      // A newer toggle owns the UI now; ignore this stale failure.
+      if (autoFallbackRequest.current !== requestId) return;
+      setAutoFallback(previous);
       client.pushToast({ type: 'warning', title: 'Preference not saved', message: errorMessage(error) });
+      // Do not re-queue with a preference the server did not save.
+      return;
     }
+    // A newer toggle superseded this request; let it drive the queue update.
+    if (autoFallbackRequest.current !== requestId) return;
     if (queue?.state === 'searching' && connection === 'online') {
       try {
         await client.joinQueue(next);
@@ -283,8 +293,8 @@ export function MatchmakingScreen({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-ink">No human yet?</p>
                   <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
-                    Play an unrated {config?.aiFallbackDifficulty.toLowerCase() ?? 'medium'} bot game without losing your
-                    place in line.
+                    Play an unrated {config?.aiFallbackDifficulty.toLowerCase() ?? 'medium'} bot game instead. This
+                    leaves the queue, so start a fresh search afterward.
                   </p>
                 </div>
               </div>

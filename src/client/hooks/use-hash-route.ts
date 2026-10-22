@@ -14,6 +14,11 @@ export function parseHash(hash: string): Route {
   const withoutHash = hash.replace(/^#\/?/, '');
   const pathOnly = (withoutHash.split('?')[0] ?? '').replace(/\/+$/, '');
   if (!pathOnly) return { name: 'home' };
+  // Telegram appends its launch parameters directly to the fragment, e.g.
+  // `#tgWebAppData=...&tgWebAppVersion=8.0`. They describe the WebApp session,
+  // not an app route, so treat them as the home route. Real routes may still
+  // carry Telegram parameters after a `?` (for example `#/game/42?tgWebAppVersion=8.0`).
+  if (/^tgWebApp[A-Za-z]*=/.test(pathOnly)) return { name: 'home' };
   const [first, second] = pathOnly.split('/');
   switch (first) {
     case 'search':

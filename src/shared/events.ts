@@ -11,6 +11,7 @@ import type {
   SocketAck,
   UserProfile,
 } from './game-types';
+import type { StickerId } from './stickers';
 
 export const SOCKET_EVENTS = {
   // Client -> server
@@ -24,6 +25,7 @@ export const SOCKET_EVENTS = {
   MOVE_SUBMIT: 'move:submit',
   MATCH_REMATCH: 'match:rematch',
   MATCH_LEAVE: 'match:leave',
+  MATCH_REACTION: 'match:reaction',
   // Server -> client
   SESSION_READY: 'session:ready',
   QUEUE_STATUS: 'queue:status',
@@ -149,6 +151,23 @@ export interface InviteWaitingEvent {
   invitation: PendingInvitation;
 }
 
+export interface MatchReactionPayload {
+  matchId: string;
+  stickerId: StickerId;
+}
+
+export interface MatchReactionResult {
+  sent: true;
+}
+
+export interface MatchReactionEvent {
+  matchId: string;
+  senderSide: Side;
+  stickerId: StickerId;
+  timestamp: string;
+  reactionId: string;
+}
+
 export interface ClientToServerEvents {
   'queue:join': (payload: QueueJoinPayload, ack: (result: SocketAck<QueueJoinResult>) => void) => void;
   'queue:cancel': (ack: (result: SocketAck<{ cancelled: true }>) => void) => void;
@@ -166,6 +185,10 @@ export interface ClientToServerEvents {
   'move:submit': (payload: MoveSubmitPayload, ack: (result: SocketAck<MoveSubmitResult>) => void) => void;
   'match:rematch': (payload: RematchPayload, ack: (result: SocketAck<RematchResult>) => void) => void;
   'match:leave': (payload: MatchLeavePayload, ack: (result: SocketAck<MatchLeaveResult>) => void) => void;
+  'match:reaction': (
+    payload: MatchReactionPayload,
+    ack: (result: SocketAck<MatchReactionResult>) => void,
+  ) => void;
 }
 
 export interface ServerToClientEvents {
@@ -181,6 +204,7 @@ export interface ServerToClientEvents {
   'invite:waiting': (payload: InviteWaitingEvent) => void;
   'invite:pending': (payload: { invitation: PendingInvitation }) => void;
   'rematch:status': (payload: RematchStatusEvent) => void;
+  'match:reaction': (payload: MatchReactionEvent) => void;
   'server:error': (payload: ServerErrorEvent) => void;
   'server:shutdown': (payload: { message: string }) => void;
 }
