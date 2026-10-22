@@ -487,7 +487,12 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       const currentMatch = matchRef.current;
       if (!currentMatch || currentMatch.id !== event.matchId) return;
       if (event.senderSide !== currentMatch.youSide) {
-        playVoiceAudio(event.audioData);
+        setIncomingVoice(event);
+        playVoiceAudio(event.audioData, ({ isPlaying }) => {
+          if (!isPlaying && active) {
+            setIncomingVoice(null);
+          }
+        });
       }
       hapticImpact('light');
     });

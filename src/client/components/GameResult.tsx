@@ -52,7 +52,7 @@ export function GameResult({
         : 'Play again';
 
   return (
-    <Modal open={open} dismissible={false}>
+    <Modal open={open} dismissible={false} ariaLabel="Game result">
       <div className="-mt-1 text-center">
         <div
           className={cn(

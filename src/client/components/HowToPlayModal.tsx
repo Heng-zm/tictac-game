@@ -28,6 +28,8 @@ export const HOW_TO_PLAY_STORAGE_KEY = 'tictac_guide_seen';
 
 interface StepData {
   id: string;
+  tabKhmer: string;
+  tabEnglish: string;
   badgeKhmer: string;
   badgeEnglish: string;
   titleKhmer: string;
@@ -39,12 +41,15 @@ interface StepData {
     titleKhmer: string;
     descKhmer: string;
     titleEnglish: string;
+    descEnglish: string;
   }[];
 }
 
 const STEPS: StepData[] = [
   {
     id: 'controls',
+    tabKhmer: 'ការបញ្ជា',
+    tabEnglish: 'Controls',
     badgeKhmer: 'ជំហានទី ១ · ការបញ្ជាក្តារ',
     badgeEnglish: 'Step 1 · Board Controls',
     titleKhmer: 'ក្តារគ្មានដែនកំណត់ & ការបញ្ជា',
@@ -59,23 +64,28 @@ const STEPS: StepData[] = [
         titleKhmer: 'ប៉ះ (Tap)',
         descKhmer: 'ចុចលើប្រឡោះទទេដើម្បីដាក់កូន X ឬ O របស់អ្នក',
         titleEnglish: 'Tap empty cell to place X or O',
+        descEnglish: 'Tap an empty cell to place your X or O.',
       },
       {
         icon: Move,
         titleKhmer: 'អូស (Drag)',
         descKhmer: 'អូសម្រាមដៃលើអេក្រង់ដើម្បីរំកិលក្តារមើលជុំវិញ',
         titleEnglish: 'Drag anywhere to pan across board',
+        descEnglish: 'Drag anywhere on the board to look around.',
       },
       {
         icon: ZoomIn,
         titleKhmer: 'ពង្រីក (Pinch)',
         descKhmer: 'ប្រើម្រាមដៃពីរដើម្បីពង្រីក ឬបង្រួមក្តារលេង',
         titleEnglish: 'Pinch with 2 fingers to zoom',
+        descEnglish: 'Pinch with two fingers to zoom in or out.',
       },
     ],
   },
   {
     id: 'win-rule',
+    tabKhmer: 'ច្បាប់ឈ្នះ',
+    tabEnglish: 'Win rule',
     badgeKhmer: 'ជំហានទី ២ · ច្បាប់ឈ្នះ',
     badgeEnglish: 'Step 2 · Win Condition',
     titleKhmer: 'តម្រៀប ៥ គ្រាប់ជាប់គ្នាដើម្បីឈ្នះ!',
@@ -90,23 +100,28 @@ const STEPS: StepData[] = [
         titleKhmer: 'ជួរដេក (Horizontal)',
         descKhmer: 'តម្រៀប ៥ គ្រាប់ជាជួរដេកត្រង់ជោគជ័យ',
         titleEnglish: '5 stones in a horizontal line',
+        descEnglish: 'Connect five of your stones in a horizontal row.',
       },
       {
         icon: Trophy,
         titleKhmer: 'ជួរឈរ (Vertical)',
         descKhmer: 'តម្រៀប ៥ គ្រាប់ជាជួរឈរពីលើចុះក្រោម',
         titleEnglish: '5 stones in a vertical column',
+        descEnglish: 'Connect five stones in a vertical column.',
       },
       {
         icon: Sparkles,
         titleKhmer: 'អង្កត់ទ្រូង (Diagonal)',
         descKhmer: 'តម្រៀប ៥ គ្រាប់បញ្ឆិត ឬអង្កត់ទ្រូងទាំងសងខាង',
         titleEnglish: '5 stones in any diagonal slant',
+        descEnglish: 'Connect five stones in either diagonal direction.',
       },
     ],
   },
   {
     id: 'strategy',
+    tabKhmer: 'យុទ្ធសាស្ត្រ',
+    tabEnglish: 'Tactics',
     badgeKhmer: 'ជំហានទី ៣ · យុទ្ធសាស្ត្រ',
     badgeEnglish: 'Step 3 · Tactics & Defense',
     titleKhmer: 'យុទ្ធសាស្ត្រវាយប្រហារ & ការពារ',
@@ -121,23 +136,28 @@ const STEPS: StepData[] = [
         titleKhmer: 'ការពារ (Defense)',
         descKhmer: 'ត្រូវរារាំងភ្លាមៗពេលគូប្រកួតមាន ៣ ឬ ៤ គ្រាប់ជាប់គ្នា',
         titleEnglish: 'Block opponent when they reach 3 or 4 in a row',
+        descEnglish: 'Block immediately when your opponent has three or four in a row.',
       },
       {
         icon: Swords,
         titleKhmer: 'វាយលុក (Attack)',
         descKhmer: 'បង្កើតទម្រង់ ៤ បើកក្បាលសងខាង (Open-ended 4)',
         titleEnglish: 'Create open-ended 4s that cannot be stopped',
+        descEnglish: 'Create open-ended fours that cannot be blocked on both sides.',
       },
       {
         icon: Sparkles,
         titleKhmer: 'អន្ទាក់ (Double Threat)',
         descKhmer: 'បង្កើតជួរ ៣ ពីរផ្លូវដំណាលគ្នា (Double 3) ធានាឈ្នះ',
         titleEnglish: 'Create simultaneous multi-line threats',
+        descEnglish: 'Build two threats at once to force a winning line.',
       },
     ],
   },
   {
     id: 'voice-modes',
+    tabKhmer: 'សំឡេង',
+    tabEnglish: 'Voice',
     badgeKhmer: 'ជំហានទី ៤ · សំឡេង & របៀបលេង',
     badgeEnglish: 'Step 4 · Live Voice & Modes',
     titleKhmer: 'Walkie-Talkie & របៀបប្រកួត',
@@ -152,55 +172,70 @@ const STEPS: StepData[] = [
         titleKhmer: 'សំឡេង Walkie-Talkie',
         descKhmer: 'ចុចសង្កត់ប៊ូតុង Mic ដើម្បីនិយាយ រួចលែងដៃដើម្បីផ្ញើភ្លាមៗ',
         titleEnglish: 'Hold mic button to talk, release to send instant voice',
+        descEnglish: 'Hold the mic button to talk, then release to send instantly.',
       },
       {
         icon: Swords,
         titleKhmer: 'Quick Match',
         descKhmer: 'ប្រកួតចៃដន្យជាមួយអ្នកលេងផ្សេងទៀតដើម្បីដណ្តើមពិន្ទុ Rating',
         titleEnglish: 'Ranked matchmaking with random players',
+        descEnglish: 'Play random opponents and compete for rating.',
       },
       {
         icon: Bot,
         titleKhmer: 'Practice Bot & Invite',
         descKhmer: 'ហ្វឹកហាត់ជាមួយ Bot ឬផ្ញើតំណ link អញ្ជើញមិត្តភក្តិ',
         titleEnglish: 'Practice with AI or share private link with friends',
+        descEnglish: 'Practice against the bot or invite a friend with a private link.',
       },
     ],
   },
 ];
 
-export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: HowToPlayModalProps) {
+export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalProps) {
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const isKm = (languageCode ?? '').toLowerCase().startsWith('km');
 
   const step = (STEPS[currentStep] ?? STEPS[0]) as StepData;
   const isFirst = currentStep === 0;
   const isLast = currentStep === STEPS.length - 1;
 
   useEffect(() => {
-    if (open) {
-      setCurrentStep(0);
+    if (!open) return;
+    setCurrentStep(0);
+    try {
+      setDontShowAgain(localStorage.getItem(HOW_TO_PLAY_STORAGE_KEY) === 'true');
+    } catch {
+      setDontShowAgain(false);
     }
   }, [open]);
 
-  function handleClose() {
-    if (dontShowAgain) {
-      try {
-        localStorage.setItem(HOW_TO_PLAY_STORAGE_KEY, 'true');
-      } catch {
-        // ignore storage errors
-      }
+  useEffect(() => {
+    if (!open) return;
+    const panel = contentRef.current?.closest<HTMLElement>('[role="dialog"]');
+    if (panel) panel.scrollTop = 0;
+  }, [currentStep, open]);
+
+  function persistGuidePreference(seen: boolean): void {
+    try {
+      if (seen) localStorage.setItem(HOW_TO_PLAY_STORAGE_KEY, 'true');
+      else localStorage.removeItem(HOW_TO_PLAY_STORAGE_KEY);
+    } catch {
+      // ignore storage errors
     }
+  }
+
+  function handleClose() {
+    persistGuidePreference(dontShowAgain);
     onClose();
   }
 
   function handleComplete() {
-    try {
-      localStorage.setItem(HOW_TO_PLAY_STORAGE_KEY, 'true');
-    } catch {
-      // ignore storage errors
-    }
+    // Completing the guide counts as seen even if the early-close checkbox is unchecked.
+    persistGuidePreference(true);
     onClose();
   }
 
@@ -232,7 +267,14 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
   }
 
   return (
-    <Modal open={open} onClose={handleClose} dismissible showClose={false} className="max-w-md p-0 sm:max-w-lg">
+    <Modal
+      open={open}
+      onClose={handleClose}
+      dismissible
+      showClose={false}
+      ariaLabel={isKm ? 'របៀបលេង' : 'How to play'}
+      className="max-w-md p-0 sm:max-w-lg"
+    >
       <div
         className="flex flex-col"
         onTouchStart={handleTouchStart}
@@ -245,9 +287,11 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
               <BookOpen className="h-4 w-4" aria-hidden />
             </span>
             <div>
-              <h2 className="text-sm font-bold text-ink">របៀបលេង · How to Play</h2>
+              <h2 className="text-sm font-bold text-ink">
+                {isKm ? 'របៀបលេង · How to Play' : 'How to Play · របៀបលេង'}
+              </h2>
               <p className="text-[10.5px] font-medium text-muted">
-                {step.badgeKhmer} ({currentStep + 1}/{STEPS.length})
+                {isKm ? step.badgeKhmer : step.badgeEnglish} ({currentStep + 1}/{STEPS.length})
               </p>
             </div>
           </div>
@@ -255,7 +299,7 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
             type="button"
             onClick={handleClose}
             className="flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
-            aria-label="Close how to play guide"
+            aria-label={isKm ? 'បិទការណែនាំពីរបៀបលេង' : 'Close how to play guide'}
           >
             <X className="h-4 w-4" aria-hidden />
           </button>
@@ -271,7 +315,10 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
                 key={s.id}
                 type="button"
                 onClick={() => setCurrentStep(idx)}
-                aria-label={`Jump to step ${idx + 1}`}
+                aria-current={active ? 'step' : undefined}
+                aria-label={`${isKm ? 'ទៅជំហាន' : 'Go to step'} ${idx + 1}: ${
+                  isKm ? s.tabKhmer : s.tabEnglish
+                }`}
                 className={cn(
                   'flex flex-1 items-center justify-center gap-1.5 rounded-lg py-1 text-center transition',
                   active
@@ -294,7 +341,7 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
                   {completed ? <Check className="h-2.5 w-2.5 stroke-[3]" /> : idx + 1}
                 </span>
                 <span className="hidden text-[11px] sm:inline truncate">
-                  {idx === 0 ? 'ការបញ្ជា' : idx === 1 ? 'ច្បាប់ឈ្នះ' : idx === 2 ? 'យុទ្ធសាស្ត្រ' : 'សំឡេង'}
+                  {isKm ? s.tabKhmer : s.tabEnglish}
                 </span>
               </button>
             );
@@ -302,7 +349,7 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
         </div>
 
         {/* Visual Graphic & Content Container */}
-        <div className="p-5 sm:p-6">
+        <div ref={contentRef} className="p-5 sm:p-6">
           {/* Visual SVG Graphic for the Active Step */}
           <div className="relative mb-5 overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-surface via-elevated/50 to-surface p-4 shadow-inner">
             {currentStep === 0 && <BoardControlsIllustration />}
@@ -312,20 +359,20 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
           </div>
 
           {/* Step Text Info */}
-          <div className="space-y-1.5">
+          <div className="space-y-1.5" aria-live="polite" aria-atomic="true">
             <div className="flex items-center justify-between gap-2">
               <span className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
-                {step.badgeKhmer}
+                {isKm ? step.badgeKhmer : step.badgeEnglish}
               </span>
               <span className="text-[10px] font-semibold text-muted tracking-wide uppercase">
-                {step.badgeEnglish}
+                {isKm ? step.badgeEnglish : step.badgeKhmer}
               </span>
             </div>
             <h3 className="text-base font-bold text-ink sm:text-lg">
-              {step.titleKhmer}
+              {isKm ? step.titleKhmer : step.titleEnglish}
             </h3>
             <p className="text-xs leading-relaxed text-muted sm:text-[13px]">
-              {step.descriptionKhmer}
+              {isKm ? step.descriptionKhmer : step.descriptionEnglish}
             </p>
           </div>
 
@@ -343,10 +390,10 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className="text-[11.5px] font-bold leading-tight text-ink">
-                      {item.titleKhmer}
+                      {isKm ? item.titleKhmer : item.titleEnglish}
                     </p>
                     <p className="mt-0.5 text-[10px] leading-snug text-muted">
-                      {item.descKhmer}
+                      {isKm ? item.descKhmer : item.descEnglish}
                     </p>
                   </div>
                 </div>
@@ -365,7 +412,7 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
               className="h-3.5 w-3.5 rounded border-line text-accent accent-accent focus:ring-accent"
             />
             <span className="text-[11px] font-medium text-muted">
-              កុំបង្ហាញម្តងទៀត (Don't show again)
+              {isKm ? 'កុំបង្ហាញម្តងទៀត' : "Don't show again"}
             </span>
           </label>
 
@@ -377,7 +424,7 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
                 className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-xs font-semibold text-ink shadow-2xs transition hover:bg-elevated active:scale-95"
               >
                 <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-                <span>ថយក្រោយ</span>
+                <span>{isKm ? 'ថយក្រោយ' : 'Back'}</span>
               </button>
             ) : null}
 
@@ -391,7 +438,7 @@ export function HowToPlayModal({ open, onClose, languageCode: _languageCode }: H
                   : 'bg-accent text-accent-ink hover:opacity-95 shadow-accent/20',
               )}
             >
-              <span>{isLast ? 'យល់ហើយ ចាប់ផ្តើមលេង!' : 'បន្ទាប់'}</span>
+              <span>{isLast ? (isKm ? 'យល់ហើយ ចាប់ផ្តើមលេង!' : 'Got it') : isKm ? 'បន្ទាប់' : 'Next'}</span>
               <ChevronRight className="h-3.5 w-3.5" aria-hidden />
             </button>
           </div>

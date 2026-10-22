@@ -57,7 +57,7 @@ export type MatchReactionInput = z.infer<typeof matchReactionSchema>;
 export const matchVoiceSchema = z
   .object({
     matchId: uuidSchema,
-    audioData: z.string().min(1).max(250_000),
+    audioData: z.string().min(1).max(2_000_000),
     durationMs: z.number().int().min(400).max(11_000),
     waveform: z.array(z.number().min(0).max(1)).max(32).optional(),
   })

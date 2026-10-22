@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
   Bot,
@@ -41,8 +41,12 @@ export function HomeScreen({
   const [side, setSide] = useState<Side>('X');
   const [startingBot, setStartingBot] = useState(false);
   const [guideOpen, setGuideOpen] = useState(false);
+  const autoGuideCheckedRef = useRef(false);
 
   useEffect(() => {
+    if (!profile || autoGuideCheckedRef.current) return;
+    autoGuideCheckedRef.current = true;
+    if (match?.status === 'ACTIVE' || pendingInvite) return;
     try {
       const seen = localStorage.getItem(HOW_TO_PLAY_STORAGE_KEY);
       if (!seen) {
@@ -51,9 +55,10 @@ export function HomeScreen({
     } catch {
       // ignore storage errors
     }
-  }, []);
+  }, [profile, match?.status, pendingInvite]);
 
   if (!profile) return null;
+  const isKhmer = (profile.languageCode ?? '').toLowerCase().startsWith('km');
   const stats = profile.stats;
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
   const activeOpponent = activeMatch ? opponentFor(activeMatch) : null;
@@ -87,11 +92,11 @@ export function HomeScreen({
             type="button"
             onClick={() => setGuideOpen(true)}
             className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs transition hover:bg-elevated hover:border-accent/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
-            aria-label="របៀបលេង (How to play)"
-            title="របៀបលេង (How to play)"
+            aria-label={isKhmer ? 'របៀបលេង (How to play)' : 'How to play'}
+            title={isKhmer ? 'របៀបលេង (How to play)' : 'How to play'}
           >
             <BookOpen className="h-3.5 w-3.5 text-accent" aria-hidden />
-            <span>របៀបលេង</span>
+            <span>{isKhmer ? 'របៀបលេង' : 'How to play'}</span>
           </button>
           <button
             type="button"
@@ -112,30 +117,6 @@ export function HomeScreen({
           </p>
         </div>
       ) : null}
-
-      <button
-        type="button"
-        onClick={() => setGuideOpen(true)}
-        className="group mb-3.5 flex w-full items-center justify-between gap-3 rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition hover:border-accent/40 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-      >
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm">
-            <BookOpen className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-ink">របៀបលេងសម្រាប់អ្នកថ្មី</span>
-              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase">
-                Step by Step
-              </span>
-            </div>
-            <p className="mt-0.5 text-[11px] text-muted">
-              ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី
-            </p>
-          </div>
-        </div>
-        <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
-      </button>
 
       {activeMatch || pendingInvite ? (
         <div className="mb-3 space-y-2.5">
@@ -191,6 +172,34 @@ export function HomeScreen({
           ) : null}
         </div>
       ) : null}
+
+      <button
+        type="button"
+        onClick={() => setGuideOpen(true)}
+        className="group mb-3.5 flex w-full items-center justify-between gap-3 rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition hover:border-accent/40 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      >
+        <span className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm">
+            <BookOpen className="h-5 w-5" aria-hidden />
+          </span>
+          <span className="min-w-0">
+            <span className="flex items-center gap-2">
+              <span className="text-xs font-bold text-ink">
+                {isKhmer ? 'របៀបលេងសម្រាប់អ្នកថ្មី' : 'New here? Learn how to play'}
+              </span>
+              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase">
+                {isKhmer ? 'ជំហានៗ' : 'Step by step'}
+              </span>
+            </span>
+            <span className="mt-0.5 block text-[11px] text-muted">
+              {isKhmer
+                ? 'ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី'
+                : 'Learn the five-in-a-row rules and winning tactics in one minute.'}
+            </span>
+          </span>
+        </span>
+        <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
+      </button>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-5">
         <Card className="p-4 lg:col-start-2 lg:row-start-1">

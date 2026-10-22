@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, WifiOff, X } from 'lucide-react';
+import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, Volume2, WifiOff, X } from 'lucide-react';
 import type { Side } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
@@ -411,6 +411,12 @@ export function GameScreen({
                 {opponentReaction ? (
                   <div className="absolute top-11 right-1 z-30">
                     <ReactionOverlay reaction={opponentReaction} languageCode={client.profile?.languageCode} />
+                  </div>
+                ) : null}
+                {client.incomingVoice ? (
+                  <div className="absolute -bottom-1.5 right-0 z-30 flex items-center gap-1 rounded-full border border-emerald-500/40 bg-emerald-600 px-2 py-0.5 text-[9px] font-bold text-white shadow-sm animate-pulse">
+                    <Volume2 className="h-2.5 w-2.5" aria-hidden />
+                    <span>Voice</span>
                   </div>
                 ) : null}
               </div>

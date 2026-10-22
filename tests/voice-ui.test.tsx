@@ -224,6 +224,77 @@ describe('Walkie-Talkie Voice UI Components (Popup-Free Audio Engine)', () => {
       expect(cancelMock).toHaveBeenCalled();
       expect(pttButton.textContent).toContain('PTT');
     });
+
+    it('ignores a second pointer while the first start is still pending', async () => {
+      vi.spyOn(audioRadio, 'checkMicrophoneSupport').mockReturnValue({ supported: true });
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'cancel').mockImplementation(() => {});
+      let resolveStart!: (value: { success: boolean }) => void;
+      const startSpy = vi
+        .spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'start')
+        .mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              resolveStart = resolve;
+            }),
+        );
+
+      render(<WalkieTalkieButton matchId="test-match-1" onSendVoice={vi.fn()} />);
+
+      const pttButton = screen.getByRole('button', { name: /hold to record/i });
+
+      act(() => {
+        fireEvent.pointerDown(pttButton, { clientX: 100, clientY: 500, pointerId: 1 });
+        fireEvent.pointerDown(pttButton, { clientX: 100, clientY: 500, pointerId: 2 });
+      });
+
+      expect(startSpy).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveStart({ success: true });
+      });
+
+      expect(pttButton.textContent).toContain('REC');
+    });
+
+    it('does not surface an error when starting is cancelled during the permission prompt', async () => {
+      const onError = vi.fn();
+      vi.spyOn(audioRadio, 'checkMicrophoneSupport').mockReturnValue({ supported: true });
+      const cancelMock = vi.fn();
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'cancel').mockImplementation(cancelMock);
+      let resolveStart!: (value: { success: boolean; cancelled?: boolean }) => void;
+      vi.spyOn(audioRadio.WalkieTalkieRecorder.prototype, 'start').mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            resolveStart = resolve;
+          }),
+      );
+
+      render(
+        <WalkieTalkieButton
+          matchId="test-match-1"
+          onSendVoice={vi.fn()}
+          onError={onError}
+        />,
+      );
+
+      const pttButton = screen.getByRole('button', { name: /hold to record/i });
+
+      await act(async () => {
+        fireEvent.pointerDown(pttButton, { clientX: 100, clientY: 500, pointerId: 1 });
+      });
+
+      act(() => {
+        fireEvent.lostPointerCapture(pttButton, { pointerId: 1 });
+      });
+      expect(cancelMock).toHaveBeenCalledTimes(1);
+
+      await act(async () => {
+        resolveStart({ success: false, cancelled: true });
+      });
+
+      expect(onError).not.toHaveBeenCalled();
+      expect(pttButton.textContent).toContain('PTT');
+    });
   });
 
   describe('Auto-Play Audio Engine (Zero UI Popup)', () => {

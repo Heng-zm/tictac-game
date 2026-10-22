@@ -688,27 +688,28 @@ export class MatchService {
       const game = this.games.get(match.id);
       if (!game || (game.match.status !== 'ACTIVE' && game.match.status !== 'FINISHED')) return;
 
-      // Synthesize a quick 200ms roger-beep wav transmission from the bot
-      const sampleRate = 8000;
-      const numSamples = 1600;
-      const buffer = Buffer.alloc(44 + numSamples);
+      // Synthesize a clean 16-bit 16kHz roger-beep wav transmission from the bot
+      const sampleRate = 16000;
+      const numSamples = 3200; // 200ms
+      const dataSize = numSamples * 2;
+      const buffer = Buffer.alloc(44 + dataSize);
       buffer.write('RIFF', 0);
-      buffer.writeUInt32LE(36 + numSamples, 4);
+      buffer.writeUInt32LE(36 + dataSize, 4);
       buffer.write('WAVE', 8);
       buffer.write('fmt ', 12);
-      buffer.writeUInt32LE(16, 16);
-      buffer.writeUInt16LE(1, 20);
-      buffer.writeUInt16LE(1, 22);
-      buffer.writeUInt32LE(sampleRate, 24);
-      buffer.writeUInt32LE(sampleRate, 28);
-      buffer.writeUInt16LE(1, 32);
-      buffer.writeUInt16LE(8, 34);
+      buffer.writeUInt32LE(16, 16); // Subchunk1Size
+      buffer.writeUInt16LE(1, 20);  // PCM format
+      buffer.writeUInt16LE(1, 22);  // Mono (1 channel)
+      buffer.writeUInt32LE(sampleRate, 24); // SampleRate
+      buffer.writeUInt32LE(sampleRate * 2, 28); // ByteRate (sampleRate * 1 * 16/8)
+      buffer.writeUInt16LE(2, 32);  // BlockAlign (1 * 16/8)
+      buffer.writeUInt16LE(16, 34); // BitsPerSample
       buffer.write('data', 36);
-      buffer.writeUInt32LE(numSamples, 40);
+      buffer.writeUInt32LE(dataSize, 40);
       for (let i = 0; i < numSamples; i++) {
         const env = Math.max(0, 1 - i / numSamples);
-        const sample = Math.sin((2 * Math.PI * 2400 * i) / sampleRate) * env * 110 + 128;
-        buffer.writeUInt8(Math.floor(sample), 44 + i);
+        const sample = Math.sin((2 * Math.PI * 2200 * i) / sampleRate) * env * 24000;
+        buffer.writeInt16LE(Math.round(sample), 44 + i * 2);
       }
       const botAudio = `data:audio/wav;base64,${buffer.toString('base64')}`;
 

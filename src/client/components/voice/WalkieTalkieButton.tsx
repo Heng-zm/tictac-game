@@ -27,8 +27,14 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const recorderRef = useRef<WalkieTalkieRecorder | null>(null);
-  const startingPromiseRef = useRef<Promise<{ success: boolean; error?: string }> | null>(null);
+  const startingPromiseRef = useRef<Promise<{
+    success: boolean;
+    error?: string;
+    cancelled?: boolean;
+  }> | null>(null);
   const isCommittingRef = useRef(false);
+  const activePointerIdRef = useRef<number | null>(null);
+  const mountedRef = useRef(true);
   const startPointerY = useRef(0);
   const startPointerX = useRef(0);
   const startTimeRef = useRef(0);
@@ -58,6 +64,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
         onError?.(message);
       } finally {
         isCommittingRef.current = false;
+        activePointerIdRef.current = null;
         setStatusSafe('idle');
         setElapsedMs(0);
         recorderRef.current = null;
@@ -70,6 +77,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   useEffect(() => {
     if (status === 'recording' && elapsedMs >= MAX_RECORDING_MS && recorderRef.current) {
       isHeldRef.current = false;
+      activePointerIdRef.current = null;
       const rec = recorderRef.current;
       void commitRecording(rec);
     }
@@ -77,8 +85,11 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
 
   // Clean up any pending recording if component unmounts
   useEffect(() => {
+    mountedRef.current = true;
     return () => {
+      mountedRef.current = false;
       isHeldRef.current = false;
+      activePointerIdRef.current = null;
       if (recorderRef.current) {
         recorderRef.current.cancel();
         recorderRef.current = null;
@@ -87,7 +98,15 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   }, []);
 
   const handlePointerDown = async (e: React.PointerEvent) => {
-    if (disabled || getStatus() !== 'idle') return;
+    if (
+      disabled ||
+      getStatus() !== 'idle' ||
+      startingPromiseRef.current ||
+      isCommittingRef.current ||
+      activePointerIdRef.current !== null
+    ) {
+      return;
+    }
     if (e.pointerType === 'mouse' && e.button !== 0) return;
 
     // Fast check for microphone capability
@@ -100,6 +119,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     // Synchronously unlock AudioContext during direct touch interaction
     getAudioContext();
 
+    activePointerIdRef.current = e.pointerId;
     startPointerY.current = e.clientY;
     startPointerX.current = e.clientX;
     startTimeRef.current = Date.now();
@@ -123,12 +143,17 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
     const res = await startPromise;
     startingPromiseRef.current = null;
 
+    // Unmount cleanup already cancelled the recorder and state updates are no longer relevant.
+    if (!mountedRef.current) return;
+
     if (!res.success) {
       isHeldRef.current = false;
+      activePointerIdRef.current = null;
       recorderRef.current = null;
       setStatusSafe('idle');
       setElapsedMs(0);
-      onError?.(res.error || 'Microphone permission denied.');
+      // Cancellation (release/unmount during the permission prompt) is not an error.
+      if (!res.cancelled) onError?.(res.error || 'Microphone permission denied.');
       return;
     }
 
@@ -140,6 +165,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       if (currentStatus === 'cancelling' || holdDuration < MIN_HOLD_DURATION_MS) {
         recorder.cancel();
         recorderRef.current = null;
+        activePointerIdRef.current = null;
         setStatusSafe('idle');
         setElapsedMs(0);
         return;
@@ -154,6 +180,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
+    if (activePointerIdRef.current !== e.pointerId) return;
     const currentStatus = getStatus();
     if (!isHeldRef.current || (currentStatus !== 'recording' && currentStatus !== 'cancelling')) return;
 
@@ -173,8 +200,9 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   };
 
   const handlePointerUp = async (e: React.PointerEvent) => {
-    if (!isHeldRef.current) return;
+    if (activePointerIdRef.current !== e.pointerId || !isHeldRef.current) return;
     isHeldRef.current = false;
+    activePointerIdRef.current = null;
 
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
@@ -224,8 +252,9 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
   };
 
   const handlePointerCancel = (e: React.PointerEvent) => {
-    if (!isHeldRef.current) return;
+    if (activePointerIdRef.current !== e.pointerId || !isHeldRef.current) return;
     isHeldRef.current = false;
+    activePointerIdRef.current = null;
     try {
       (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
     } catch {

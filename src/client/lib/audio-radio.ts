@@ -245,12 +245,19 @@ export class WalkieTalkieRecorder {
     private readonly onTimeUpdate?: (elapsedMs: number) => void,
   ) {}
 
-  async start(): Promise<{ success: boolean; error?: string }> {
+  async start(): Promise<{ success: boolean; error?: string; cancelled?: boolean }> {
     this.isCancelled = false;
     this.chunks = [];
     this.recordedWaveformSamples = [];
 
     const perm = await requestMicrophoneStream();
+
+    // The user may have released/cancelled while the permission prompt was open.
+    if (this.isCancelled) {
+      perm.stream?.getTracks().forEach((track) => track.stop());
+      return { success: false, cancelled: true };
+    }
+
     if (!perm.granted || !perm.stream) {
       return { success: false, error: perm.message || 'Microphone not available' };
     }
@@ -294,11 +301,17 @@ export class WalkieTalkieRecorder {
 
     try {
       this.recorder = selectedMime
-        ? new MediaRecorder(this.stream, { mimeType: selectedMime })
-        : new MediaRecorder(this.stream);
+        ? new MediaRecorder(this.stream, { mimeType: selectedMime, audioBitsPerSecond: 32_000 })
+        : new MediaRecorder(this.stream, { audioBitsPerSecond: 32_000 });
     } catch {
-      this.cleanup();
-      return { success: false, error: 'Could not create audio recorder.' };
+      try {
+        this.recorder = selectedMime
+          ? new MediaRecorder(this.stream, { mimeType: selectedMime })
+          : new MediaRecorder(this.stream);
+      } catch {
+        this.cleanup();
+        return { success: false, error: 'Could not create audio recorder.' };
+      }
     }
 
     this.recorder.ondataavailable = (event) => {
@@ -308,7 +321,12 @@ export class WalkieTalkieRecorder {
     };
 
     this.startTime = Date.now();
-    this.recorder.start(100);
+    try {
+      this.recorder.start(100);
+    } catch {
+      this.cleanup();
+      return { success: false, error: 'Could not start audio recorder.' };
+    }
 
     // Start live waveform and timer loop
     this.startAnalysisLoop();
@@ -446,7 +464,29 @@ export class WalkieTalkieRecorder {
 }
 
 /**
+ * Convert base64 data URL to ArrayBuffer synchronously.
+ */
+export function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
+  try {
+    const comma = dataUrl.indexOf(',');
+    const b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+    if (typeof atob !== 'function') return null;
+    const binary = atob(b64);
+    const len = binary.length;
+    const bytes = new Uint8Array(len);
+    for (let i = 0; i < len; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    return bytes.buffer;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Play a received voice message with walkie-talkie cues and progress tracking.
+ * Uses Web Audio API buffer playback first (exempt from HTML5 element autoplay restrictions),
+ * with seamless fallback to HTML5 Audio element.
  */
 export function playVoiceAudio(
   audioData: string,
@@ -455,48 +495,133 @@ export function playVoiceAudio(
   // Squelch tone when incoming transmission opens
   playPttStartChirp();
 
-  const audio = new Audio(audioData);
-  audio.preload = 'auto';
-  audio.setAttribute('playsinline', '');
-  audio.setAttribute('webkit-playsinline', '');
   let isStopped = false;
+  let activeSource: AudioBufferSourceNode | null = null;
+  let fallbackAudio: HTMLAudioElement | null = null;
+  let animFrameId: number | null = null;
 
-  const handleTimeUpdate = () => {
-    if (isStopped) return;
-    const progress = audio.duration ? Math.min(1.0, audio.currentTime / audio.duration) : 0;
-    onStateChange?.({ isPlaying: true, progress });
-  };
-
-  const handleEnded = () => {
-    if (isStopped) return;
-    onStateChange?.({ isPlaying: false, progress: 1.0 });
-    // Play roger beep when audio finishes
-    playRogerBeep();
-  };
-
-  const handleError = () => {
-    if (isStopped) return;
+  const stopAll = () => {
+    isStopped = true;
+    if (animFrameId) {
+      cancelAnimationFrame(animFrameId);
+      animFrameId = null;
+    }
+    if (activeSource) {
+      try {
+        activeSource.stop();
+      } catch {
+        // Ignored
+      }
+      activeSource = null;
+    }
+    if (fallbackAudio) {
+      try {
+        fallbackAudio.pause();
+        fallbackAudio.currentTime = 0;
+      } catch {
+        // Ignored
+      }
+      fallbackAudio = null;
+    }
     onStateChange?.({ isPlaying: false, progress: 0 });
   };
 
-  audio.addEventListener('timeupdate', handleTimeUpdate);
-  audio.addEventListener('ended', handleEnded);
-  audio.addEventListener('error', handleError);
+  const playViaHtml5 = () => {
+    if (isStopped) return;
+    try {
+      const audio = new Audio(audioData);
+      audio.preload = 'auto';
+      audio.setAttribute('playsinline', '');
+      audio.setAttribute('webkit-playsinline', '');
+      fallbackAudio = audio;
 
-  // Attempt playback with catch for browser autoplay restrictions
-  audio.play().catch(() => {
-    onStateChange?.({ isPlaying: false, progress: 0 });
-  });
+      const handleTimeUpdate = () => {
+        if (isStopped) return;
+        const progress = audio.duration ? Math.min(1.0, audio.currentTime / audio.duration) : 0;
+        onStateChange?.({ isPlaying: true, progress });
+      };
 
-  return {
-    stop: () => {
-      isStopped = true;
-      audio.pause();
-      audio.currentTime = 0;
-      audio.removeEventListener('timeupdate', handleTimeUpdate);
-      audio.removeEventListener('ended', handleEnded);
-      audio.removeEventListener('error', handleError);
+      const handleEnded = () => {
+        if (isStopped) return;
+        onStateChange?.({ isPlaying: false, progress: 1.0 });
+        playRogerBeep();
+      };
+
+      const handleError = () => {
+        if (isStopped) return;
+        onStateChange?.({ isPlaying: false, progress: 0 });
+      };
+
+      audio.addEventListener('timeupdate', handleTimeUpdate);
+      audio.addEventListener('ended', handleEnded);
+      audio.addEventListener('error', handleError);
+
+      audio.play().catch(() => {
+        onStateChange?.({ isPlaying: false, progress: 0 });
+      });
+    } catch {
       onStateChange?.({ isPlaying: false, progress: 0 });
-    },
+    }
   };
+
+  const ctx = getAudioContext();
+  const arrayBuf = dataUrlToArrayBuffer(audioData);
+
+  if (ctx && arrayBuf) {
+    try {
+      if (ctx.state === 'suspended') {
+        void ctx.resume().catch(() => undefined);
+      }
+      ctx.decodeAudioData(
+        arrayBuf.slice(0),
+        (audioBuffer) => {
+          if (isStopped) return;
+          try {
+            const source = ctx.createBufferSource();
+            source.buffer = audioBuffer;
+            const gain = ctx.createGain();
+            gain.gain.setValueAtTime(1.15, ctx.currentTime);
+            source.connect(gain);
+            gain.connect(ctx.destination);
+            activeSource = source;
+
+            const duration = audioBuffer.duration;
+            const startCtxTime = ctx.currentTime;
+
+            const tickProgress = () => {
+              if (isStopped || !activeSource) return;
+              const elapsed = ctx.currentTime - startCtxTime;
+              const progress = Math.min(1.0, elapsed / duration);
+              onStateChange?.({ isPlaying: true, progress });
+              if (progress < 1.0) {
+                animFrameId = requestAnimationFrame(tickProgress);
+              }
+            };
+            animFrameId = requestAnimationFrame(tickProgress);
+
+            source.onended = () => {
+              if (isStopped) return;
+              activeSource = null;
+              if (animFrameId) cancelAnimationFrame(animFrameId);
+              onStateChange?.({ isPlaying: false, progress: 1.0 });
+              playRogerBeep();
+            };
+
+            source.start(0);
+          } catch {
+            playViaHtml5();
+          }
+        },
+        () => {
+          playViaHtml5();
+        },
+      );
+    } catch {
+      playViaHtml5();
+    }
+  } else {
+    playViaHtml5();
+  }
+
+  return { stop: stopAll };
 }
