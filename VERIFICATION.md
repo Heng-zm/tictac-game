@@ -32,9 +32,9 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 | --- | --- |
 | `npm run typecheck` | Passed (server, client, and tests via `tsconfig.test.json`) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 173 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **183 passed / 183** across 18 test files |
-| `npm run test:coverage` with PostgreSQL | Passed; **85.54% statements**, 82.29% branches, 90.07% functions |
+| `npm test` without `TEST_DATABASE_URL` | 177 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **187 passed / 187** across 19 test files |
+| `npm run test:coverage` with PostgreSQL | Passed; **85.49% statements**, 82.34% branches, 90.14% functions |
 | Prisma repository coverage | **91.40% statements** (up from 5.13% before integration tests) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
 | `npm run start:prod` | Applied migrations, then started the production server |
@@ -153,6 +153,8 @@ This verifies that module assets and API calls work when the app is opened throu
 - Telegram write access is requested only when the player enables the setting.
 - The server sends at most one notification per turn, only to an offline human participant in an active non-AI match.
 - Notification failures are logged asynchronously and never block move processing.
+- Permanent Telegram delivery failures, such as a blocked bot or deactivated recipient, disable the preference to prevent repeated failed sends; transient failures leave it enabled.
+- Error classification keeps rate limits and server errors retryable while treating blocked or unreachable recipients as permanent.
 - Buttons deep-link back into the active Mini App match through `startapp=game_<uuid>`.
 - Unit, HTTP, match-service and repository tests cover the preference, offline gating, deep-link URL and delivery-failure paths.
 

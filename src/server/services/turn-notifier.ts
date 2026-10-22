@@ -4,8 +4,14 @@ import type { AppConfig } from '../config';
 import type { GameRepository, MatchEntity } from '../database/types';
 import { buildGameLaunchUrl } from './invitations';
 
+export type TurnNotificationDelivery = 'sent' | 'blocked' | 'failed';
+
 export interface TurnNotificationSender {
-  sendTurnNotification: (telegramId: bigint, text: string, url: string) => Promise<boolean>;
+  sendTurnNotification: (
+    telegramId: bigint,
+    text: string,
+    url: string,
+  ) => Promise<TurnNotificationDelivery>;
 }
 
 export interface TurnNotificationService {
@@ -13,7 +19,7 @@ export interface TurnNotificationService {
 }
 
 interface TurnNotifierDependencies {
-  repository: Pick<GameRepository, 'getUserById'>;
+  repository: Pick<GameRepository, 'getUserById' | 'setTurnNotifications'>;
   config: AppConfig;
   logger: Logger;
   sender: TurnNotificationSender;
@@ -43,13 +49,16 @@ export class TurnNotifier implements TurnNotificationService {
     const url = buildGameLaunchUrl(this.deps.config, match.id);
 
     try {
-      const sent = await this.deps.sender.sendTurnNotification(user.telegramId, text, url);
-      if (!sent) {
-        this.deps.logger.warn(
-          { event: 'turn_notification_failed', matchId: match.id, userId },
-          'Telegram turn notification could not be delivered',
-        );
+      const delivery = await this.deps.sender.sendTurnNotification(user.telegramId, text, url);
+      if (delivery === 'sent') return;
+      if (delivery === 'blocked') {
+        await this.disableTurnNotifications(userId, match.id);
+        return;
       }
+      this.deps.logger.warn(
+        { event: 'turn_notification_failed', matchId: match.id, userId },
+        'Telegram turn notification could not be delivered',
+      );
     } catch (error) {
       this.deps.logger.warn(
         {
@@ -59,6 +68,31 @@ export class TurnNotifier implements TurnNotificationService {
           errorName: error instanceof Error ? error.name : 'unknown',
         },
         'Telegram turn notification could not be delivered',
+      );
+    }
+  }
+
+  private async disableTurnNotifications(userId: string, matchId: string): Promise<void> {
+    try {
+      await this.deps.repository.setTurnNotifications(userId, false);
+      this.deps.logger.warn(
+        {
+          event: 'turn_notifications_disabled',
+          matchId,
+          userId,
+          reason: 'telegram_unreachable',
+        },
+        'Turn notifications disabled because Telegram rejected delivery',
+      );
+    } catch (error) {
+      this.deps.logger.warn(
+        {
+          event: 'turn_notification_disable_failed',
+          matchId,
+          userId,
+          errorName: error instanceof Error ? error.name : 'unknown',
+        },
+        'Could not disable turn notifications after Telegram rejected delivery',
       );
     }
   }

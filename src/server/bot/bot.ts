@@ -1,7 +1,8 @@
 import type { RequestHandler } from 'express';
-import { Bot, InlineKeyboard, webhookCallback } from 'grammy';
+import { Bot, GrammyError, InlineKeyboard, webhookCallback } from 'grammy';
 import type { Logger } from 'pino';
 import type { AppConfig } from '../config';
+import type { TurnNotificationDelivery } from '../services/turn-notifier';
 
 export const BOT_WEBHOOK_PATH = '/api/telegram/webhook';
 
@@ -12,7 +13,11 @@ export interface BotController {
   };
   start: () => Promise<void>;
   stop: () => Promise<void>;
-  sendTurnNotification: (telegramId: bigint, text: string, url: string) => Promise<boolean>;
+  sendTurnNotification: (
+    telegramId: bigint,
+    text: string,
+    url: string,
+  ) => Promise<TurnNotificationDelivery>;
 }
 
 interface BotControllerDependencies {
@@ -167,7 +172,11 @@ export function createBotController(deps: BotControllerDependencies): BotControl
     });
   }
 
-  async function sendTurnNotification(telegramId: bigint, text: string, url: string): Promise<boolean> {
+  async function sendTurnNotification(
+    telegramId: bigint,
+    text: string,
+    url: string,
+  ): Promise<TurnNotificationDelivery> {
     try {
       const keyboard = new InlineKeyboard();
       if (isHttps) {
@@ -179,13 +188,19 @@ export function createBotController(deps: BotControllerDependencies): BotControl
         reply_markup: keyboard,
         link_preview_options: { is_disabled: true },
       });
-      return true;
+      return 'sent';
     } catch (error) {
+      const permanent = isPermanentTelegramDeliveryError(error);
       log.warn(
-        { event: 'turn_notification_send_failed', errorName: error instanceof Error ? error.name : 'unknown' },
+        {
+          event: 'turn_notification_send_failed',
+          errorName: error instanceof Error ? error.name : 'unknown',
+          errorCode: error instanceof GrammyError ? error.error_code : undefined,
+          permanent,
+        },
         'Telegram could not send a turn notification',
       );
-      return false;
+      return permanent ? 'blocked' : 'failed';
     }
   }
 
@@ -213,6 +228,15 @@ export function createBotController(deps: BotControllerDependencies): BotControl
     stop,
     sendTurnNotification,
   };
+}
+
+const PERMANENT_DELIVERY_ERROR =
+  /bot was blocked by the user|chat not found|bot can't initiate conversation|user is deactivated/i;
+
+export function isPermanentTelegramDeliveryError(error: unknown): boolean {
+  if (!(error instanceof GrammyError)) return false;
+  if (error.error_code === 403) return true;
+  return error.error_code === 400 && PERMANENT_DELIVERY_ERROR.test(error.description);
 }
 
 function appendQuery(baseUrl: string, key: string, value: string): string {

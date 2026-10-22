@@ -27,7 +27,7 @@ describe('TurnNotifier', () => {
     await repo.setTurnNotifications(alice.id, true);
 
     const config = makeTestConfig({ miniAppUrl: 'https://game.example.com' });
-    const sender = { sendTurnNotification: vi.fn(async () => true) };
+    const sender = { sendTurnNotification: vi.fn(async () => 'sent' as const) };
     const notifier = new TurnNotifier({
       repository: repo,
       config,
@@ -47,7 +47,7 @@ describe('TurnNotifier', () => {
   it('does not send when the player has not opted in', async () => {
     const repo = new MemoryGameRepository();
     const { match, aliceId } = await humanMatch(repo);
-    const sender = { sendTurnNotification: vi.fn(async () => true) };
+    const sender = { sendTurnNotification: vi.fn(async () => 'sent' as const) };
     const notifier = new TurnNotifier({
       repository: repo,
       config: makeTestConfig(),
@@ -82,7 +82,7 @@ describe('TurnNotifier', () => {
       currentTurn: 'X',
       turnDeadline: null,
     });
-    const sender = { sendTurnNotification: vi.fn(async () => true) };
+    const sender = { sendTurnNotification: vi.fn(async () => 'sent' as const) };
     const notifier = new TurnNotifier({
       repository: repo,
       config: makeTestConfig(),
@@ -99,7 +99,7 @@ describe('TurnNotifier', () => {
     const repo = new MemoryGameRepository();
     const { match, aliceId } = await humanMatch(repo);
     await repo.setTurnNotifications(aliceId, true);
-    const sender = { sendTurnNotification: vi.fn(async () => true) };
+    const sender = { sendTurnNotification: vi.fn(async () => 'sent' as const) };
     const notifier = new TurnNotifier({
       repository: repo,
       config: makeTestConfig(),
@@ -113,11 +113,11 @@ describe('TurnNotifier', () => {
     expect(sender.sendTurnNotification).not.toHaveBeenCalled();
   });
 
-  it('swallows delivery failures so a move is never blocked', async () => {
+  it('keeps notifications enabled after a transient delivery failure', async () => {
     const repo = new MemoryGameRepository();
     const { match, aliceId } = await humanMatch(repo);
     await repo.setTurnNotifications(aliceId, true);
-    const sender = { sendTurnNotification: vi.fn(async () => false) };
+    const sender = { sendTurnNotification: vi.fn(async () => 'failed' as const) };
     const notifier = new TurnNotifier({
       repository: repo,
       config: makeTestConfig(),
@@ -127,5 +127,41 @@ describe('TurnNotifier', () => {
 
     await expect(notifier.notifyTurn(match, aliceId)).resolves.toBeUndefined();
     expect(sender.sendTurnNotification).toHaveBeenCalledOnce();
+    expect((await repo.getUserById(aliceId))?.turnNotifications).toBe(true);
+  });
+
+  it('disables notifications when Telegram reports the recipient is unreachable', async () => {
+    const repo = new MemoryGameRepository();
+    const { match, aliceId } = await humanMatch(repo);
+    await repo.setTurnNotifications(aliceId, true);
+    const sender = { sendTurnNotification: vi.fn(async () => 'blocked' as const) };
+    const notifier = new TurnNotifier({
+      repository: repo,
+      config: makeTestConfig(),
+      logger: makeTestLogger(),
+      sender,
+    });
+
+    await notifier.notifyTurn(match, aliceId);
+
+    expect((await repo.getUserById(aliceId))?.turnNotifications).toBe(false);
+    await notifier.notifyTurn(match, aliceId);
+    expect(sender.sendTurnNotification).toHaveBeenCalledOnce();
+  });
+
+  it('does not throw if disabling notifications fails', async () => {
+    const repo = new MemoryGameRepository();
+    const { match, aliceId } = await humanMatch(repo);
+    await repo.setTurnNotifications(aliceId, true);
+    vi.spyOn(repo, 'setTurnNotifications').mockRejectedValue(new Error('database unavailable'));
+    const sender = { sendTurnNotification: vi.fn(async () => 'blocked' as const) };
+    const notifier = new TurnNotifier({
+      repository: repo,
+      config: makeTestConfig(),
+      logger: makeTestLogger(),
+      sender,
+    });
+
+    await expect(notifier.notifyTurn(match, aliceId)).resolves.toBeUndefined();
   });
 });
