@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, WifiOff, X } from 'lucide-react';
 import type { Side } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
@@ -28,7 +28,7 @@ export function GameScreen({
   navigate: (path: string) => void;
   matchId: string;
 }) {
-  const { connection, match: currentMatch, joinMatch, config } = client;
+  const { connection, match: currentMatch, joinMatch, config, submitMove, pushToast } = client;
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<{ code: string; message: string } | null>(null);
   const [pendingCell, setPendingCell] = useState<number | null>(null);
@@ -117,35 +117,46 @@ export function GameScreen({
       youSide &&
       match.youSide === youSide,
   );
-  const board = match?.board ?? {};
-  const displayBoard =
-    pendingCell !== null && youSide
-      ? { ...board, [pendingCell]: youSide }
-      : board;
+  const board = useMemo(() => match?.board ?? {}, [match]);
+  const displayBoard = useMemo(
+    () => (pendingCell !== null && youSide ? { ...board, [pendingCell]: youSide } : board),
+    [board, pendingCell, youSide],
+  );
   const activeBoard = match?.status === 'FINISHED' ? board : displayBoard;
-  const winningLine = match ? findWinningLine(activeBoard) : null;
+  const winningLine = useMemo(() => findWinningLine(activeBoard), [activeBoard]);
   const lastMoveCell =
     (client.lastMove && client.match?.id === match?.id ? client.lastMove.cell : null) ??
     match?.lastMove?.cell ??
     null;
 
-  async function playCell(cell: number): Promise<void> {
-    if (!match || match.status !== 'ACTIVE' || !yourTurn || pendingCell !== null || board[cell] !== undefined) return;
-    const actionId = makeActionId();
-    setPendingCell(cell);
-    setPendingActionId(actionId);
-    hapticImpact('light');
-    try {
-      await client.submitMove(match.id, cell, actionId);
-    } catch (error) {
-      if (error instanceof SocketRequestError && (error.code === 'CONNECTION_LOST' || error.code === 'TIMEOUT')) {
-        client.pushToast({ type: 'error', title: 'Move not sent', message: error.message });
+  const playCell = useCallback(
+    async (cell: number): Promise<void> => {
+      if (!match || match.status !== 'ACTIVE' || !yourTurn || pendingCell !== null || board[cell] !== undefined) {
+        return;
       }
-    } finally {
-      setPendingCell(null);
-      setPendingActionId(null);
-    }
-  }
+      const actionId = makeActionId();
+      setPendingCell(cell);
+      setPendingActionId(actionId);
+      hapticImpact('light');
+      try {
+        await submitMove(match.id, cell, actionId);
+      } catch (error) {
+        if (error instanceof SocketRequestError && (error.code === 'CONNECTION_LOST' || error.code === 'TIMEOUT')) {
+          pushToast({ type: 'error', title: 'Move not sent', message: error.message });
+        }
+      } finally {
+        setPendingCell(null);
+        setPendingActionId(null);
+      }
+    },
+    [board, match, pendingCell, pushToast, submitMove, yourTurn],
+  );
+  const handleCell = useCallback(
+    (cell: number) => {
+      void playCell(cell);
+    },
+    [playCell],
+  );
 
   async function rematch(): Promise<void> {
     if (!match) return;
@@ -333,7 +344,7 @@ export function GameScreen({
           match.currentTurn !== match.youSide ||
           connection !== 'online'
         }
-        onCell={(cell) => void playCell(cell)}
+        onCell={handleCell}
       />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
@@ -404,7 +415,12 @@ export function GameScreen({
               <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted" aria-hidden />
             ) : null}
             <p className="min-w-0 truncate text-xs font-semibold text-ink" aria-live="polite">
-              {pendingCell !== null ? 'Sending move…' : statusText}
+              <span
+                key={`${match.status}-${match.currentTurn ?? 'none'}-${pendingCell !== null ? 'sending' : 'ready'}`}
+                className="turn-status inline-block max-w-full truncate align-bottom"
+              >
+                {pendingCell !== null ? 'Sending move…' : statusText}
+              </span>
             </p>
             <span className="shrink-0 rounded-full bg-elevated px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted">
               {turnLabel}
@@ -491,7 +507,7 @@ function TurnClock({
               strokeDasharray={circumference}
               strokeDashoffset={offset}
               className={cn(
-                'transition-[stroke-dashoffset] duration-500 ease-linear',
+                'transition-[stroke-dashoffset,color] duration-500 ease-linear',
                 muted ? 'text-muted/60' : urgent ? 'text-danger' : 'text-accent',
               )}
             />
@@ -499,7 +515,7 @@ function TurnClock({
         </svg>
         <span
           className={cn(
-            'font-bold tabular-nums tracking-tight',
+            'font-bold tabular-nums tracking-tight transition-colors duration-200',
             text.length > 5 ? 'text-[11px]' : 'text-base',
             muted ? 'text-muted' : urgent ? 'text-danger' : 'text-ink',
           )}
@@ -581,19 +597,19 @@ function PlayerBadge({
         {isAi ? (
           <span
             className={cn(
-              'flex h-9 w-9 items-center justify-center rounded-full',
+              'flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200',
               active ? 'bg-accent/10 text-accent ring-2 ring-accent/30' : 'bg-elevated text-muted',
             )}
           >
             <Bot className="h-4 w-4" aria-hidden />
           </span>
         ) : (
-          <Avatar name={name} photoUrl={photoUrl} size="sm" ring={active} />
+          <Avatar name={name} photoUrl={photoUrl} size="sm" ring={active} className="transition-shadow duration-200" />
         )}
         {!isAi ? (
           <span
             className={cn(
-              'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-app',
+              'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-app transition-colors duration-200',
               connected ? 'bg-success' : 'bg-muted',
             )}
             aria-label={connected ? 'Connected' : 'Disconnected'}
@@ -601,7 +617,7 @@ function PlayerBadge({
         ) : null}
       </div>
       <div className="min-w-0">
-        <p className={cn('truncate text-xs font-semibold', active ? 'text-accent' : 'text-ink')}>
+        <p className={cn('truncate text-xs font-semibold transition-colors duration-200', active ? 'text-accent' : 'text-ink')}>
           {isYou ? 'You' : name}
         </p>
         <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-muted">

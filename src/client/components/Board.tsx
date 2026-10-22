@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
 import type { Board as BoardType } from '../../shared/game-types';
 import { decodeCell, encodeCell } from '../../shared/game-types';
@@ -61,7 +61,7 @@ function cancelScheduledFrame(id: number): void {
 
 function XMark() {
   return (
-    <svg viewBox="0 0 100 100" className="h-[68%] w-[68%] text-accent drop-shadow-sm" aria-hidden>
+    <svg viewBox="0 0 100 100" className="mark-enter h-[68%] w-[68%] text-accent" aria-hidden>
       <path
         d="M22 22 L78 78 M78 22 L22 78"
         fill="none"
@@ -69,7 +69,7 @@ function XMark() {
         strokeWidth="14"
         strokeLinecap="round"
         pathLength={100}
-        className="mark-stroke animate-in zoom-in-75 duration-150"
+        className="mark-stroke"
       />
     </svg>
   );
@@ -77,7 +77,7 @@ function XMark() {
 
 function OMark() {
   return (
-    <svg viewBox="0 0 100 100" className="h-[70%] w-[70%] text-danger drop-shadow-sm" aria-hidden>
+    <svg viewBox="0 0 100 100" className="mark-enter h-[70%] w-[70%] text-danger" aria-hidden>
       <circle
         cx="50"
         cy="50"
@@ -86,13 +86,13 @@ function OMark() {
         stroke="currentColor"
         strokeWidth="13"
         pathLength={100}
-        className="mark-stroke animate-in zoom-in-75 duration-150"
+        className="mark-stroke"
       />
     </svg>
   );
 }
 
-export function Board({
+export const Board = memo(function Board({
   board,
   winningLine,
   lastMoveCell,
@@ -139,6 +139,24 @@ export function Board({
       }),
     [board],
   );
+  const winningBeam = useMemo(() => {
+    if (!winningLine || winningLine.length < 2) return null;
+    const firstCell = winningLine[0];
+    const lastCell = winningLine[winningLine.length - 1];
+    if (firstCell === undefined || lastCell === undefined) return null;
+
+    const start = decodeCell(firstCell);
+    const end = decodeCell(lastCell);
+    const dx = (end.x - start.x) * CELL_SIZE;
+    const dy = (end.y - start.y) * CELL_SIZE;
+
+    return {
+      angle: Math.atan2(dy, dx),
+      length: Math.hypot(dx, dy) + CELL_SIZE * 0.72,
+      x: ((start.x + end.x) / 2) * CELL_SIZE,
+      y: ((start.y + end.y) / 2) * CELL_SIZE,
+    };
+  }, [winningLine]);
 
   const applyView = useCallback(() => {
     const pan = panRef.current;
@@ -204,6 +222,13 @@ export function Board({
       const startX = panRef.current.x;
       const startY = panRef.current.y;
       const startZoom = zoomRef.current;
+      const travel = Math.hypot(targetX - startX, targetY - startY);
+      const zoomTravel = Math.abs(targetZoom - startZoom);
+
+      if (travel < 0.01 && zoomTravel < 0.001) {
+        applyView();
+        return;
+      }
 
       if (duration <= 0 || prefersReducedMotion()) {
         panRef.current = { x: targetX, y: targetY };
@@ -335,7 +360,11 @@ export function Board({
     if (activePointers.current.size > 0) return;
 
     const { x, y } = decodeCell(lastMoveCell);
-    animateTo(-x * CELL_SIZE, -y * CELL_SIZE, zoomRef.current, 320);
+    const targetX = -x * CELL_SIZE;
+    const targetY = -y * CELL_SIZE;
+    const travel = Math.hypot(targetX - panRef.current.x, targetY - panRef.current.y);
+    const duration = Math.min(320, Math.max(200, Math.round(140 + Math.sqrt(travel) * 10)));
+    animateTo(targetX, targetY, zoomRef.current, duration);
   }, [lastMoveCell, animateTo]);
 
   useEffect(() => {
@@ -714,6 +743,24 @@ export function Board({
             className="relative h-0 w-0 origin-top-left will-change-transform"
             style={{ transform: 'translate3d(0px, 0px, 0) scale(1)' }}
           >
+            {winningBeam ? (
+              <div
+                aria-hidden
+                data-winning-beam
+                className="pointer-events-none absolute flex items-center justify-center"
+                style={{
+                  left: `${winningBeam.x}px`,
+                  top: `${winningBeam.y}px`,
+                  width: `${winningBeam.length}px`,
+                  height: `${CELL_SIZE * 0.84}px`,
+                  transform: `translate(-50%, -50%) rotate(${winningBeam.angle}rad)`,
+                }}
+              >
+                <span className="absolute inset-x-0 top-1/2 h-6 -translate-y-1/2 rounded-full bg-amber-400/10" />
+                <span className="winning-beam relative h-[3px] w-full rounded-full bg-gradient-to-r from-amber-400/0 via-amber-300 to-amber-400/0 shadow-[0_0_14px_rgba(251,191,36,0.55)]" />
+              </div>
+            ) : null}
+
             {stones.map(({ cell, x, y, side }) => {
               const isWinning = winningSet.has(cell);
               const isLast = lastMoveCell === cell;
@@ -731,17 +778,16 @@ export function Board({
                   }}
                 >
                   {isWinning ? (
-                    <span className="pointer-events-none absolute inset-0.5 rounded-xl bg-amber-400/15 ring-2 ring-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.55)] animate-pulse" />
+                    <span className="win-cell pointer-events-none absolute inset-0.5 rounded-xl bg-amber-400/15 ring-2 ring-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.55)]" />
                   ) : null}
                   {side === 'X' ? <XMark /> : <OMark />}
                   {isLast ? (
                     <span
                       className={cn(
-                        'pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',
+                        'last-move-dot pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',
                         side === 'X'
                           ? 'bg-accent shadow-[0_0_8px_rgba(37,99,235,0.8)]'
                           : 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.8)]',
-                        'animate-pulse',
                       )}
                     />
                   ) : null}
@@ -827,4 +873,4 @@ export function Board({
       </div>
     </div>
   );
-}
+});

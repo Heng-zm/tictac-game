@@ -56,7 +56,7 @@ export function GameResult({
       <div className="-mt-1 text-center">
         <div
           className={cn(
-            'mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border',
+            'mx-auto flex h-14 w-14 animate-pop-in items-center justify-center rounded-2xl border',
             outcome === 'win'
               ? 'border-success/30 bg-success/15 text-success'
               : outcome === 'draw'

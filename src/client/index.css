@@ -142,6 +142,87 @@
   }
 }
 
+/* A short compositor-only pop works with the stroke draw without keeping a
+   filter or layer alive once the stone has landed. */
+.mark-enter {
+  transform-origin: center;
+  animation: mark-enter 180ms cubic-bezier(0.2, 0.8, 0.3, 1.15) both;
+}
+
+@keyframes mark-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Winning highlights settle once instead of pulsing forever. */
+.win-cell {
+  animation: win-cell-in 320ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes win-cell-in {
+  from {
+    opacity: 0;
+    transform: scale(0.84);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.winning-beam {
+  transform-origin: left center;
+  animation: winning-beam-in 460ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+}
+
+@keyframes winning-beam-in {
+  from {
+    opacity: 0;
+    transform: scaleX(0);
+  }
+  to {
+    opacity: 1;
+    transform: scaleX(1);
+  }
+}
+
+.last-move-dot {
+  animation: last-move-in 200ms cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+
+@keyframes last-move-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Keep the live turn copy from flashing when the timer rerenders the HUD. */
+.turn-status {
+  animation: turn-status-in 180ms ease-out both;
+}
+
+@keyframes turn-status-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

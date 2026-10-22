@@ -129,4 +129,17 @@ describe('Board input', () => {
     tap(occupied.grid);
     expect(occupied.onCell).not.toHaveBeenCalled();
   });
+
+  it('renders one settling winning beam instead of endless highlighted pulses', () => {
+    const winningLine = [0, 1, 2, 3, 4].map((x) => encodeCell(x, 0));
+    const board = Object.fromEntries(winningLine.map((cell) => [cell, 'X'])) as Record<number, 'X'>;
+
+    renderBoard({ board, winningLine, lastMoveCell: winningLine[4] ?? null });
+
+    const beam = document.querySelector('[data-winning-beam]');
+    expect(beam).not.toBeNull();
+    expect(beam?.querySelector('.winning-beam')).not.toBeNull();
+    expect(document.querySelectorAll('.win-cell')).toHaveLength(5);
+    expect(document.querySelector('.animate-pulse')).toBeNull();
+  });
 });
