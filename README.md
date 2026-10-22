@@ -233,6 +233,7 @@ Production startup fails fast if required secrets, the HTTPS Mini App URL, or Te
 4. In **@BotFather**:
    - `/setmenubutton` → choose the bot → set the Mini App URL.
    - `/newapp` (or Mini App settings) → configure the Web App URL and short name.
+   - `/setuserpic` (and the Mini App icon field, if shown) → upload `public/icons/icon-512.png`.
 5. Webhook. On Render, the app registers it automatically using the derived public URL and a Telegram-safe `TELEGRAM_WEBHOOK_SECRET` derived from `SESSION_SECRET`; no manual `setWebhook` call is needed. For other hosts, set both variables below or let the bot use long polling:
 
    ```dotenv

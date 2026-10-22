@@ -176,6 +176,8 @@ This verifies that module assets and API calls work when the app is opened throu
 - The bar is intentionally not duplicated on Home, which retains its full active-game card, and disappears when the match finishes.
 - Bottom-page clearance and raised toast placement account for both the bar and the bottom navigation, so long pages can scroll fully clear of the fixed controls.
 - Safe-area padding and fixed navigation were checked at the target mobile viewport; no horizontal overflow appeared in the inspected screens.
+- The app/install icon was refreshed with a bold X/O board mark on the app's indigo gradient. The client ships an SVG favicon, 192px and 512px PNG app icons, a 512px maskable icon, a 180px Apple touch icon, and a web manifest.
+- Icon assets were generated and checked at 512, 192, and 180 pixels; maskable and Apple icons are fully opaque, while the standard PNG and SVG icons retain rounded transparent corners. The production build copies the icons and manifest into `dist/client`.
 - Gameplay motion is client-only and uses short, one-shot transitions: stones pop and draw once, the winning row settles with a single beam, the camera follow duration scales with pan distance, HUD colors and turn copy transition, and the result icon pops on entry.
 - The resolved board no longer runs endless pulse loops on winning cells or the last-move dot, and per-stone `drop-shadow` filters were removed to reduce paint and compositor work while panning.
 - `Board` is memoized and receives a stable move callback, so 500ms turn-clock updates no longer reconcile every stone. Board and HUD motion inherit the global `prefers-reduced-motion` override, and JavaScript camera motion also checks the reduced-motion preference.
@@ -212,7 +214,7 @@ This verifies that module assets and API calls work when the app is opened throu
 
 These items could not be verified in this environment and must be checked during deployment:
 
-1. **Real Telegram Mini App launch.** No real BotFather token, bot username, or HTTPS Mini App URL was available. Synthetic `initData` proves the HMAC and session flow, but not Telegram client behavior.
+1. **Real Telegram Mini App launch.** No real BotFather token, bot username, or HTTPS Mini App URL was available. Synthetic `initData` proves the HMAC and session flow, but not Telegram client behavior. BotFather's profile-photo and Mini App icon fields also require a manual upload; Telegram-side caching and rendering were not verified.
 2. **Real Telegram Web / mobile iframe cookies.** `SameSite=None; Secure` is configured and was observed in the smoke test, but browser third-party-cookie behavior inside Telegram Web was not exercised.
 3. **Live Supabase project.** No Supabase URL or credentials were available. PostgreSQL 17.11 compatibility and the migration were verified locally; Supabase's pooler, TLS termination, and network path were not.
 4. **Telegram bot commands, webhook delivery and turn notifications.** Bot command handlers, menu/webhook registration, webhook secret rejection, message payloads, invitation deep links and delivery-error mapping were exercised against a local fake Bot API. Delivery of real webhook updates from Telegram, menu-button rendering in a real client, and notification delivery to a real Telegram account were not exercised against Telegram.
