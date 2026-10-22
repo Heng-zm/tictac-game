@@ -1,5 +1,4 @@
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Crosshair, ZoomIn, ZoomOut } from 'lucide-react';
 import type { Board as BoardType } from '../../shared/game-types';
 import { decodeCell, encodeCell } from '../../shared/game-types';
 import { cn } from '../lib/cn';
@@ -103,7 +102,6 @@ export const Board = memo(function Board({
   const containerRef = useRef<HTMLDivElement>(null);
   const gridRef = useRef<HTMLDivElement>(null);
   const worldRef = useRef<HTMLDivElement>(null);
-  const positionRef = useRef<HTMLSpanElement>(null);
   const instructionsId = useId();
 
   // The camera lives in refs so a pointer move can update transforms without
@@ -112,7 +110,6 @@ export const Board = memo(function Board({
   const zoomRef = useRef(1);
   const sizeRef = useRef({ width: 0, height: 0 });
   const lastCellSizeRef = useRef(0);
-  const lastPositionRef = useRef('');
 
   const activePointers = useRef<Map<number, Point>>(new Map());
   const dragStart = useRef({ clientX: 0, clientY: 0, panX: 0, panY: 0 });
@@ -179,15 +176,6 @@ export const Board = memo(function Board({
       const phaseX = mod(width / 2 + pan.x * zoom + cell / 2 + GRID_OVERSCAN, cell);
       const phaseY = mod(height / 2 + pan.y * zoom + cell / 2 + GRID_OVERSCAN, cell);
       grid.style.transform = `translate3d(${phaseX}px, ${phaseY}px, 0)`;
-    }
-
-    const position = positionRef.current;
-    if (position) {
-      const text = `Pos: (${Math.round(-pan.x / CELL_SIZE)}, ${Math.round(-pan.y / CELL_SIZE)})`;
-      if (text !== lastPositionRef.current) {
-        lastPositionRef.current = text;
-        position.textContent = text;
-      }
     }
   }, []);
 
@@ -817,52 +805,6 @@ export const Board = memo(function Board({
                 +
               </div>
             ) : null}
-          </div>
-        </div>
-
-        <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+12px)] z-10 flex items-center justify-between gap-2 sm:inset-x-4">
-          <div
-            data-board-hud
-            className="pointer-events-auto rounded-full border border-line bg-surface px-2.5 py-1 text-[10px] font-semibold tabular-nums text-muted shadow-sm"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <span ref={positionRef} />
-          </div>
-
-          <div
-            data-board-hud
-            className="pointer-events-auto flex items-center gap-1 rounded-full border border-line bg-surface p-1 shadow-sm"
-            onPointerDown={(event) => event.stopPropagation()}
-            onClick={(event) => event.stopPropagation()}
-          >
-            <button
-              type="button"
-              onClick={recenter}
-              title="Recenter on latest move"
-              aria-label="Recenter on latest move"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-            >
-              <Crosshair className="h-4 w-4" aria-hidden />
-            </button>
-            <button
-              type="button"
-              onClick={zoomOut}
-              title="Zoom out"
-              aria-label="Zoom out"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-            >
-              <ZoomOut className="h-4 w-4" aria-hidden />
-            </button>
-            <button
-              type="button"
-              onClick={zoomIn}
-              title="Zoom in"
-              aria-label="Zoom in"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-            >
-              <ZoomIn className="h-4 w-4" aria-hidden />
-            </button>
           </div>
         </div>
 

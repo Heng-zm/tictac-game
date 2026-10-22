@@ -193,7 +193,9 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       disabled={disabled}
       aria-label="Hold to record voice, release to send, slide to cancel"
       title="Hold to talk (Icom Walkie-Talkie)"
-      className={`pointer-events-auto relative flex h-10 px-3 shrink-0 items-center justify-center gap-1.5 rounded-2xl border font-bold text-xs shadow-soft transition-all duration-150 select-none touch-none ${
+      className={`pointer-events-auto relative flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-2xl border font-bold text-xs shadow-soft transition-all duration-150 select-none touch-none ${
+        status === 'idle' ? 'w-10 px-0 sm:w-auto sm:px-3' : 'px-3'
+      } ${
         status === 'recording'
           ? 'scale-105 border-emerald-500/80 bg-emerald-600 text-white shadow-emerald-500/40 ring-4 ring-emerald-500/20'
           : status === 'cancelling'
@@ -216,7 +218,12 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
         <Mic className="h-4 w-4 text-accent" aria-hidden />
       )}
 
-      <span className="text-[11px] font-semibold tracking-wide uppercase">
+      <span
+        aria-live="polite"
+        className={`text-[11px] font-semibold uppercase tracking-wide ${
+          status === 'idle' ? 'hidden sm:inline' : ''
+        }`}
+      >
         {status === 'recording'
           ? `REC ${seconds}s`
           : status === 'cancelling'

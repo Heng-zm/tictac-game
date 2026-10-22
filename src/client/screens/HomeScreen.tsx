@@ -14,7 +14,7 @@ import {
 import type { AiDifficulty, Side } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
-import { modeLabel } from '../lib/game';
+import { modeLabel, opponentFor } from '../lib/game';
 import { cn } from '../lib/cn';
 import { Avatar, Button, Card, Logo, Pill, SegmentedControl } from '../components/ui';
 import { RankBadge, RankProgress } from '../components/RankBadge';
@@ -42,6 +42,8 @@ export function HomeScreen({
   if (!profile) return null;
   const stats = profile.stats;
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
+  const activeOpponent = activeMatch ? opponentFor(activeMatch) : null;
+  const yourTurn = activeMatch ? activeMatch.currentTurn === activeMatch.youSide : false;
   const busy = Boolean(activeMatch || pendingInvite);
 
   async function startBot(): Promise<void> {
@@ -100,9 +102,21 @@ export function HomeScreen({
                 <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
                   Game in progress
                 </span>
-                <span className="mt-0.5 block truncate text-sm font-semibold text-ink">{modeLabel(activeMatch.mode)}</span>
+                <span className="mt-0.5 flex min-w-0 items-baseline gap-1.5">
+                  <span className="shrink-0 text-sm font-semibold text-ink">{modeLabel(activeMatch.mode)}</span>
+                  <span className="truncate text-[11px] text-muted">
+                    vs {activeOpponent?.displayName ?? 'Opponent'}
+                  </span>
+                </span>
               </span>
-              <span className="shrink-0 text-xs font-semibold text-accent">Resume</span>
+              <span
+                className={cn(
+                  'shrink-0 text-xs font-semibold',
+                  yourTurn ? 'text-success' : 'text-accent',
+                )}
+              >
+                {yourTurn ? 'Your turn' : 'Resume'}
+              </span>
               <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
             </button>
           ) : null}

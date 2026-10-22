@@ -123,10 +123,24 @@ export default function App() {
       className="min-h-[var(--app-vh)]"
       style={{ '--nav-clearance': showActiveGameBar ? '76px' : '0px' } as CSSProperties}
     >
+      <a
+        href="#main-content"
+        onClick={(event) => {
+          event.preventDefault();
+          const main = document.getElementById('main-content');
+          main?.scrollIntoView({ block: 'start' });
+          main?.focus({ preventScroll: true });
+        }}
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-soft focus:outline-none focus:ring-2 focus:ring-accent"
+      >
+        Skip to content
+      </a>
       {showConnectionBanner ? (
         <ConnectionBanner connection={client.connection} onRetry={client.reconnect} />
       ) : null}
-      {screen}
+      <main id="main-content" tabIndex={-1} className="outline-none">
+        {screen}
+      </main>
       {showActiveGameBar && activeMatch ? (
         <ActiveGameBar
           match={activeMatch}

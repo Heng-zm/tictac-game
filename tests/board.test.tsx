@@ -58,14 +58,17 @@ describe('Board input', () => {
     vi.unstubAllGlobals();
   });
 
-  it('does not place a stone when the HUD is tapped', () => {
-    const { onCell } = renderBoard();
-    const zoomIn = screen.getByTitle('Zoom in');
+  it('does not place a stone when a HUD element is tapped', () => {
+    const { grid, onCell } = renderBoard();
+    const hud = document.createElement('div');
+    hud.setAttribute('data-board-hud', '');
+    grid.appendChild(hud);
+
     const pointer = { pointerId: 1, pointerType: 'touch', button: 0, clientX: 40, clientY: 40 };
 
-    fireEvent.pointerDown(zoomIn, pointer);
-    fireEvent.pointerUp(zoomIn, pointer);
-    fireEvent.click(zoomIn);
+    fireEvent.pointerDown(hud, pointer);
+    fireEvent.pointerUp(hud, pointer);
+    fireEvent.click(hud);
 
     expect(onCell).not.toHaveBeenCalled();
   });

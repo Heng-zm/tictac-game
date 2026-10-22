@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Sparkles, Timer, WifiOff, X } from 'lucide-react';
+import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, WifiOff, X } from 'lucide-react';
 import type { Side } from '../../shared/game-types';
-import type { StickerId } from '../../shared/stickers';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
 import { SocketRequestError } from '../lib/socket';
 import {
-  describeOutcome,
   findWinningLine,
   isRatedMatch,
   modeLabel,
@@ -19,7 +17,6 @@ import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spin
 import { Page } from '../components/Layout';
 import { Board } from '../components/Board';
 import { GameResult } from '../components/GameResult';
-import { ReactionPicker } from '../components/stickers/ReactionPicker';
 import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
 import { WalkieTalkieButton } from '../components/voice/WalkieTalkieButton';
 
@@ -40,7 +37,6 @@ export function GameScreen({
   const [rematchBusy, setRematchBusy] = useState(false);
   const [forfeitOpen, setForfeitOpen] = useState(false);
   const [forfeiting, setForfeiting] = useState(false);
-  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const joinRequested = useRef(false);
 
   const match = currentMatch?.id === matchId ? currentMatch : null;
@@ -208,21 +204,6 @@ export function GameScreen({
     [client.reactions],
   );
 
-  const handleSendReaction = useCallback(
-    async (stickerId: StickerId): Promise<void> => {
-      if (!match) return;
-      try {
-        await client.sendReaction(match.id, stickerId);
-      } catch (error) {
-        client.pushToast({
-          type: 'error',
-          title: 'Reaction not sent',
-          message: errorMessage(error),
-        });
-      }
-    },
-    [client, match],
-  );
 
   const handleSendVoice = useCallback(
     async (audioData: string, durationMs: number, waveform: number[]): Promise<void> => {
@@ -259,7 +240,7 @@ export function GameScreen({
   if (loading && !match) {
     return (
       <Page>
-        <GameHeader onBack={() => navigate('/')} onResign={undefined} showResign={false} />
+        <GameHeader onBack={() => navigate('/')} />
         <Card className="flex flex-col items-center gap-3 p-10">
           <Spinner className="h-7 w-7" />
           <p className="text-sm font-medium text-muted">
@@ -279,7 +260,7 @@ export function GameScreen({
     const offline = connection !== 'online' && !loadError;
     return (
       <Page>
-        <GameHeader onBack={() => navigate('/')} showResign={false} />
+        <GameHeader onBack={() => navigate('/')} />
         <Card>
           <EmptyState
             icon={offline ? WifiOff : waiting ? Clock3 : X}
@@ -334,7 +315,6 @@ export function GameScreen({
   const opponentDisconnected =
     match.opponentConnection === 'disconnected' || Boolean(client.opponentGraceEndsAt);
 
-  const outcome = match.status === 'FINISHED' ? describeOutcome(match) : null;
   const clockText =
     match.status === 'FINISHED'
       ? '—'
@@ -353,18 +333,6 @@ export function GameScreen({
         : yourTurn
           ? 'Your turn'
           : "Opponent's turn";
-  const statusText =
-    outcome === 'win'
-      ? 'You won'
-      : outcome === 'loss'
-        ? 'You lost'
-        : outcome === 'draw'
-          ? 'Draw'
-          : yourTurn
-            ? 'Your move'
-            : match.currentTurn
-              ? `${opponent?.displayName ?? 'Opponent'} to move`
-              : 'Waiting';
   const clockProgress =
     match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnTimerTotal > 0
       ? Math.min(1, Math.max(0, turnRemaining / turnTimerTotal))
@@ -372,10 +340,6 @@ export function GameScreen({
   const clockUrgent = Boolean(
     yourTurn && match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnRemaining <= 5000,
   );
-  const turnLabel =
-    match.status === 'FINISHED'
-      ? `${match.turnNumber} ${match.turnNumber === 1 ? 'move' : 'moves'}`
-      : `Turn ${match.turnNumber + 1}`;
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden overscroll-none bg-app">
@@ -397,10 +361,13 @@ export function GameScreen({
         <div className="pointer-events-auto border-b border-line/70 bg-app px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+6px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4">
           <div className="mx-auto w-full max-w-[720px] lg:max-w-[840px]">
             <GameHeader
-              onBack={() => navigate('/')}
-              onResign={() => setForfeitOpen(true)}
-              onOpenReactions={() => setReactionPickerOpen(true)}
-              showResign={match.status === 'ACTIVE'}
+              onBack={() => {
+                if (match.status === 'ACTIVE') {
+                  setForfeitOpen(true);
+                } else {
+                  navigate('/');
+                }
+              }}
               mode={modeLabel(match.mode)}
               rated={isRatedMatch(match)}
             />
@@ -471,44 +438,13 @@ export function GameScreen({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+64px)] z-20 flex items-center justify-center gap-2 sm:inset-x-4">
-        <div className="pointer-events-auto flex max-w-[calc(100%-52px)] flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface px-3 py-1.5 text-center shadow-soft">
-          <div className="flex max-w-full items-center gap-2">
-            {pendingCell !== null ? (
-              <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted" aria-hidden />
-            ) : null}
-            <p className="min-w-0 truncate text-xs font-semibold text-ink" aria-live="polite">
-              <span
-                key={`${match.status}-${match.currentTurn ?? 'none'}-${pendingCell !== null ? 'sending' : 'ready'}`}
-                className="turn-status inline-block max-w-full truncate align-bottom"
-              >
-                {pendingCell !== null ? 'Sending move…' : statusText}
-              </span>
-            </p>
-            <span className="shrink-0 rounded-full bg-elevated px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-muted">
-              {turnLabel}
-            </span>
-          </div>
-          <p className="text-[9px] font-medium leading-tight text-muted">
-            {isRatedMatch(match) ? 'Rated' : 'Casual'} · 5 in a row · drag to pan · pinch to zoom
-          </p>
-        </div>
-
+      <div className="pointer-events-none absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center sm:right-4">
         <WalkieTalkieButton
           matchId={match.id}
           onSendVoice={handleSendVoice}
+          onError={(message) => pushToast({ type: 'error', title: 'Microphone unavailable', message })}
           disabled={match.status !== 'ACTIVE' && match.status !== 'FINISHED'}
         />
-
-        <button
-          type="button"
-          onClick={() => setReactionPickerOpen(true)}
-          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition hover:bg-elevated hover:border-accent/40 active:scale-90"
-          title="Send animated sticker reaction or quick chat"
-          aria-label="Send animated sticker reaction or quick chat"
-        >
-          <Sparkles className="h-4 w-4" aria-hidden="true" />
-        </button>
       </div>
 
       <GameResult
@@ -540,14 +476,6 @@ export function GameScreen({
           </Button>
         </div>
       </Modal>
-
-      <ReactionPicker
-        isOpen={reactionPickerOpen}
-        onClose={() => setReactionPickerOpen(false)}
-        onSelect={handleSendReaction}
-        languageCode={client.profile?.languageCode}
-        disabled={connection !== 'online'}
-      />
     </div>
   );
 }
@@ -617,16 +545,10 @@ function TurnClock({
 
 function GameHeader({
   onBack,
-  onResign,
-  onOpenReactions,
-  showResign,
   mode,
   rated,
 }: {
   onBack: () => void;
-  onResign?: () => void;
-  onOpenReactions?: () => void;
-  showResign: boolean;
   mode?: string;
   rated?: boolean;
 }) {
@@ -646,18 +568,6 @@ function GameHeader({
             </p>
           ) : null}
         </div>
-      </div>
-      <div className="flex items-center gap-1.5">
-        {onOpenReactions ? (
-          <IconButton label="Sticker reactions and quick chat" onClick={onOpenReactions}>
-            <Sparkles className="h-4 w-4 text-accent" aria-hidden />
-          </IconButton>
-        ) : null}
-        {showResign && onResign ? (
-          <IconButton label="Resign game" tone="danger" onClick={onResign}>
-            <Flag className="h-4 w-4" aria-hidden />
-          </IconButton>
-        ) : null}
       </div>
     </header>
   );

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import {
   BarChart3,
   Bot,
@@ -42,9 +42,32 @@ export function ProfileScreen({
   tab: ProfileTab;
 }) {
   const { profile, config } = client;
+  const tabListRef = useRef<HTMLDivElement>(null);
 
   if (!profile) return null;
   const stats = profile.stats;
+
+  function selectTab(nextTab: ProfileTab): void {
+    navigate(nextTab === 'overview' ? '/profile' : `/profile/${nextTab}`);
+  }
+
+  function handleTabKeyDown(event: KeyboardEvent<HTMLButtonElement>, index: number): void {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight') nextIndex = (index + 1) % tabs.length;
+    else if (event.key === 'ArrowLeft') nextIndex = (index - 1 + tabs.length) % tabs.length;
+    else if (event.key === 'Home') nextIndex = 0;
+    else if (event.key === 'End') nextIndex = tabs.length - 1;
+
+    if (nextIndex === null) return;
+    event.preventDefault();
+    const nextTab = tabs[nextIndex];
+    if (!nextTab) return;
+    selectTab(nextTab.value);
+    window.requestAnimationFrame(() => {
+      const tabButtons = tabListRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]');
+      tabButtons?.[nextIndex]?.focus();
+    });
+  }
 
   return (
     <Page withNav width="wide">
@@ -95,8 +118,14 @@ export function ProfileScreen({
         </Card>
 
         <div className="min-w-0">
-          <div className="mt-1 flex border-b border-line lg:mt-0" role="tablist" aria-label="Profile sections">
-            {tabs.map((item) => {
+          <div
+            ref={tabListRef}
+            className="mt-1 flex border-b border-line lg:mt-0"
+            role="tablist"
+            aria-label="Profile sections"
+            aria-orientation="horizontal"
+          >
+            {tabs.map((item, index) => {
               const Icon = item.icon;
               const selected = item.value === tab;
               return (
@@ -104,8 +133,12 @@ export function ProfileScreen({
                   key={item.value}
                   type="button"
                   role="tab"
+                  id={`profile-tab-${item.value}`}
                   aria-selected={selected}
-                  onClick={() => navigate(item.value === 'overview' ? '/profile' : `/profile/${item.value}`)}
+                  aria-controls={`profile-panel-${item.value}`}
+                  tabIndex={selected ? 0 : -1}
+                  onClick={() => selectTab(item.value)}
+                  onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={cn(
                     'relative flex flex-1 items-center justify-center gap-1.5 pb-2.5 pt-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm',
                     selected ? 'text-accent' : 'text-muted hover:text-ink',
@@ -119,9 +152,17 @@ export function ProfileScreen({
             })}
           </div>
 
-          {tab === 'overview' ? <OverviewTab client={client} navigate={navigate} /> : null}
-          {tab === 'history' ? <HistoryTab /> : null}
-          {tab === 'settings' ? <SettingsTab client={client} config={config} /> : null}
+          <div
+            role="tabpanel"
+            id={`profile-panel-${tab}`}
+            aria-labelledby={`profile-tab-${tab}`}
+            tabIndex={0}
+            className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+          >
+            {tab === 'overview' ? <OverviewTab client={client} navigate={navigate} /> : null}
+            {tab === 'history' ? <HistoryTab /> : null}
+            {tab === 'settings' ? <SettingsTab client={client} config={config} /> : null}
+          </div>
         </div>
       </div>
     </Page>
