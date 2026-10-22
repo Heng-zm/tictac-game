@@ -185,6 +185,7 @@ export interface UserProfile {
   lastName: string | null;
   username: string | null;
   photoUrl: string | null;
+  languageCode?: string | null;
   autoAiFallback: boolean;
   turnNotifications: boolean;
   stats: UserStats;

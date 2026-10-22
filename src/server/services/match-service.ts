@@ -179,6 +179,9 @@ export class MatchService {
       this.emitState(game);
       return this.stateFor(game.match, userId);
     }
+    // Authorized participants may open finished games to review the result or
+    // exchange reactions, so subscribe their sockets to the match room too.
+    this.joinMatchRooms(match);
     return this.stateFor(match, userId);
   }
 
@@ -340,10 +343,16 @@ export class MatchService {
       }
       throw new AppError(409, 'GAME_FINISHED', 'This game has ended');
     }
-    const activeGame = game ?? this.installActive(match);
     if (match.currentTurn !== player.side) {
+      // The in-memory processed-action set is lost on restart. If this cell is
+      // already occupied by the requesting side, the retried action may have
+      // been applied before the restart even though the turn has since passed.
+      if (match.board[cell] === player.side && (await this.deps.repository.hasProcessedAction(matchId, actionId))) {
+        return this.stateFor(match, userId);
+      }
       throw new AppError(409, 'OUT_OF_TURN', 'It is not your turn');
     }
+    const activeGame = game ?? this.installActive(match);
 
     const applied = applyMoveWithStatus(match.board, player.side, cell, { assumeActive: true });
     if (!applied.ok) {

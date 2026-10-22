@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, WifiOff, X } from 'lucide-react';
+import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Sparkles, Timer, WifiOff, X } from 'lucide-react';
 import type { Side } from '../../shared/game-types';
+import type { StickerId } from '../../shared/stickers';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
 import { SocketRequestError } from '../lib/socket';
@@ -18,6 +19,8 @@ import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spin
 import { Page } from '../components/Layout';
 import { Board } from '../components/Board';
 import { GameResult } from '../components/GameResult';
+import { ReactionPicker } from '../components/stickers/ReactionPicker';
+import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
 
 export function GameScreen({
   client,
@@ -36,6 +39,7 @@ export function GameScreen({
   const [rematchBusy, setRematchBusy] = useState(false);
   const [forfeitOpen, setForfeitOpen] = useState(false);
   const [forfeiting, setForfeiting] = useState(false);
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const joinRequested = useRef(false);
 
   const match = currentMatch?.id === matchId ? currentMatch : null;
@@ -193,6 +197,31 @@ export function GameScreen({
       setForfeiting(false);
     }
   }
+
+  const youReaction = useMemo(
+    () => client.reactions.filter((r) => r.isYou).slice(-1)[0] ?? null,
+    [client.reactions],
+  );
+  const opponentReaction = useMemo(
+    () => client.reactions.filter((r) => !r.isYou).slice(-1)[0] ?? null,
+    [client.reactions],
+  );
+
+  const handleSendReaction = useCallback(
+    async (stickerId: StickerId): Promise<void> => {
+      if (!match) return;
+      try {
+        await client.sendReaction(match.id, stickerId);
+      } catch (error) {
+        client.pushToast({
+          type: 'error',
+          title: 'Reaction not sent',
+          message: errorMessage(error),
+        });
+      }
+    },
+    [client, match],
+  );
 
   if (otherActive) {
     return (
@@ -353,21 +382,30 @@ export function GameScreen({
             <GameHeader
               onBack={() => navigate('/')}
               onResign={() => setForfeitOpen(true)}
+              onOpenReactions={() => setReactionPickerOpen(true)}
               showResign={match.status === 'ACTIVE'}
               mode={modeLabel(match.mode)}
               rated={isRatedMatch(match)}
             />
 
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-0.5">
-              <PlayerBadge
-                name={you?.displayName ?? 'You'}
-                photoUrl={you?.photoUrl}
-                side={match.youSide}
-                active={match.currentTurn === match.youSide && match.status === 'ACTIVE'}
-                connected
-                isYou
-                isAi={false}
-              />
+              <div className="relative">
+                <PlayerBadge
+                  name={you?.displayName ?? 'You'}
+                  photoUrl={you?.photoUrl}
+                  side={match.youSide}
+                  active={match.currentTurn === match.youSide && match.status === 'ACTIVE'}
+                  connected
+                  isYou
+                  isAi={false}
+                />
+                {youReaction ? (
+                  <div className="absolute top-11 left-1 z-30">
+                    <ReactionOverlay reaction={youReaction} languageCode={client.profile?.languageCode} />
+                  </div>
+                ) : null}
+              </div>
+
               <TurnClock
                 text={clockText}
                 label={clockLabel}
@@ -375,15 +413,23 @@ export function GameScreen({
                 urgent={clockUrgent}
                 muted={match.turnTimerPaused || match.status === 'FINISHED'}
               />
-              <PlayerBadge
-                name={opponent?.displayName ?? 'Opponent'}
-                photoUrl={opponent?.photoUrl}
-                side={opponent?.side ?? (match.youSide === 'X' ? 'O' : 'X')}
-                active={match.currentTurn !== match.youSide && match.status === 'ACTIVE'}
-                connected={match.opponentConnection === 'connected' || match.opponentConnection === 'not_applicable'}
-                isAi={Boolean(opponent?.isAi)}
-                align="right"
-              />
+
+              <div className="relative">
+                <PlayerBadge
+                  name={opponent?.displayName ?? 'Opponent'}
+                  photoUrl={opponent?.photoUrl}
+                  side={opponent?.side ?? (match.youSide === 'X' ? 'O' : 'X')}
+                  active={match.currentTurn !== match.youSide && match.status === 'ACTIVE'}
+                  connected={match.opponentConnection === 'connected' || match.opponentConnection === 'not_applicable'}
+                  isAi={Boolean(opponent?.isAi)}
+                  align="right"
+                />
+                {opponentReaction ? (
+                  <div className="absolute top-11 right-1 z-30">
+                    <ReactionOverlay reaction={opponentReaction} languageCode={client.profile?.languageCode} />
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             {opponentDisconnected && match.status === 'ACTIVE' ? (
@@ -408,8 +454,8 @@ export function GameScreen({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+64px)] z-20 flex justify-center sm:inset-x-4">
-        <div className="pointer-events-auto flex max-w-full flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface px-3 py-1.5 text-center shadow-soft">
+      <div className="pointer-events-none absolute inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+64px)] z-20 flex items-center justify-center gap-2 sm:inset-x-4">
+        <div className="pointer-events-auto flex max-w-[calc(100%-52px)] flex-col items-center gap-0.5 rounded-2xl border border-line bg-surface px-3 py-1.5 text-center shadow-soft">
           <div className="flex max-w-full items-center gap-2">
             {pendingCell !== null ? (
               <Loader2 className="h-3 w-3 shrink-0 animate-spin text-muted" aria-hidden />
@@ -430,6 +476,16 @@ export function GameScreen({
             {isRatedMatch(match) ? 'Rated' : 'Casual'} · 5 in a row · drag to pan · pinch to zoom
           </p>
         </div>
+
+        <button
+          type="button"
+          onClick={() => setReactionPickerOpen(true)}
+          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition hover:bg-elevated hover:border-accent/40 active:scale-90"
+          title="Send animated sticker reaction or quick chat"
+          aria-label="Send animated sticker reaction or quick chat"
+        >
+          <Sparkles className="h-4.5 w-4.5" aria-hidden="true" />
+        </button>
       </div>
 
       <GameResult
@@ -461,6 +517,14 @@ export function GameScreen({
           </Button>
         </div>
       </Modal>
+
+      <ReactionPicker
+        isOpen={reactionPickerOpen}
+        onClose={() => setReactionPickerOpen(false)}
+        onSelect={handleSendReaction}
+        languageCode={client.profile?.languageCode}
+        disabled={connection !== 'online'}
+      />
     </div>
   );
 }
@@ -531,12 +595,14 @@ function TurnClock({
 function GameHeader({
   onBack,
   onResign,
+  onOpenReactions,
   showResign,
   mode,
   rated,
 }: {
   onBack: () => void;
   onResign?: () => void;
+  onOpenReactions?: () => void;
   showResign: boolean;
   mode?: string;
   rated?: boolean;
@@ -558,11 +624,18 @@ function GameHeader({
           ) : null}
         </div>
       </div>
-      {showResign && onResign ? (
-        <IconButton label="Resign game" tone="danger" onClick={onResign}>
-          <Flag className="h-4 w-4" aria-hidden />
-        </IconButton>
-      ) : null}
+      <div className="flex items-center gap-1.5">
+        {onOpenReactions ? (
+          <IconButton label="Sticker reactions and quick chat" onClick={onOpenReactions}>
+            <Sparkles className="h-4 w-4 text-accent" aria-hidden />
+          </IconButton>
+        ) : null}
+        {showResign && onResign ? (
+          <IconButton label="Resign game" tone="danger" onClick={onResign}>
+            <Flag className="h-4 w-4" aria-hidden />
+          </IconButton>
+        ) : null}
+      </div>
     </header>
   );
 }

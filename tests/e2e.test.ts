@@ -257,10 +257,19 @@ describe('Socket.IO end-to-end', () => {
     const c31 = encodeCell(3, 1);
     const c40 = encodeCell(4, 0);
 
+    // A rejected join must not leave the socket subscribed to the match room.
+    // If it does, Charlie would observe moves from a game he is not part of.
+    const charlieRoomLeak = waitFor<{ matchId: string }>(
+      charlieSocket,
+      'move:accepted',
+      () => true,
+      300,
+    );
     const firstAction = randomUUID();
     const firstMove = expectOk<{ match: MatchFound['match'] }>(
       await emitAck(xSocket, 'move:submit', { matchId, cell: c00, actionId: firstAction }),
     );
+    await expect(charlieRoomLeak).rejects.toThrow(/Timed out waiting for move:accepted/);
     expect(firstMove.match.board[c00]).toBe('X');
     expect(firstMove.match.currentTurn).toBe('O');
 

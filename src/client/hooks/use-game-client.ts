@@ -10,10 +10,20 @@ import type {
 } from '../../shared/game-types';
 import type {
   MatchJoinResult,
+  MatchReactionResult,
   MoveSubmitResult,
   QueueJoinResult,
   RematchResult,
 } from '../../shared/events';
+import type { StickerId } from '../../shared/stickers';
+
+export interface DisplayReaction {
+  reactionId: string;
+  senderSide: Side;
+  isYou: boolean;
+  stickerId: StickerId;
+  timestamp: string;
+}
 import {
   ApiRequestError,
   authenticateDev,
@@ -100,6 +110,8 @@ export interface GameClient {
   setAutoAiFallback: (value: boolean) => Promise<void>;
   setTurnNotifications: (value: boolean) => Promise<void>;
   sendTestNotification: () => Promise<void>;
+  reactions: DisplayReaction[];
+  sendReaction: (matchId: string, stickerId: StickerId) => Promise<MatchReactionResult>;
   clearPendingInvite: () => void;
   clearCreatedInvite: () => void;
   reconnect: () => void;
@@ -130,6 +142,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const [initialInviteToken, setInitialInviteToken] = useState<string | null>(null);
   const [initialGameMatchId, setInitialGameMatchId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const [reactions, setReactions] = useState<DisplayReaction[]>([]);
   const [bootAttempt, setBootAttempt] = useState(0);
 
   const socketRef = useRef<GameClientSocket | null>(null);
@@ -138,6 +151,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const toastTimers = useRef(new Map<string, number>());
   const profileRef = useRef(profile);
   profileRef.current = profile;
+  const matchRef = useRef(match);
+  matchRef.current = match;
 
   const dismissToast = useCallback((id: string) => {
     const timer = toastTimers.current.get(id);
@@ -337,6 +352,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       setLastMove(null);
       setLastRejection(null);
       setOpponentGraceEndsAt(null);
+      setReactions([]);
       hapticNotify('success');
       onMatchFoundRef.current(found.id);
     });
@@ -434,6 +450,29 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       setMatch((current) =>
         current && current.id === event.matchId ? { ...current, rematch: event.rematch } : current,
       );
+    });
+
+    socket.on('match:reaction', (event) => {
+      if (!active) return;
+      const currentMatch = matchRef.current;
+      if (!currentMatch || currentMatch.id !== event.matchId) return;
+      const isYou = currentMatch.youSide === event.senderSide;
+      const newReaction: DisplayReaction = {
+        reactionId: event.reactionId,
+        senderSide: event.senderSide,
+        isYou,
+        stickerId: event.stickerId,
+        timestamp: event.timestamp,
+      };
+
+      setReactions((prev) => [...prev.slice(-3), newReaction]);
+      hapticImpact('light');
+
+      window.setTimeout(() => {
+        if (active) {
+          setReactions((prev) => prev.filter((r) => r.reactionId !== event.reactionId));
+        }
+      }, 3200);
     });
 
     socket.on('server:shutdown', ({ message }) => {
@@ -595,6 +634,16 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     [requireSocket],
   );
 
+  const sendReaction = useCallback(
+    async (matchId: string, stickerId: StickerId): Promise<MatchReactionResult> => {
+      const socket = requireSocket();
+      return request<MatchReactionResult>((ack) => {
+        socket.emit('match:reaction', { matchId, stickerId }, ack);
+      });
+    },
+    [requireSocket],
+  );
+
   const refreshProfile = useCallback(async (): Promise<void> => {
     try {
       const payload = await fetchMe();
@@ -696,6 +745,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     initialInviteToken,
     initialGameMatchId,
     toasts,
+    reactions,
     retryBoot,
     joinQueue,
     cancelQueue,
@@ -707,6 +757,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     submitMove,
     requestRematch,
     leaveMatch,
+    sendReaction,
     refreshProfile,
     setAutoAiFallback,
     setTurnNotifications,

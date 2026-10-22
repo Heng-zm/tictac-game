@@ -224,6 +224,24 @@ describe('MatchService', () => {
     expect(io.events('move:accepted')).toHaveLength(1);
   });
 
+  it('keeps non-final move retries idempotent after a server restart', async () => {
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const actionId = randomUUID();
+    const cell = encodeCell(0, 0);
+    const first = await service.submitMove(aliceId, match.id, cell, actionId);
+    expect(first.currentTurn).toBe('O');
+
+    // A fresh service has no in-memory processed-action set. The retry now
+    // arrives when it is already the opponent's turn, but the move is durable.
+    const restarted = await startService();
+    const retry = await restarted.submitMove(aliceId, match.id, cell, actionId);
+
+    expect(retry.version).toBe(first.version);
+    expect(retry.board).toEqual(first.board);
+    expect(retry.currentTurn).toBe('O');
+  });
+
   it('keeps retries of the finishing move idempotent', async () => {
     const match = await createRandomMatch();
     const { finalActionId, finalCell, finalState } = await playToXWin(match);

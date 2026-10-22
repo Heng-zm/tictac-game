@@ -232,7 +232,9 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
         ack,
         async () => {
           const parsed = matchJoinSchema.parse(payload);
-          socket.join(matchRoom(parsed.matchId));
+          // Joining the room is handled by MatchService.joinMatch only after it
+          // has verified that this user is a participant. Joining here first
+          // would let a rejected non-participant receive room broadcasts.
           const match = await matchService.joinMatch(userId, parsed.matchId);
           return { match };
         },
