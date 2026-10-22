@@ -77,9 +77,9 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
         }
         callback('Origin is not allowed', false);
       },
-      maxHttpBufferSize: 32 * 1024,
-      pingInterval: 25_000,
-      pingTimeout: 20_000,
+      maxHttpBufferSize: 1024 * 1024,
+      pingInterval: 10_000,
+      pingTimeout: 10_000,
       perMessageDeflate: false,
     },
   );

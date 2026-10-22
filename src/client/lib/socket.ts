@@ -24,7 +24,7 @@ export function createGameSocket(): GameClientSocket {
     reconnectionDelay: 600,
     reconnectionDelayMax: 5000,
     randomizationFactor: 0.4,
-    timeout: 12_000,
+    timeout: 20_000,
   });
 }
 
