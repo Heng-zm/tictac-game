@@ -21,6 +21,7 @@ export interface TelegramWebAppUser {
   username?: string;
   language_code?: string;
   photo_url?: string;
+  allows_write_to_pm?: boolean;
 }
 
 export interface TelegramWebApp {
@@ -45,6 +46,8 @@ export interface TelegramWebApp {
   setBackgroundColor: (color: string) => void;
   enableClosingConfirmation: () => void;
   disableClosingConfirmation: () => void;
+  // Bot API 6.9+. Optional because older Telegram clients do not expose them.
+  requestWriteAccess?: (callback?: (granted: boolean | string) => void) => void;
   // Bot API 7.7+. Optional because older Telegram clients do not expose them.
   disableVerticalSwipes?: () => void;
   enableVerticalSwipes?: () => void;

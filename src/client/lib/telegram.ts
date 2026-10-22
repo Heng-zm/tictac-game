@@ -1,6 +1,7 @@
 import type { TelegramThemeParams, TelegramWebApp } from '../types/telegram';
 
 const INVITE_PATTERN = /^[A-Za-z0-9_-]{43}$/;
+const MATCH_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export function getWebApp(): TelegramWebApp | null {
   if (typeof window === 'undefined') return null;
@@ -28,6 +29,44 @@ export function parseInviteToken(startParam: string | null): string | null {
   if (!startParam?.startsWith('invite_')) return null;
   const token = startParam.slice('invite_'.length);
   return INVITE_PATTERN.test(token) ? token : null;
+}
+
+/** Parses the deep link created when a turn notification opens the app. */
+export function parseGameMatchId(startParam: string | null): string | null {
+  if (!startParam?.startsWith('game_')) return null;
+  const matchId = startParam.slice('game_'.length);
+  return MATCH_ID_PATTERN.test(matchId) ? matchId : null;
+}
+
+export type TelegramWriteAccessResult = 'allowed' | 'denied' | 'unsupported';
+
+/**
+ * Requests permission for the bot to send messages to this Telegram user.
+ * The prompt must be triggered by a user gesture, such as a settings toggle.
+ */
+export function requestTelegramWriteAccess(): Promise<TelegramWriteAccessResult> {
+  const tg = getWebApp();
+  if (!tg) return Promise.resolve('unsupported');
+  if (tg.initDataUnsafe?.user?.allows_write_to_pm) return Promise.resolve('allowed');
+  if (typeof tg.requestWriteAccess !== 'function') return Promise.resolve('unsupported');
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const state: { timer?: number } = {};
+    const finish = (granted: boolean | string) => {
+      if (settled) return;
+      settled = true;
+      if (state.timer !== undefined) window.clearTimeout(state.timer);
+      resolve(granted === true || granted === 'allowed' ? 'allowed' : 'denied');
+    };
+
+    state.timer = window.setTimeout(() => finish(false), 60_000);
+    try {
+      tg.requestWriteAccess?.(finish);
+    } catch {
+      finish(false);
+    }
+  });
 }
 
 export function initTelegram(): void {

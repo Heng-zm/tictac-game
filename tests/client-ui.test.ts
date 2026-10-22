@@ -1,7 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { formatClock, formatDuration, formatLongDuration } from '../src/client/hooks/use-time';
 import { parseHash } from '../src/client/hooks/use-hash-route';
-import { readStartParam, setVerticalSwipeLock } from '../src/client/lib/telegram';
+import {
+  parseGameMatchId,
+  readStartParam,
+  requestTelegramWriteAccess,
+  setVerticalSwipeLock,
+} from '../src/client/lib/telegram';
 import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink } from '../src/client/lib/invites';
 import { rankForRating } from '../src/client/lib/ranks';
 
@@ -87,6 +92,14 @@ describe('client UI formatting', () => {
     vi.unstubAllGlobals();
   });
 
+  it('parses only valid game notification start params', () => {
+    const matchId = '123e4567-e89b-42d3-a456-426614174000';
+    expect(parseGameMatchId(`game_${matchId}`)).toBe(matchId);
+    expect(parseGameMatchId('invite_foo')).toBeNull();
+    expect(parseGameMatchId('game_short')).toBeNull();
+    expect(parseGameMatchId(null)).toBeNull();
+  });
+
   it('derives ladder tiers and progress from the rating', () => {
     expect(rankForRating(999)).toMatchObject({
       name: 'Rookie',
@@ -102,6 +115,56 @@ describe('client UI formatting', () => {
     expect(rankForRating(1099)).toMatchObject({ name: 'Bronze', pointsToNext: 1 });
     expect(rankForRating(1100)).toMatchObject({ name: 'Silver', nextRank: { name: 'Gold' } });
     expect(rankForRating(1800)).toMatchObject({ name: 'Master', nextRank: null, progress: 1 });
+  });
+});
+
+describe('Telegram write access', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  function stubWindow(requestWriteAccess: (callback?: (granted: boolean) => void) => void) {
+    vi.stubGlobal('window', {
+      Telegram: { WebApp: { initDataUnsafe: {}, requestWriteAccess } },
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+    });
+  }
+
+  it('resolves allowed without prompting when permission is already granted', async () => {
+    const requestWriteAccess = vi.fn();
+    vi.stubGlobal('window', {
+      Telegram: {
+        WebApp: {
+          initDataUnsafe: { user: { allows_write_to_pm: true } },
+          requestWriteAccess,
+        },
+      },
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+    });
+
+    await expect(requestTelegramWriteAccess()).resolves.toBe('allowed');
+    expect(requestWriteAccess).not.toHaveBeenCalled();
+  });
+
+  it('maps the Telegram callback to allowed or denied', async () => {
+    stubWindow((callback) => callback?.(true));
+    await expect(requestTelegramWriteAccess()).resolves.toBe('allowed');
+
+    vi.unstubAllGlobals();
+    stubWindow((callback) => callback?.(false));
+    await expect(requestTelegramWriteAccess()).resolves.toBe('denied');
+  });
+
+  it('reports unsupported on older Telegram clients', async () => {
+    vi.stubGlobal('window', {
+      Telegram: { WebApp: { initDataUnsafe: {} } },
+      setTimeout: globalThis.setTimeout,
+      clearTimeout: globalThis.clearTimeout,
+    });
+
+    await expect(requestTelegramWriteAccess()).resolves.toBe('unsupported');
   });
 });
 

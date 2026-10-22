@@ -176,6 +176,7 @@ export interface UserProfile {
   username: string | null;
   photoUrl: string | null;
   autoAiFallback: boolean;
+  turnNotifications: boolean;
   stats: UserStats;
 }
 

@@ -27,6 +27,13 @@ export function buildInviteDeepLink(config: AppConfig, token: string): string {
   return url.toString();
 }
 
+export function buildGameLaunchUrl(config: AppConfig, matchId: string): string {
+  const base = config.miniAppUrl ?? 'http://localhost:5173';
+  const url = new URL(base);
+  url.searchParams.set('startapp', `game_${matchId}`);
+  return url.toString();
+}
+
 export function extractInviteToken(startParam: string | null | undefined): string | null {
   if (!startParam) return null;
   if (!startParam.startsWith('invite_')) return null;

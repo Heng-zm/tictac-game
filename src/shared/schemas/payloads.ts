@@ -59,9 +59,13 @@ export const devAuthSchema = z
 
 export const preferencesSchema = z
   .object({
-    autoAiFallback: z.boolean(),
+    autoAiFallback: z.boolean().optional(),
+    turnNotifications: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .refine((value) => value.autoAiFallback !== undefined || value.turnNotifications !== undefined, {
+    message: 'At least one preference is required',
+  });
 
 export const historyQuerySchema = z
   .object({

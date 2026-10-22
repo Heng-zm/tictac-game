@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   INVITE_TOKEN_PATTERN,
+  buildGameLaunchUrl,
   buildInviteDeepLink,
   extractInviteToken,
   generateInvitationToken,
@@ -38,6 +39,14 @@ describe('invitation helpers', () => {
     const { token } = generateInvitationToken();
     const link = buildInviteDeepLink(config, token);
     expect(link).toBe(`http://localhost:5173/?startapp=invite_${token}`);
+  });
+
+  it('builds a Mini App launch URL for turn notifications', () => {
+    const config = makeTestConfig({ miniAppUrl: 'https://tictactoe.example.com' });
+    const matchId = '123e4567-e89b-42d3-a456-426614174000';
+    expect(buildGameLaunchUrl(config, matchId)).toBe(
+      `https://tictactoe.example.com/?startapp=game_${matchId}`,
+    );
   });
 
   it('extracts only valid invite start parameters', () => {

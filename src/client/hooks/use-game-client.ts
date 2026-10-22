@@ -30,8 +30,10 @@ import {
   hapticImpact,
   hapticNotify,
   initTelegram,
+  parseGameMatchId,
   parseInviteToken,
   readStartParam,
+  requestTelegramWriteAccess,
   updateViewportHeight,
   watchTheme,
 } from '../lib/telegram';
@@ -80,6 +82,7 @@ export interface GameClient {
   lastRejection: MoveRejection | null;
   opponentGraceEndsAt: string | null;
   initialInviteToken: string | null;
+  initialGameMatchId: string | null;
   toasts: ToastMessage[];
   retryBoot: () => void;
   joinQueue: (autoAiFallback: boolean) => Promise<QueueStatus>;
@@ -94,6 +97,7 @@ export interface GameClient {
   leaveMatch: (matchId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
   setAutoAiFallback: (value: boolean) => Promise<void>;
+  setTurnNotifications: (value: boolean) => Promise<void>;
   clearPendingInvite: () => void;
   clearCreatedInvite: () => void;
   reconnect: () => void;
@@ -122,6 +126,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const [lastRejection, setLastRejection] = useState<MoveRejection | null>(null);
   const [opponentGraceEndsAt, setOpponentGraceEndsAt] = useState<string | null>(null);
   const [initialInviteToken, setInitialInviteToken] = useState<string | null>(null);
+  const [initialGameMatchId, setInitialGameMatchId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [bootAttempt, setBootAttempt] = useState(0);
 
@@ -172,8 +177,11 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     setPhase('booting');
     setBootError(null);
     setBootErrorCode(null);
-    const inviteToken = parseInviteToken(readStartParam());
+    const startParam = readStartParam();
+    const inviteToken = parseInviteToken(startParam);
     if (inviteToken) setInitialInviteToken(inviteToken);
+    const gameMatchId = parseGameMatchId(startParam);
+    if (gameMatchId) setInitialGameMatchId(gameMatchId);
 
     void (async () => {
       let loadedConfig;
@@ -591,7 +599,38 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
   const setAutoAiFallback = useCallback(async (value: boolean): Promise<void> => {
     try {
-      const payload = await updatePreferences(value);
+      const payload = await updatePreferences({ autoAiFallback: value });
+      setProfile(payload.user);
+    } catch (error) {
+      throw new ApiRequestError(
+        error instanceof ApiRequestError ? error.code : 'UPDATE_FAILED',
+        errorMessage(error),
+        error instanceof ApiRequestError ? error.status : 0,
+      );
+    }
+  }, []);
+
+  const setTurnNotifications = useCallback(async (value: boolean): Promise<void> => {
+    if (value) {
+      const access = await requestTelegramWriteAccess();
+      if (access === 'unsupported') {
+        throw new ApiRequestError(
+          'WRITE_ACCESS_UNSUPPORTED',
+          'Update Telegram to enable turn notifications.',
+          0,
+        );
+      }
+      if (access === 'denied') {
+        throw new ApiRequestError(
+          'WRITE_ACCESS_DENIED',
+          'Telegram did not grant permission for the bot to message you.',
+          0,
+        );
+      }
+    }
+
+    try {
+      const payload = await updatePreferences({ turnNotifications: value });
       setProfile(payload.user);
     } catch (error) {
       throw new ApiRequestError(
@@ -633,6 +672,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     lastRejection,
     opponentGraceEndsAt,
     initialInviteToken,
+    initialGameMatchId,
     toasts,
     retryBoot,
     joinQueue,
@@ -647,6 +687,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     leaveMatch,
     refreshProfile,
     setAutoAiFallback,
+    setTurnNotifications,
     clearPendingInvite,
     clearCreatedInvite,
     reconnect,

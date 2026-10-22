@@ -325,6 +325,7 @@ function SettingsTab({
 }) {
   const { profile, connection } = client;
   const [saving, setSaving] = useState(false);
+  const [savingNotifications, setSavingNotifications] = useState(false);
   if (!profile) return null;
 
   async function toggle(value: boolean): Promise<void> {
@@ -336,6 +337,25 @@ function SettingsTab({
       client.pushToast({ type: 'error', title: 'Could not save preference', message: errorMessage(error) });
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function toggleNotifications(value: boolean): Promise<void> {
+    setSavingNotifications(true);
+    try {
+      await client.setTurnNotifications(value);
+      client.pushToast({
+        type: 'success',
+        title: value ? 'Turn notifications on' : 'Turn notifications off',
+      });
+    } catch (error) {
+      client.pushToast({
+        type: 'error',
+        title: 'Could not update notifications',
+        message: errorMessage(error),
+      });
+    } finally {
+      setSavingNotifications(false);
     }
   }
 
@@ -355,6 +375,29 @@ function SettingsTab({
             disabled={saving}
             onChange={(value) => void toggle(value)}
             label="Automatically play a bot when matchmaking takes too long"
+          />
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-ink">Turn notifications</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              Get a Telegram message when it is your turn in a multiplayer game. Telegram will ask for permission
+              before the bot can message you.
+            </p>
+            {!config?.botUsername ? (
+              <p className="mt-1 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                A connected Telegram bot is required.
+              </p>
+            ) : null}
+          </div>
+          <Toggle
+            checked={profile.turnNotifications}
+            disabled={savingNotifications || !config?.botUsername}
+            onChange={(value) => void toggleNotifications(value)}
+            label="Send a Telegram message when it is my turn"
           />
         </div>
       </Card>

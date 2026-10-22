@@ -79,10 +79,15 @@ export function authenticateDev(deviceKey: string, displayName?: string): Promis
   });
 }
 
-export function updatePreferences(autoAiFallback: boolean): Promise<{ user: UserProfile }> {
+export interface PreferencesPatch {
+  autoAiFallback?: boolean;
+  turnNotifications?: boolean;
+}
+
+export function updatePreferences(patch: PreferencesPatch): Promise<{ user: UserProfile }> {
   return request<{ user: UserProfile }>('/api/me/preferences', {
     method: 'PATCH',
-    body: JSON.stringify({ autoAiFallback }),
+    body: JSON.stringify(patch),
   });
 }
 

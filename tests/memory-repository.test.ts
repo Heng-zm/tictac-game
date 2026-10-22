@@ -477,6 +477,10 @@ describe('MemoryGameRepository', () => {
   it('sets preferences and touches users', async () => {
     const updated = await repo.setAutoAiFallback(alice.id, true);
     expect(updated.autoAiFallback).toBe(true);
+    const notifications = await repo.setTurnNotifications(alice.id, true);
+    expect(notifications.turnNotifications).toBe(true);
+    expect(notifications.autoAiFallback).toBe(true);
+    expect((await repo.getUserById(alice.id))?.turnNotifications).toBe(true);
     clock.advance(5_000);
     await repo.touchUser(alice.id);
     expect((await repo.getUserById(alice.id))?.lastSeenAt).toEqual(clock.now());

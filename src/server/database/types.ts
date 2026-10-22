@@ -33,6 +33,7 @@ export interface UserEntity {
   photoUrl: string | null;
   languageCode: string | null;
   autoAiFallback: boolean;
+  turnNotifications: boolean;
   activeMatchId: string | null;
   createdAt: Date;
   lastSeenAt: Date;
@@ -227,6 +228,7 @@ export interface GameRepository {
   upsertTelegramUser(profile: TelegramProfileInput): Promise<UserEntity>;
   getUserById(id: string): Promise<UserEntity | null>;
   setAutoAiFallback(userId: string, value: boolean): Promise<UserEntity>;
+  setTurnNotifications(userId: string, value: boolean): Promise<UserEntity>;
   touchUser(userId: string): Promise<void>;
   clearUserReservation(userId: string, matchId?: string): Promise<void>;
 

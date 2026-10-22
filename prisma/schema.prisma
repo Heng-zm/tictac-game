@@ -63,24 +63,25 @@ enum AiDifficulty {
 }
 
 model User {
-  id              String   @id @default(cuid())
-  telegramId      BigInt   @unique
-  username        String?  @db.VarChar(64)
-  firstName       String   @db.VarChar(128)
-  lastName        String?  @db.VarChar(128)
-  photoUrl        String?  @db.VarChar(1024)
-  languageCode    String?  @db.VarChar(16)
-  autoAiFallback  Boolean  @default(false)
+  id                String   @id @default(cuid())
+  telegramId        BigInt   @unique
+  username          String?  @db.VarChar(64)
+  firstName         String   @db.VarChar(128)
+  lastName          String?  @db.VarChar(128)
+  photoUrl          String?  @db.VarChar(1024)
+  languageCode      String?  @db.VarChar(16)
+  autoAiFallback    Boolean  @default(false)
+  turnNotifications Boolean  @default(false)
   /// Reservation used to guarantee a user can be in at most one match.
-  activeMatchId   String?  @db.Uuid
-  createdAt       DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt       DateTime @updatedAt @db.Timestamptz(3)
-  lastSeenAt      DateTime @default(now()) @db.Timestamptz(3)
+  activeMatchId     String?  @db.Uuid
+  createdAt         DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @db.Timestamptz(3)
+  lastSeenAt        DateTime @default(now()) @db.Timestamptz(3)
 
-  stats             UserStats?
-  participants      MatchParticipant[]
-  invitationsSent   Invitation[]       @relation("InvitationInviter")
-  invitationsAccepted Invitation[]     @relation("InvitationAcceptor")
+  stats               UserStats?
+  participants        MatchParticipant[]
+  invitationsSent     Invitation[]       @relation("InvitationInviter")
+  invitationsAccepted Invitation[]       @relation("InvitationAcceptor")
 
   @@index([lastSeenAt])
   @@index([activeMatchId])
@@ -137,19 +138,19 @@ model Match {
 }
 
 model MatchParticipant {
-  id           String             @id @default(uuid()) @db.Uuid
-  matchId      String             @db.Uuid
+  id           String              @id @default(uuid()) @db.Uuid
+  matchId      String              @db.Uuid
   userId       String?
   side         Side
-  isAi         Boolean            @default(false)
+  isAi         Boolean             @default(false)
   aiDifficulty AiDifficulty?
-  displayName  String             @db.VarChar(128)
-  username     String?            @db.VarChar(64)
-  photoUrl     String?            @db.VarChar(1024)
+  displayName  String              @db.VarChar(128)
+  username     String?             @db.VarChar(64)
+  photoUrl     String?             @db.VarChar(1024)
   outcome      ParticipantOutcome?
-  ratingDelta  Int                @default(0)
-  joinedAt     DateTime           @default(now()) @db.Timestamptz(3)
-  leftAt       DateTime?          @db.Timestamptz(3)
+  ratingDelta  Int                 @default(0)
+  joinedAt     DateTime            @default(now()) @db.Timestamptz(3)
+  leftAt       DateTime?           @db.Timestamptz(3)
 
   match Match @relation(fields: [matchId], references: [id], onDelete: Cascade)
   user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)

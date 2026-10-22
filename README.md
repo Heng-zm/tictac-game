@@ -15,6 +15,7 @@ A production-oriented, real-time 5-in-a-row Tic Tac Toe game that runs as a Tele
 - **Server-authoritative play** — moves, turns, results, ratings, and AI decisions are validated and computed on the server. The client cannot set a board state.
 - **Telegram-native authentication** — `initData` is verified with Telegram's documented HMAC-SHA256 scheme, then exchanged for a signed, HttpOnly session cookie. Bot tokens never reach the browser.
 - **Resilient real-time sessions** — Socket.IO rooms, participant authorization, reconnect grace, turn timers (optional), and idempotent move action IDs.
+- **Optional turn reminders** — opt in from Settings to receive one Telegram message when it becomes your turn while you are away, with a button that deep-links back to the board.
 - **Persistence** — PostgreSQL through Prisma, with transactional matchmaking reservations, invitation acceptance, move recording, and rating updates.
 - **Full UI** — home, matchmaking, invite waiting/accepting, live game, result/rematch, profile and match history, leaderboard, reconnect and expired-invite states. Hash routing works inside Telegram WebViews, with Telegram BackButton and theme support.
 - **Operational basics** — health/readiness endpoints, rate limits, CORS allowlist, CSP, graceful shutdown, stale-match maintenance, structured logging.

@@ -18,6 +18,7 @@ export default function App() {
     onMatchFound: (matchId) => navigate(`/game/${matchId}`),
   });
   const inviteHandled = useRef(false);
+  const gameHandled = useRef(false);
 
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
@@ -32,6 +33,16 @@ export default function App() {
       navigate(`/invite/${token}`);
     }
   }, [client.initialInviteToken, client.phase, navigate, route.name]);
+
+  useEffect(() => {
+    if (client.phase !== 'ready' || gameHandled.current) return;
+    const matchId = client.initialGameMatchId;
+    if (!matchId) return;
+    gameHandled.current = true;
+    if (route.name === 'home' || route.name === 'notFound') {
+      navigate(`/game/${matchId}`);
+    }
+  }, [client.initialGameMatchId, client.phase, navigate, route.name]);
 
   const { cancelQueue } = client;
 

@@ -12,6 +12,7 @@ export interface BotController {
   };
   start: () => Promise<void>;
   stop: () => Promise<void>;
+  sendTurnNotification: (telegramId: bigint, text: string, url: string) => Promise<boolean>;
 }
 
 interface BotControllerDependencies {
@@ -87,6 +88,7 @@ export function createBotController(deps: BotControllerDependencies): BotControl
         '• Random match — get paired with another player.',
         '• Invite a friend — share a private game link.',
         '• Play a bot — Easy, Medium, or Hard.',
+        '• Turn reminders — opt in from Profile → Settings.',
         '',
         'Every move is checked by the server. Unfinished games are not rated.',
       ].join('\n'),
@@ -165,6 +167,28 @@ export function createBotController(deps: BotControllerDependencies): BotControl
     });
   }
 
+  async function sendTurnNotification(telegramId: bigint, text: string, url: string): Promise<boolean> {
+    try {
+      const keyboard = new InlineKeyboard();
+      if (isHttps) {
+        keyboard.webApp('Open game', url);
+      } else {
+        keyboard.url('Open game', url);
+      }
+      await bot.api.sendMessage(telegramId.toString(), text, {
+        reply_markup: keyboard,
+        link_preview_options: { is_disabled: true },
+      });
+      return true;
+    } catch (error) {
+      log.warn(
+        { event: 'turn_notification_send_failed', errorName: error instanceof Error ? error.name : 'unknown' },
+        'Telegram could not send a turn notification',
+      );
+      return false;
+    }
+  }
+
   async function stop(): Promise<void> {
     if (config.telegramWebhookUrl) return;
     try {
@@ -187,6 +211,7 @@ export function createBotController(deps: BotControllerDependencies): BotControl
     webhook: { path: BOT_WEBHOOK_PATH, handler },
     start,
     stop,
+    sendTurnNotification,
   };
 }
 

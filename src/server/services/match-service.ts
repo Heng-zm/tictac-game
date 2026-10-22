@@ -25,6 +25,7 @@ import { chooseAiMove } from '../game/ai';
 import { applyMoveWithStatus } from '../game/rules';
 import { buildInviteDeepLink, generateInvitationToken, hashInvitationToken } from '../services/invitations';
 import { buildMatchView } from '../services/match-view';
+import type { TurnNotificationService } from '../services/turn-notifier';
 import type { GameServer } from '../sockets/types';
 import { matchRoom, userRoom } from '../sockets/types';
 
@@ -57,6 +58,7 @@ export interface MatchServiceDependencies {
   repository: GameRepository;
   config: AppConfig;
   logger: Logger;
+  turnNotifier?: TurnNotificationService;
   now?: () => Date;
   random?: () => number;
 }
@@ -422,6 +424,7 @@ export class MatchService {
     } else {
       this.scheduleTimers(activeGame);
       this.emitState(activeGame);
+      this.notifyTurn(repoResult.match);
     }
     return this.stateFor(activeGame.match, userId);
   }
@@ -720,11 +723,13 @@ export class MatchService {
     const game = this.installActive(match);
     this.scheduleTimers(game);
     this.emitToParticipants(match, 'match:found');
+    this.notifyTurn(match);
   }
 
   private launchExistingMatch(match: MatchEntity, event: 'match:found'): void {
     this.installActive(match);
     this.emitToParticipants(match, event);
+    this.notifyTurn(match);
   }
 
   private joinMatchRooms(match: MatchEntity): void {
@@ -762,6 +767,27 @@ export class MatchService {
 
   private emitFinishedToUser(match: MatchEntity, userId: string): void {
     this.deps.io.to(userRoom(userId)).emit('match:finished', { match: this.stateFor(match, userId) });
+  }
+
+  private notifyTurn(match: MatchEntity): void {
+    const notifier = this.deps.turnNotifier;
+    if (!notifier || match.status !== 'ACTIVE' || match.mode === 'AI' || !match.currentTurn) return;
+    const recipient = match.participants.find(
+      (participant) => participant.side === match.currentTurn && !participant.isAi && participant.userId,
+    );
+    if (!recipient?.userId || this.online.has(recipient.userId)) return;
+
+    void notifier.notifyTurn(match, recipient.userId).catch((error: unknown) => {
+      this.deps.logger.warn(
+        {
+          event: 'turn_notification_error',
+          matchId: match.id,
+          userId: recipient.userId,
+          errorName: error instanceof Error ? error.name : 'unknown',
+        },
+        'Turn notification handler failed',
+      );
+    });
   }
 
   private emitOpponentDisconnected(game: ActiveGame, userId: string): void {

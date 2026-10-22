@@ -12,6 +12,7 @@ import { createPrismaClient, PrismaGameRepository } from './database/prisma-repo
 import { createSocketGateway, type SocketGateway } from './sockets/gateway';
 import type { InterServerEvents, SocketData } from './sockets/types';
 import { MatchService } from './services/match-service';
+import { TurnNotifier } from './services/turn-notifier';
 
 export interface CreateGameServerOptions {
   config: AppConfig;
@@ -83,7 +84,15 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     },
   );
 
-  const matchService = new MatchService({ io, repository, config, logger });
+  const bot = options.startBot === false ? null : createBotController({ config, logger });
+  const turnNotifier = bot ? new TurnNotifier({ repository, config, logger, sender: bot }) : undefined;
+  const matchService = new MatchService({
+    io,
+    repository,
+    config,
+    logger,
+    ...(turnNotifier ? { turnNotifier } : {}),
+  });
   const gateway = createSocketGateway({
     io,
     repository,
@@ -92,7 +101,6 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     matchService,
     rateLimit: !options.disableRateLimits,
   });
-  const bot = options.startBot === false ? null : createBotController({ config, logger });
   const app = createApp({
     config,
     repository,

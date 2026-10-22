@@ -125,6 +125,15 @@ export class PrismaGameRepository implements GameRepository {
     return mapUser(user);
   }
 
+  async setTurnNotifications(userId: string, value: boolean): Promise<UserEntity> {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: { turnNotifications: value },
+      include: userInclude,
+    });
+    return mapUser(user);
+  }
+
   async touchUser(userId: string): Promise<void> {
     await this.prisma.user.update({
       where: { id: userId },
@@ -857,6 +866,7 @@ function mapUser(user: UserWithStats): UserEntity {
     photoUrl: user.photoUrl,
     languageCode: user.languageCode,
     autoAiFallback: user.autoAiFallback,
+    turnNotifications: user.turnNotifications,
     activeMatchId: user.activeMatchId,
     createdAt: user.createdAt,
     lastSeenAt: user.lastSeenAt,

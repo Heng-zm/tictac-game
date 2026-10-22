@@ -174,6 +174,7 @@ describe('HTTP API', () => {
     expect(session.user).toMatchObject({
       firstName: 'Alice',
       autoAiFallback: false,
+      turnNotifications: false,
       stats: { gamesPlayed: 0, rating: 1000, winRate: 0 },
     });
     expect(session.user).not.toHaveProperty('telegramId');
@@ -246,16 +247,27 @@ describe('HTTP API', () => {
     expect(invalidJson.body.error.code).toBe('INVALID_JSON');
   });
 
-  it('updates matchmaking preferences', async () => {
+  it('updates player preferences independently', async () => {
     const session = await authenticate(current.app, 'device-key-prefs');
     const response = await session.agent
       .patch('/api/me/preferences')
       .send({ autoAiFallback: true });
     expect(response.status).toBe(200);
     expect(response.body.user.autoAiFallback).toBe(true);
+    expect(response.body.user.turnNotifications).toBe(false);
+
+    const notifications = await session.agent
+      .patch('/api/me/preferences')
+      .send({ turnNotifications: true });
+    expect(notifications.status).toBe(200);
+    expect(notifications.body.user.turnNotifications).toBe(true);
+    expect(notifications.body.user.autoAiFallback).toBe(true);
 
     const me = await session.agent.get('/api/me');
-    expect(me.body.user.autoAiFallback).toBe(true);
+    expect(me.body.user).toMatchObject({ autoAiFallback: true, turnNotifications: true });
+
+    const empty = await session.agent.patch('/api/me/preferences').send({});
+    expect(empty.status).toBe(400);
 
     const invalid = await session.agent.patch('/api/me/preferences').send({ autoAiFallback: 'yes' });
     expect(invalid.status).toBe(400);

@@ -77,6 +77,7 @@ export class MemoryGameRepository implements GameRepository {
       photoUrl: profile.photoUrl ?? null,
       languageCode: profile.languageCode ?? null,
       autoAiFallback: false,
+      turnNotifications: false,
       activeMatchId: null,
       createdAt: now,
       lastSeenAt: now,
@@ -95,6 +96,12 @@ export class MemoryGameRepository implements GameRepository {
   async setAutoAiFallback(userId: string, value: boolean): Promise<UserEntity> {
     const user = this.requireUser(userId);
     user.autoAiFallback = value;
+    return cloneUser(user);
+  }
+
+  async setTurnNotifications(userId: string, value: boolean): Promise<UserEntity> {
+    const user = this.requireUser(userId);
+    user.turnNotifications = value;
     return cloneUser(user);
   }
 

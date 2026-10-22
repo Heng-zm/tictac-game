@@ -303,7 +303,13 @@ export function createApp(deps: AppDependencies): express.Express {
 
   app.patch('/api/me/preferences', requireAuth, async (req, res) => {
     const parsed = preferencesSchema.parse(req.body);
-    const user = await repository.setAutoAiFallback((req.authUser as UserEntity).id, parsed.autoAiFallback);
+    let user = req.authUser as UserEntity;
+    if (parsed.autoAiFallback !== undefined) {
+      user = await repository.setAutoAiFallback(user.id, parsed.autoAiFallback);
+    }
+    if (parsed.turnNotifications !== undefined) {
+      user = await repository.setTurnNotifications(user.id, parsed.turnNotifications);
+    }
     res.json({ user: toUserProfile(user) });
   });
 

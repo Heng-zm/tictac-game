@@ -4,6 +4,7 @@ import type { AppConfig } from '../src/server/config';
 import type { MatchEntity, UserEntity } from '../src/server/database/types';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import { MatchService } from '../src/server/services/match-service';
+import type { TurnNotificationService } from '../src/server/services/turn-notifier';
 import {
   encodeCell,
   type CreatedInvitation,
@@ -36,6 +37,7 @@ describe('MatchService', () => {
   let bob: UserEntity;
   let charlie: UserEntity;
   let service: MatchService;
+  let notificationCalls: Array<{ matchId: string; userId: string }>;
   const services: MatchService[] = [];
 
   beforeEach(async () => {
@@ -43,6 +45,7 @@ describe('MatchService', () => {
     clock = new MutableClock();
     vi.setSystemTime(clock.now());
     io = new FakeIo();
+    notificationCalls = [];
     repo = new MemoryGameRepository(clock.now);
     alice = await createTestUser(repo, 2001n, 'Alice');
     bob = await createTestUser(repo, 2002n, 'Bob');
@@ -57,6 +60,11 @@ describe('MatchService', () => {
   });
 
   async function startService(overrides: Partial<AppConfig> = {}): Promise<MatchService> {
+    const turnNotifier: TurnNotificationService = {
+      notifyTurn: async (match, userId) => {
+        notificationCalls.push({ matchId: match.id, userId });
+      },
+    };
     const instance = new MatchService({
       io: io.asGameServer(),
       repository: repo,
@@ -64,6 +72,7 @@ describe('MatchService', () => {
       logger: makeTestLogger(),
       now: clock.now,
       random: () => 0.1,
+      turnNotifier,
     });
     services.push(instance);
     await instance.handleConnected(alice);
@@ -174,6 +183,33 @@ describe('MatchService', () => {
     await expect(service.submitMove(bobId, match.id, -1, randomUUID())).rejects.toMatchObject({
       code: 'INVALID_CELL',
     });
+  });
+
+  it('does not send a turn notification while the next player is online', async () => {
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const bobId = sideUser(match, 'O');
+    await repo.setTurnNotifications(bobId, true);
+    notificationCalls.length = 0;
+
+    await service.submitMove(aliceId, match.id, encodeCell(0, 0), randomUUID());
+    await flushAsyncWork();
+
+    expect(notificationCalls).toHaveLength(0);
+  });
+
+  it('notifies an offline opponent when the turn passes to them', async () => {
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const bobId = sideUser(match, 'O');
+    await repo.setTurnNotifications(bobId, true);
+    await service.handleDisconnected(bobId);
+    notificationCalls.length = 0;
+
+    await service.submitMove(aliceId, match.id, encodeCell(0, 0), randomUUID());
+    await flushAsyncWork();
+
+    expect(notificationCalls).toEqual([{ matchId: match.id, userId: bobId }]);
   });
 
   it('makes duplicate action IDs idempotent', async () => {

@@ -125,6 +125,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect(await repo.getUserById('missing')).toBeNull();
 
     expect((await repo.setAutoAiFallback(alice.id, true)).autoAiFallback).toBe(true);
+    expect((await repo.setTurnNotifications(alice.id, true)).turnNotifications).toBe(true);
     const afterUpsert = await repo.upsertTelegramUser({
       telegramId: 1001n,
       firstName: 'Alice Again',
@@ -134,6 +135,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
       languageCode: null,
     });
     expect(afterUpsert.autoAiFallback).toBe(true);
+    expect(afterUpsert.turnNotifications).toBe(true);
     expect(afterUpsert.stats.gamesPlayed).toBe(0);
 
     await prisma.user.update({ where: { id: alice.id }, data: { lastSeenAt: new Date(0) } });

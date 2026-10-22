@@ -16,6 +16,7 @@ export function toUserProfile(user: UserEntity): UserProfile {
     username: user.username,
     photoUrl: user.photoUrl,
     autoAiFallback: user.autoAiFallback,
+    turnNotifications: user.turnNotifications,
     stats: withWinRate(user.stats),
   };
 }
