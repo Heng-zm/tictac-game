@@ -22,7 +22,7 @@ import type {
 } from '../database/types';
 import { AppError } from '../errors';
 import { chooseAiMove } from '../game/ai';
-import { applyMove, getGameStatus } from '../game/rules';
+import { applyMoveWithStatus } from '../game/rules';
 import { buildInviteDeepLink, generateInvitationToken, hashInvitationToken } from '../services/invitations';
 import { buildMatchView } from '../services/match-view';
 import type { GameServer } from '../sockets/types';
@@ -77,7 +77,7 @@ export class MatchService {
     this.random = deps.random ?? Math.random;
   }
 
-  async assertAvailable(userId: string): Promise<void> {
+  async assertAvailable(userId: string, freshUser?: UserEntity): Promise<void> {
     const knownMatchId = this.userMatchIds.get(userId);
     if (knownMatchId) {
       const game = this.games.get(knownMatchId);
@@ -86,7 +86,8 @@ export class MatchService {
       }
     }
 
-    const user = await this.deps.repository.getUserById(userId);
+    // Callers that just loaded the user can pass it in to avoid a duplicate query.
+    const user = freshUser ?? (await this.deps.repository.getUserById(userId));
     if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
     if (!user.activeMatchId) return;
 
@@ -211,14 +212,14 @@ export class MatchService {
   async startAi(userId: string, difficulty: AiDifficulty, side: Side): Promise<MatchEntity> {
     const user = await this.deps.repository.getUserById(userId);
     if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
-    await this.assertAvailable(userId);
+    await this.assertAvailable(userId, user);
     return this.createAiMatch(user, difficulty, side);
   }
 
   async startAiFallback(userId: string): Promise<MatchEntity> {
     const user = await this.deps.repository.getUserById(userId);
     if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
-    await this.assertAvailable(userId);
+    await this.assertAvailable(userId, user);
     return this.createAiMatch(user, this.deps.config.aiFallbackDifficulty, 'X');
   }
 
@@ -340,7 +341,7 @@ export class MatchService {
       throw new AppError(409, 'OUT_OF_TURN', 'It is not your turn');
     }
 
-    const applied = applyMove(match.board, player.side, cell);
+    const applied = applyMoveWithStatus(match.board, player.side, cell, { assumeActive: true });
     if (!applied.ok) {
       const code = applied.code === 'OCCUPIED_CELL' ? 'OCCUPIED_CELL' : applied.code;
       const message =
@@ -352,7 +353,7 @@ export class MatchService {
       throw new AppError(409, code, message);
     }
 
-    const status = getGameStatus(applied.board);
+    const status = applied.status;
     let finalization: FinalizationData | null = null;
     let winnerSide: Side | null = null;
     let result: MatchResult | null = null;
@@ -439,7 +440,7 @@ export class MatchService {
       const difficulty = ai?.aiDifficulty ?? 'MEDIUM';
       const user = await this.deps.repository.getUserById(userId);
       if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
-      await this.assertAvailable(userId);
+      await this.assertAvailable(userId, user);
       const newMatch = await this.createAiMatch(user, difficulty, player.side);
       return {
         matchId: newMatch.id,
@@ -884,9 +885,9 @@ export class MatchService {
     const cell = chooseAiMove(game.match.board, ai.side, ai.aiDifficulty ?? 'MEDIUM', this.random);
     if (cell === null) return;
     const actionId = randomUUID();
-    const applied = applyMove(game.match.board, ai.side, cell);
+    const applied = applyMoveWithStatus(game.match.board, ai.side, cell, { assumeActive: true });
     if (!applied.ok) return;
-    const status = getGameStatus(applied.board);
+    const status = applied.status;
     let finalization: FinalizationData | null = null;
     let winnerSide: Side | null = null;
     let result: MatchResult | null = null;
@@ -1006,6 +1007,13 @@ export class MatchService {
       }
       const tracker = this.rematches.get(game.match.id);
       if (tracker) this.deleteRematchTracker(tracker);
+      // Drop resumable-result markers even if a player never reconnects.
+      for (const participant of game.match.participants) {
+        if (!participant.userId) continue;
+        if (this.recentFinished.get(participant.userId)?.matchId === game.match.id) {
+          this.recentFinished.delete(participant.userId);
+        }
+      }
     }, FINISHED_GAME_TTL_MS);
     game.cleanupTimer.unref?.();
   }

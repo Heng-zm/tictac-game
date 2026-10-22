@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyMove,
+  applyMoveWithStatus,
   getGameStatus,
   getWinner,
+  getWinnerAt,
   isBoardFull,
   isValidBoard,
   sideToMove,
 } from '../src/server/game/rules';
 import {
+  COORD_OFFSET,
   createEmptyBoard,
   decodeCell,
   encodeCell,
@@ -53,6 +56,46 @@ describe('infinite grid 5-in-a-row rules', () => {
     const winner = getWinner(board);
     expect(winner).not.toBeNull();
     expect(winner?.side).toBe('X');
+  });
+
+  it('detects a win through the last placed stone without scanning the whole board', () => {
+    const board: Board = createEmptyBoard();
+    for (let i = 0; i < 5; i++) board[encodeCell(i, 2)] = 'X';
+    for (let i = 0; i < 4; i++) board[encodeCell(i, -2)] = 'O';
+
+    const winner = getWinnerAt(board, encodeCell(2, 2));
+    expect(winner).toEqual({ side: 'X', line: [0, 1, 2, 3, 4].map((x) => encodeCell(x, 2)) });
+
+    // A stone that is not part of a winning line must not report a win.
+    expect(getWinnerAt(board, encodeCell(2, -2))).toBeNull();
+  });
+
+  it('does not wrap winning lines across the board edge', () => {
+    const board: Board = createEmptyBoard();
+    // Encoding is stride-based. Before the bounds check, stepping past x=10000
+    // aliased the next row at x=-10000 and produced a false five-in-a-row.
+    board[encodeCell(COORD_OFFSET - 1, 0)] = 'X';
+    for (let i = 0; i < 4; i++) board[encodeCell(-COORD_OFFSET + i, 1)] = 'X';
+    for (let i = 0; i < 4; i++) board[encodeCell(i, 5)] = 'O';
+
+    expect(getWinner(board)).toBeNull();
+    expect(getWinnerAt(board, encodeCell(COORD_OFFSET - 1, 0))).toBeNull();
+  });
+
+  it('applies a move and returns its status in one pass', () => {
+    const board: Board = createEmptyBoard();
+    for (let x = 0; x < 4; x++) board[encodeCell(x, 0)] = 'X';
+    for (let x = 0; x < 4; x++) board[encodeCell(x, 1)] = 'O';
+
+    const applied = applyMoveWithStatus(board, 'X', encodeCell(4, 0));
+    expect(applied.ok).toBe(true);
+    if (!applied.ok) throw new Error('unreachable');
+    expect(applied.board[encodeCell(4, 0)]).toBe('X');
+    expect(applied.status).toMatchObject({ status: 'WON', winner: 'X' });
+    expect(applyMove(board, 'X', encodeCell(4, 0))).toMatchObject({
+      ok: true,
+      board: applied.board,
+    });
   });
 
   it('reports active game when fewer than 5 in a row', () => {

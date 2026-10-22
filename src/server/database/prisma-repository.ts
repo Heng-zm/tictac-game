@@ -49,6 +49,7 @@ const matchInclude = {
 } satisfies Prisma.MatchInclude;
 
 type MatchWithParticipants = Prisma.MatchGetPayload<{ include: typeof matchInclude }>;
+type MatchCore = Prisma.MatchGetPayload<{ include: { participants: true } }>;
 type InvitationFull = PrismaInvitation & {
   inviter: PrismaUser;
   match: MatchWithParticipants;
@@ -263,26 +264,32 @@ export class PrismaGameRepository implements GameRepository {
 
   async recordMove(input: RecordMoveInput): Promise<RepositoryMoveResult> {
     return this.prisma.$transaction(async (tx) => {
-      const existing = await tx.move.findUnique({
-        where: { matchId_actionId: { matchId: input.matchId, actionId: input.actionId } },
-        select: { id: true },
-      });
-      if (existing) {
-        return { status: 'duplicate', match: await loadMatchOrThrow(tx, input.matchId) };
-      }
-
+      // Load the match and check the idempotency key in one relation query.
+      // The final read used by the old implementation is replaced by building
+      // the updated entity from the known input, saving a full match reload.
       const current = await tx.match.findUnique({
         where: { id: input.matchId },
-        include: matchInclude,
+        include: {
+          participants: true,
+          moves: {
+            where: { actionId: input.actionId },
+            take: 1,
+            select: { id: true },
+          },
+        },
       });
       if (!current) {
         throw new RepositoryConflictError('MATCH_NOT_FOUND', 'Match does not exist');
       }
+      if (current.moves.length > 0) {
+        return { status: 'duplicate', match: await loadMatchOrThrow(tx, input.matchId) };
+      }
 
+      const boardAfter = boardToString(input.boardAfter);
       const result = await tx.match.updateMany({
         where: { id: input.matchId, status: 'ACTIVE', version: input.expectedVersion },
         data: {
-          board: boardToString(input.boardAfter),
+          board: boardAfter,
           currentTurn: input.nextTurn,
           turnNumber: input.moveNumber,
           turnDeadline: input.finalization ? null : input.turnDeadline,
@@ -318,15 +325,18 @@ export class PrismaGameRepository implements GameRepository {
           actionId: input.actionId,
           cell: input.cell,
           moveNumber: input.moveNumber,
-          boardAfter: boardToString(input.boardAfter),
+          boardAfter,
         },
       });
 
-      if (input.finalization) {
-        await applyFinalization(tx, current, input.finalization);
-      }
+      const participants = input.finalization
+        ? await applyFinalization(tx, current, input.finalization)
+        : current.participants.map(mapParticipant);
 
-      return { status: 'applied', match: await loadMatchOrThrow(tx, input.matchId) };
+      return {
+        status: 'applied',
+        match: buildAppliedMatch(current, participants, input),
+      };
     });
   }
 
@@ -745,9 +755,11 @@ async function loadMatchOrThrow(db: Tx | PrismaClient, matchId: string): Promise
 
 async function applyFinalization(
   tx: Tx,
-  match: MatchWithParticipants,
+  match: MatchCore,
   finalization: FinalizationData,
-): Promise<void> {
+): Promise<ParticipantEntity[]> {
+  const participants: ParticipantEntity[] = [];
+
   for (const participant of match.participants) {
     const outcome: ParticipantOutcome =
       finalization.result === 'DRAW'
@@ -759,6 +771,12 @@ async function applyFinalization(
     await tx.matchParticipant.update({
       where: { id: participant.id },
       data: { outcome, ratingDelta: delta, leftAt: finalization.finishedAt },
+    });
+    participants.push({
+      ...mapParticipant(participant),
+      outcome,
+      ratingDelta: delta,
+      leftAt: finalization.finishedAt,
     });
 
     if (participant.userId && finalization.countStats) {
@@ -797,6 +815,8 @@ async function applyFinalization(
     where: { activeMatchId: match.id },
     data: { activeMatchId: null },
   });
+
+  return participants;
 }
 
 async function expireInvitationWithinTx(
@@ -900,6 +920,33 @@ function mapParticipant(participant: PrismaMatchParticipant): ParticipantEntity 
     ratingDelta: participant.ratingDelta,
     joinedAt: participant.joinedAt,
     leftAt: participant.leftAt,
+  };
+}
+
+function buildAppliedMatch(
+  current: MatchCore,
+  participants: ParticipantEntity[],
+  input: RecordMoveInput,
+): MatchEntity {
+  return {
+    id: current.id,
+    mode: current.mode as MatchMode,
+    status: input.finalization ? 'FINISHED' : 'ACTIVE',
+    board: { ...input.boardAfter },
+    currentTurn: input.finalization ? null : input.nextTurn,
+    turnNumber: input.moveNumber,
+    lastMove: { cell: input.cell, side: input.side },
+    winnerSide: input.finalization?.winnerSide ?? null,
+    result: input.finalization?.result ?? null,
+    finishReason: input.finalization?.finishReason ?? null,
+    turnDeadline: input.finalization ? null : input.turnDeadline,
+    rematchOfId: current.rematchOfId,
+    startedAt: current.startedAt,
+    finishedAt: input.finalization?.finishedAt ?? null,
+    lastActivityAt: input.lastActivityAt,
+    version: current.version + 1,
+    createdAt: current.createdAt,
+    participants,
   };
 }
 

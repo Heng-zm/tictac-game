@@ -20,9 +20,10 @@ function evaluateDirection(
     let consecutive = 1;
     let openEnds = 0;
 
-    // Count forward
+    // Five or more in a row is already the maximum score, so there is no
+    // need to walk arbitrarily long runs.
     let step = 1;
-    while (board[encodeCell(x + dx * step, y + dy * step)] === side) {
+    while (consecutive < 5 && board[encodeCell(x + dx * step, y + dy * step)] === side) {
       consecutive++;
       step++;
     }
@@ -30,9 +31,8 @@ function evaluateDirection(
       openEnds++;
     }
 
-    // Count backward
     step = 1;
-    while (board[encodeCell(x - dx * step, y - dy * step)] === side) {
+    while (consecutive < 5 && board[encodeCell(x - dx * step, y - dy * step)] === side) {
       consecutive++;
       step++;
     }
@@ -77,16 +77,16 @@ export function chooseAiMove(
   for (const cell of candidates) {
     const { x, y } = decodeCell(cell);
     const attack = evaluateDirection(board, x, y, aiSide);
-    const defense = evaluateDirection(board, x, y, humanSide);
-    // Immediate win is highest priority, followed by blocking opponent's immediate win
-    let totalScore = 0;
+    // Immediate win is highest priority; skip the defender scan entirely.
     if (attack >= 1_000_000) {
-      totalScore = 10_000_000 + attack;
-    } else if (defense >= 1_000_000) {
-      totalScore = 5_000_000 + defense;
-    } else {
-      totalScore = attack + defense * 1.2;
+      scoredMoves.push({ cell, score: 10_000_000 + attack });
+      continue;
     }
+    const defense = evaluateDirection(board, x, y, humanSide);
+    const totalScore =
+      defense >= 1_000_000
+        ? 5_000_000 + defense
+        : attack + defense * 1.2;
     scoredMoves.push({ cell, score: totalScore });
   }
 
