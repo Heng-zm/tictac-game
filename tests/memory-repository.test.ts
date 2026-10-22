@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import type { FinalizationData, RecordMoveInput } from '../src/server/database/types';
 import { hashInvitationToken } from '../src/server/services/invitations';
-import type { Cell, Side } from '../src/shared/game-types';
+import type { Board, Side } from '../src/shared/game-types';
 import { MutableClock, createTestUser, participant } from './helpers';
 import type { UserEntity } from '../src/server/database/types';
 
@@ -13,7 +13,7 @@ function moveInput(
   side: Side,
   cell: number,
   actionId: string,
-  boardAfter: Cell[],
+  boardAfter: Board,
   moveNumber: number,
   finalization?: FinalizationData,
 ): RecordMoveInput {
@@ -128,7 +128,7 @@ describe('MemoryGameRepository', () => {
   it('applies moves, detects duplicates and rejects stale versions', async () => {
     const matchId = await createRandomMatch();
     const actionA = randomUUID();
-    const boardA: Cell[] = ['X', null, null, null, null, null, null, null, null];
+    const boardA: Board = { 0: 'X' };
 
     const first = await repo.recordMove(moveInput(matchId, 0, 'X', 0, actionA, boardA, 1));
     expect(first.status).toBe('applied');
@@ -146,12 +146,12 @@ describe('MemoryGameRepository', () => {
     expect(duplicate.match.board[0]).toBe('X');
 
     const stale = await repo.recordMove(
-      moveInput(matchId, 0, 'O', 4, randomUUID(), ['X', null, null, null, 'O', null, null, null, null], 2),
+      moveInput(matchId, 0, 'O', 4, randomUUID(), { 0: 'X', 4: 'O' }, 2),
     );
     expect(stale.status).toBe('conflict');
     expect(stale.match.version).toBe(1);
 
-    const boardB: Cell[] = ['X', null, null, null, 'O', null, null, null, null];
+    const boardB: Board = { 0: 'X', 4: 'O' };
     const second = await repo.recordMove(moveInput(matchId, 1, 'O', 4, randomUUID(), boardB, 2));
     expect(second.status).toBe('applied');
     expect(second.match.version).toBe(2);
@@ -162,13 +162,13 @@ describe('MemoryGameRepository', () => {
     const matchId = await createRandomMatch();
     const now = clock.now();
     await repo.recordMove(
-      moveInput(matchId, 0, 'X', 0, randomUUID(), ['X', null, null, null, null, null, null, null, null], 1),
+      moveInput(matchId, 0, 'X', 0, randomUUID(), { 0: 'X' }, 1),
     );
     await repo.recordMove(
-      moveInput(matchId, 1, 'O', 3, randomUUID(), ['X', null, null, 'O', null, null, null, null, null], 2),
+      moveInput(matchId, 1, 'O', 3, randomUUID(), { 0: 'X', 3: 'O' }, 2),
     );
     await repo.recordMove(
-      moveInput(matchId, 2, 'X', 1, randomUUID(), ['X', 'X', null, 'O', null, null, null, null, null], 3),
+      moveInput(matchId, 2, 'X', 1, randomUUID(), { 0: 'X', 1: 'X', 3: 'O' }, 3),
     );
     await repo.recordMove(
       moveInput(
@@ -177,7 +177,7 @@ describe('MemoryGameRepository', () => {
         'O',
         4,
         randomUUID(),
-        ['X', 'X', null, 'O', 'O', null, null, null, null],
+        { 0: 'X', 1: 'X', 3: 'O', 4: 'O' },
         4,
       ),
     );
@@ -188,7 +188,7 @@ describe('MemoryGameRepository', () => {
         'X',
         2,
         randomUUID(),
-        ['X', 'X', 'X', 'O', 'O', null, null, null, null],
+        { 0: 'X', 1: 'X', 2: 'X', 3: 'O', 4: 'O' },
         5,
         winFinalization(now),
       ),
@@ -258,7 +258,7 @@ describe('MemoryGameRepository', () => {
         'X',
         4,
         randomUUID(),
-        [null, null, null, null, 'X', null, null, null, null],
+        { 4: 'X' },
         1,
         finalization,
       ),
@@ -305,7 +305,7 @@ describe('MemoryGameRepository', () => {
           'X',
           0,
           randomUUID(),
-          ['X', null, null, null, null, null, null, null, null],
+          { 0: 'X' },
           1,
           winFinalization(clock.now()),
         ),

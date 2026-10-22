@@ -30,7 +30,7 @@ No real secrets were committed or used. The automated checks and PostgreSQL migr
 
 | Command | Result |
 | --- | --- |
-| `npm run typecheck` | Passed (server + client) |
+| `npm run typecheck` | Passed (server, client, and tests via `tsconfig.test.json`) |
 | `npm run lint` | Passed |
 | `npm test` without `TEST_DATABASE_URL` | 173 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
 | `npm test` with `TEST_DATABASE_URL` | **183 passed / 183** across 18 test files |

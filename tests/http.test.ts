@@ -100,7 +100,7 @@ describe('HTTP API', () => {
       side: 'X',
       cell: 0,
       actionId: randomUUID(),
-      boardAfter: ['X', 'X', 'X', 'O', 'O', null, null, null, null],
+      boardAfter: { 0: 'X', 1: 'X', 2: 'X', 3: 'O', 4: 'O' },
       nextTurn: null,
       moveNumber: 1,
       turnDeadline: null,

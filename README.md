@@ -306,7 +306,7 @@ Matchmaking queues, socket rooms, and AI timers live in process memory. Run **on
 npm test               # all unit/integration tests
 npm run test:coverage  # coverage report
 npm run lint
-npm run typecheck
+npm run typecheck    # server, client, and test sources
 ```
 
 The PostgreSQL repository suite is opt-in and runs only when `TEST_DATABASE_URL` is set:

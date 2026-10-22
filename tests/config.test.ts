@@ -75,19 +75,19 @@ describe('configuration', () => {
   });
 
   it('allows an explicit in-memory database in production but still requires Telegram auth', () => {
-    const env = { ...PRODUCTION_ENV, DB_MODE: 'memory' };
+    const env: NodeJS.ProcessEnv = { ...PRODUCTION_ENV, DB_MODE: 'memory' };
     delete env.DATABASE_URL;
     const config = loadConfig(env);
     expect(config.databaseMode).toBe('memory');
     expect(config.databaseUrl).toBeNull();
 
-    const withoutBotToken = { ...env };
+    const withoutBotToken: NodeJS.ProcessEnv = { ...env };
     delete withoutBotToken.TELEGRAM_BOT_TOKEN;
     expect(() => loadConfig(withoutBotToken)).toThrow(/TELEGRAM_BOT_TOKEN/);
   });
 
   it('allows guest demo mode in production without Telegram credentials', () => {
-    const env = {
+    const env: NodeJS.ProcessEnv = {
       ...PRODUCTION_ENV,
       DEMO_MODE: 'true',
       DB_MODE: 'memory',
@@ -135,7 +135,10 @@ describe('configuration', () => {
         TELEGRAM_WEBHOOK_SECRET: 'base64+secret/with=invalid',
       }),
     ).toThrow(/must use only letters, digits/);
-    const withoutBotToken = { ...PRODUCTION_ENV, TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32) };
+    const withoutBotToken: NodeJS.ProcessEnv = {
+      ...PRODUCTION_ENV,
+      TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32),
+    };
     delete withoutBotToken.TELEGRAM_BOT_TOKEN;
     expect(() => loadConfig(withoutBotToken)).toThrow(/Requires TELEGRAM_BOT_TOKEN/);
   });
