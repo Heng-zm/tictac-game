@@ -23,6 +23,8 @@ export interface BotController {
 interface BotControllerDependencies {
   config: AppConfig;
   logger: Logger;
+  /** Optional Bot API root, used by integration tests and self-hosted Bot API servers. */
+  apiRoot?: string;
 }
 
 /**
@@ -34,7 +36,11 @@ export function createBotController(deps: BotControllerDependencies): BotControl
   if (!config.telegramBotToken) return null;
 
   const log = logger.child({ component: 'telegram-bot' });
-  const bot = new Bot(config.telegramBotToken);
+  const apiRoot = deps.apiRoot?.replace(/\/+$/, '');
+  const bot = new Bot(
+    config.telegramBotToken,
+    apiRoot ? { client: { apiRoot } } : undefined,
+  );
   const miniAppUrl = config.miniAppUrl ?? 'http://localhost:5173';
   const isHttps = miniAppUrl.startsWith('https://');
   const botUsername = config.telegramBotUsername;
