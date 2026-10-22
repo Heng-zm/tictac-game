@@ -22,7 +22,6 @@ import { GameResult } from '../components/GameResult';
 import { ReactionPicker } from '../components/stickers/ReactionPicker';
 import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
 import { WalkieTalkieButton } from '../components/voice/WalkieTalkieButton';
-import { IncomingVoiceBubble } from '../components/voice/IncomingVoiceBubble';
 
 export function GameScreen({
   client,
@@ -422,17 +421,6 @@ export function GameScreen({
                     <ReactionOverlay reaction={youReaction} languageCode={client.profile?.languageCode} />
                   </div>
                 ) : null}
-                {client.incomingVoice && client.incomingVoice.senderSide === match.youSide ? (
-                  <div className="absolute top-12 left-0 z-40">
-                    <IncomingVoiceBubble
-                      voice={client.incomingVoice}
-                      onDismiss={client.clearIncomingVoice}
-                      senderName={you?.displayName ?? 'You'}
-                      isYou={true}
-                      align="left"
-                    />
-                  </div>
-                ) : null}
               </div>
 
               <TurnClock
@@ -456,17 +444,6 @@ export function GameScreen({
                 {opponentReaction ? (
                   <div className="absolute top-11 right-1 z-30">
                     <ReactionOverlay reaction={opponentReaction} languageCode={client.profile?.languageCode} />
-                  </div>
-                ) : null}
-                {client.incomingVoice && client.incomingVoice.senderSide !== match.youSide ? (
-                  <div className="absolute top-12 right-0 z-40">
-                    <IncomingVoiceBubble
-                      voice={client.incomingVoice}
-                      onDismiss={client.clearIncomingVoice}
-                      senderName={opponent?.displayName ?? 'Opponent'}
-                      isYou={false}
-                      align="right"
-                    />
                   </div>
                 ) : null}
               </div>

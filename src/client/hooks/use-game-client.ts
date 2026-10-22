@@ -26,6 +26,7 @@ export interface DisplayReaction {
   stickerId: StickerId;
   timestamp: string;
 }
+import { playVoiceAudio } from '../lib/audio-radio';
 import {
   ApiRequestError,
   authenticateDev,
@@ -485,7 +486,9 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       if (!active) return;
       const currentMatch = matchRef.current;
       if (!currentMatch || currentMatch.id !== event.matchId) return;
-      setIncomingVoice(event);
+      if (event.senderSide !== currentMatch.youSide) {
+        playVoiceAudio(event.audioData);
+      }
       hapticImpact('light');
     });
 
