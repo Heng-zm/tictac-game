@@ -32,8 +32,8 @@ export function MatchmakingScreen({
     autoFallback && fallbackRemaining !== null
       ? fallbackRemaining <= 0
         ? 'Bot ready'
-        : `${formatDuration(fallbackRemaining)} to bot`
-      : `${formatDuration(Math.max(0, maxWaitMs - elapsed))} max`;
+        : `Bot in ${formatDuration(fallbackRemaining)}`
+      : `Up to ${formatDuration(Math.max(0, maxWaitMs - elapsed))}`;
   const connectionLost =
     connection === 'reconnecting' || connection === 'offline' || connection === 'shutdown';
 
@@ -240,8 +240,13 @@ export function MatchmakingScreen({
                 </Pill>
               </div>
               <div
+                role="progressbar"
+                aria-label="Matchmaking search progress"
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={Math.round(searchProgress * 100)}
+                aria-valuetext={`${Math.round(searchProgress * 100)}% of the maximum wait used`}
                 className="mx-auto mt-3 h-1.5 max-w-[14rem] overflow-hidden rounded-full bg-elevated"
-                aria-hidden
               >
                 <div
                   className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-linear"

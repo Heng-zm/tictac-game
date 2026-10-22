@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Crown, Medal, RefreshCw, Trophy, UserRound } from 'lucide-react';
+import { AlertTriangle, Crown, Medal, RefreshCw, Trophy, UserRound } from 'lucide-react';
 import type { LeaderboardEntry, LeaderboardResponse } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage, fetchLeaderboard } from '../lib/api';
@@ -18,10 +18,12 @@ export function LeaderboardScreen({
   const { profile } = client;
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async (showSpinner = true) => {
-    if (showSpinner) setLoading(true);
+  const load = useCallback(async (mode: 'initial' | 'refresh' = 'initial') => {
+    if (mode === 'initial') setLoading(true);
+    else setRefreshing(true);
     setError(null);
     try {
       setData(await fetchLeaderboard(50));
@@ -29,11 +31,12 @@ export function LeaderboardScreen({
       setError(errorMessage(caught));
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    void load('initial');
   }, [load]);
 
   const currentInList = Boolean(data?.entries.some((entry) => entry.isYou));
@@ -49,11 +52,36 @@ export function LeaderboardScreen({
         title="Leaderboard"
         subtitle="Top rated players"
         action={
-          <IconButton label="Refresh leaderboard" onClick={() => void load(false)}>
-            <RefreshCw className={cn('h-4 w-4', loading && 'animate-spin')} aria-hidden />
+          <IconButton
+            label={refreshing ? 'Refreshing leaderboard' : 'Refresh leaderboard'}
+            onClick={() => void load('refresh')}
+            disabled={loading || refreshing}
+            aria-busy={refreshing || undefined}
+          >
+            <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} aria-hidden />
           </IconButton>
         }
       />
+
+      {error && data ? (
+        <div
+          role="alert"
+          className="mb-3 flex items-start gap-2.5 rounded-xl border border-danger/25 bg-danger/10 px-3 py-2.5 text-xs text-danger"
+        >
+          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+          <p className="min-w-0 flex-1 leading-relaxed">
+            <span className="font-semibold">Could not refresh the ladder.</span> {error}
+          </p>
+          <button
+            type="button"
+            onClick={() => void load('refresh')}
+            disabled={refreshing}
+            className="shrink-0 self-center rounded-lg px-2 py-1 font-semibold underline underline-offset-2 transition hover:bg-danger/10 disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-danger/50"
+          >
+            Retry
+          </button>
+        </div>
+      ) : null}
 
       {loading && !data ? (
         <div className="space-y-2">

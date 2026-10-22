@@ -329,6 +329,8 @@ export function ToastViewport({
           ? 'pb-[calc(env(safe-area-inset-bottom)+164px)]'
           : 'pb-[calc(env(safe-area-inset-bottom)+88px)]',
       )}
+      role="region"
+      aria-label="Notifications"
       aria-live="polite"
       aria-atomic="false"
     >
@@ -347,11 +349,11 @@ export function ToastViewport({
             </div>
             <button
               type="button"
-              className="rounded-full p-1 text-muted transition hover:bg-app hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              className="rounded-full p-2 text-muted transition hover:bg-app hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
               onClick={() => onDismiss(toast.id)}
-              aria-label="Dismiss notification"
+              aria-label={`Dismiss ${toast.title}`}
             >
-              <X className="h-3.5 w-3.5" aria-hidden />
+              <X className="h-4 w-4" aria-hidden />
             </button>
           </div>
         );
@@ -367,6 +369,7 @@ export function Modal({
   title,
   children,
   dismissible = true,
+  showClose = true,
   className,
 }: {
   open: boolean;
@@ -374,12 +377,27 @@ export function Modal({
   title?: string;
   children: ReactNode;
   dismissible?: boolean;
+  showClose?: boolean;
   className?: string;
 }) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const previousFocusRef = useRef<HTMLElement | null>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+
+  useEffect(() => {
+    if (!open) return;
+    previousFocusRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    return () => {
+      const previous = previousFocusRef.current;
+      if (previous && previous !== document.body && previous.isConnected) {
+        previous.focus({ preventScroll: true });
+      }
+      previousFocusRef.current = null;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -438,7 +456,7 @@ export function Modal({
             className,
           )}
         >
-          {dismissible ? (
+          {dismissible && showClose ? (
             <button
               type="button"
               onClick={onClose}

@@ -1,5 +1,6 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
+  BookOpen,
   Bot,
   ChevronRight,
   Clock3,
@@ -20,6 +21,7 @@ import { Avatar, Button, Card, Logo, Pill, SegmentedControl } from '../component
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { formatDuration } from '../hooks/use-time';
+import { HowToPlayModal, HOW_TO_PLAY_STORAGE_KEY } from '../components/HowToPlayModal';
 
 const DIFFICULTIES: Array<{ value: AiDifficulty; label: string }> = [
   { value: 'EASY', label: 'Easy' },
@@ -38,6 +40,18 @@ export function HomeScreen({
   const [difficulty, setDifficulty] = useState<AiDifficulty>('MEDIUM');
   const [side, setSide] = useState<Side>('X');
   const [startingBot, setStartingBot] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(HOW_TO_PLAY_STORAGE_KEY);
+      if (!seen) {
+        setGuideOpen(true);
+      }
+    } catch {
+      // ignore storage errors
+    }
+  }, []);
 
   if (!profile) return null;
   const stats = profile.stats;
@@ -68,14 +82,26 @@ export function HomeScreen({
             <p className="truncate text-xs text-muted">Hey, {profile.firstName}</p>
           </div>
         </div>
-        <button
-          type="button"
-          onClick={() => navigate('/profile')}
-          className="shrink-0 rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
-          aria-label="Open profile"
-        >
-          <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="md" />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setGuideOpen(true)}
+            className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs transition hover:bg-elevated hover:border-accent/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+            aria-label="របៀបលេង (How to play)"
+            title="របៀបលេង (How to play)"
+          >
+            <BookOpen className="h-3.5 w-3.5 text-accent" aria-hidden />
+            <span>របៀបលេង</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate('/profile')}
+            className="shrink-0 rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+            aria-label="Open profile"
+          >
+            <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="md" />
+          </button>
+        </div>
       </header>
 
       {config?.demoMode ? (
@@ -86,6 +112,30 @@ export function HomeScreen({
           </p>
         </div>
       ) : null}
+
+      <button
+        type="button"
+        onClick={() => setGuideOpen(true)}
+        className="group mb-3.5 flex w-full items-center justify-between gap-3 rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition hover:border-accent/40 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+      >
+        <div className="flex items-center gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm">
+            <BookOpen className="h-5 w-5" aria-hidden />
+          </span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-ink">របៀបលេងសម្រាប់អ្នកថ្មី</span>
+              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase">
+                Step by Step
+              </span>
+            </div>
+            <p className="mt-0.5 text-[11px] text-muted">
+              ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
+      </button>
 
       {activeMatch || pendingInvite ? (
         <div className="mb-3 space-y-2.5">
@@ -171,7 +221,7 @@ export function HomeScreen({
           </div>
         </Card>
 
-      <section className="lg:col-start-1 lg:row-start-1">
+      <section className="order-first lg:order-none lg:col-start-1 lg:row-start-1">
         <h2 className="mb-2.5 text-sm font-semibold text-ink">Play</h2>
         <div className="grid grid-cols-2 gap-2.5">
           <ModeTile
@@ -268,6 +318,12 @@ export function HomeScreen({
         </div>
       </Card>
       </div>
+
+      <HowToPlayModal
+        open={guideOpen}
+        onClose={() => setGuideOpen(false)}
+        languageCode={profile.languageCode}
+      />
     </Page>
   );
 }
