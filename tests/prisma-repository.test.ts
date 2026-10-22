@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PrismaGameRepository, createPrismaClient } from '../src/server/database/prisma-repository';
 import type { FinalizationData, RecordMoveInput, UserEntity } from '../src/server/database/types';
 import { hashInvitationToken } from '../src/server/services/invitations';
-import type { Cell, Side } from '../src/shared/game-types';
+import { boardFromString, type Board, type Side } from '../src/shared/game-types';
 import { createTestUser, participant } from './helpers';
 
 const integrationDatabaseUrl = process.env.TEST_DATABASE_URL;
@@ -16,7 +16,7 @@ function moveInput(
   side: Side,
   cell: number,
   actionId: string,
-  boardAfter: Cell[],
+  boardAfter: Board,
   moveNumber: number,
   finalization?: FinalizationData,
 ): RecordMoveInput {
@@ -166,7 +166,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
   it('applies moves transactionally, detects duplicates and rejects stale versions', async () => {
     const matchId = await createRandomMatch();
     const actionA = randomUUID();
-    const boardA: Cell[] = ['X', null, null, null, null, null, null, null, null];
+    const boardA: Board = { 0: 'X' };
 
     const first = await repo.recordMove(moveInput(matchId, 0, 'X', 0, actionA, boardA, 1));
     expect(first.status).toBe('applied');
@@ -182,7 +182,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect(await prisma.move.count({ where: { matchId } })).toBe(1);
 
     const stale = await repo.recordMove(
-      moveInput(matchId, 0, 'O', 4, randomUUID(), ['X', null, null, null, 'O', null, null, null, null], 2),
+      moveInput(matchId, 0, 'O', 4, randomUUID(), { 0: 'X', 4: 'O' }, 2),
     );
     expect(stale.status).toBe('conflict');
     expect(stale.match.version).toBe(1);
@@ -194,7 +194,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
         'O',
         4,
         randomUUID(),
-        ['X', null, null, null, 'O', null, null, null, null],
+        { 0: 'X', 4: 'O' },
         2,
       ),
     );
@@ -203,7 +203,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect(await prisma.move.count({ where: { matchId } })).toBe(2);
 
     const stored = await prisma.match.findUniqueOrThrow({ where: { id: matchId } });
-    expect(stored.board).toBe('X...O....');
+    expect(boardFromString(stored.board)).toEqual({ 0: 'X', 4: 'O' });
   });
 
   it('finalizes rated games with participants, rating, stats, history and leaderboard', async () => {
@@ -216,7 +216,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
         'X',
         0,
         randomUUID(),
-        ['X', null, null, null, null, null, null, null, null],
+        { 0: 'X' },
         1,
         winFinalization(finishedAt),
       ),
@@ -281,7 +281,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
         'X',
         0,
         randomUUID(),
-        ['X', null, null, null, null, null, null, null, null],
+        { 0: 'X' },
         1,
       ),
     );
@@ -298,7 +298,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
         'X',
         4,
         randomUUID(),
-        [null, null, null, null, 'X', null, null, null, null],
+        { 4: 'X' },
         1,
         winFinalization(),
       ),
@@ -353,7 +353,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
           'X',
           0,
           randomUUID(),
-          ['X', null, null, null, null, null, null, null, null],
+          { 0: 'X' },
           1,
           winFinalization(finishedAt),
         ),

@@ -1,7 +1,7 @@
 # Verification Report
 
 **Project:** Tic Tac Toe — Telegram Mini App
-**Date:** 2026-10-21
+**Date:** 2026-10-22
 **Repository:** https://github.com/Heng-zm/tictac-game
 **Report scope:** local implementation verification, PostgreSQL integration, production-mode smoke test, and explicit list of what remains unverified.
 
@@ -19,12 +19,12 @@ It is **not yet verified against a real Telegram client or a live Supabase proje
 | Node.js | v26.10.0 |
 | npm | 11.19.1 |
 | PostgreSQL | 17.11 (local Windows service) |
-| Database | `tictactoe_test` |
+| Database | `tictactoe_notify_verify` (disposable PostgreSQL 17.11 database) |
 | Telegram credentials | Synthetic, format-valid test bot token only |
 | Supabase credentials | None |
 | HTTPS deployment | None; production mode ran locally on HTTP port 3200 |
 
-No real secrets were committed or used.
+No real secrets were committed or used. The automated checks and PostgreSQL migration run were repeated on 2026-10-22 after the turn-notification change; the production-mode smoke tests below were run on 2026-10-21.
 
 ## Automated checks
 
@@ -32,22 +32,22 @@ No real secrets were committed or used.
 | --- | --- |
 | `npm run typecheck` | Passed (server + client) |
 | `npm run lint` | Passed |
-| `npm test` without `TEST_DATABASE_URL` | 144 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
-| `npm test` with `TEST_DATABASE_URL` | **154 passed / 154** across 15 test files |
-| `npm run test:coverage` with PostgreSQL | Passed; **85.95% statements**, 82.03% branches, 89.84% functions |
-| Prisma repository coverage | **91.47% statements** (up from 5.13% before integration tests) |
+| `npm test` without `TEST_DATABASE_URL` | 173 passed, 10 skipped (PostgreSQL suite skipped cleanly) |
+| `npm test` with `TEST_DATABASE_URL` | **183 passed / 183** across 18 test files |
+| `npm run test:coverage` with PostgreSQL | Passed; **85.54% statements**, 82.29% branches, 90.07% functions |
+| Prisma repository coverage | **91.40% statements** (up from 5.13% before integration tests) |
 | `npm run build` | Passed; client emitted to `dist/client`, server to `dist/server` |
 | `npm run start:prod` | Applied migrations, then started the production server |
-| `npm run db:migrate` | Applied `20261021000000_init` to PostgreSQL 17.11 |
+| `npm run db:migrate` | Applied all four migrations through `20261022000000_turn_notifications` to a fresh PostgreSQL 17.11 database |
 | `npm run db:migrate` again | “No pending migrations to apply” |
 | `npm run db:migrate` with only `DATABASE_URL` | Passed; wrapper correctly falls back when `DIRECT_URL` is absent |
 | Render Blueprint schema | `render.yaml` and `render.postgres.yaml` valid against Render's published schema |
 
 The PostgreSQL integration suite covers:
 
-- Telegram user upsert, profile updates, preferences, stats and `lastSeenAt`.
+- Telegram user upsert, profile updates, preferences (including durable `turnNotifications`), stats and `lastSeenAt`.
 - Match creation with transactional player reservations and rollback on conflict.
-- Move recording, duplicate action IDs, stale-version rejection, board persistence.
+- Move recording, duplicate action IDs, stale-version rejection, and sparse JSON board persistence.
 - Rated finalization: outcomes, rating deltas, stats, history and leaderboard.
 - AI statistics without affecting the rated leaderboard.
 - Match abandonment and reservation release.
@@ -147,6 +147,15 @@ This verifies that module assets and API calls work when the app is opened throu
 - Invitations are single-use, expiring, hashed at rest, and protected against self-acceptance and busy acceptors.
 - Maintenance closes expired invitations and pending invitations attached to abandoned/stale waiting matches.
 
+### Turn notifications
+
+- Notifications are opt-in per user, default to disabled, and survive profile upserts.
+- Telegram write access is requested only when the player enables the setting.
+- The server sends at most one notification per turn, only to an offline human participant in an active non-AI match.
+- Notification failures are logged asynchronously and never block move processing.
+- Buttons deep-link back into the active Mini App match through `startapp=game_<uuid>`.
+- Unit, HTTP, match-service and repository tests cover the preference, offline gating, deep-link URL and delivery-failure paths.
+
 ### AI
 
 - Easy, Medium, and Hard difficulties are implemented server-side.
@@ -182,7 +191,7 @@ These items could not be verified in this environment and must be checked during
 1. **Real Telegram Mini App launch.** No real BotFather token, bot username, or HTTPS Mini App URL was available. Synthetic `initData` proves the HMAC and session flow, but not Telegram client behavior.
 2. **Real Telegram Web / mobile iframe cookies.** `SameSite=None; Secure` is configured and was observed in the smoke test, but browser third-party-cookie behavior inside Telegram Web was not exercised.
 3. **Live Supabase project.** No Supabase URL or credentials were available. PostgreSQL 17.11 compatibility and the migration were verified locally; Supabase's pooler, TLS termination, and network path were not.
-4. **Telegram bot commands and webhook delivery.** The bot failure path was tested with a fake token. Real `/start`, `/play`, `/help`, menu-button setup, invitation deep links, and webhook secret validation were not exercised against Telegram.
+4. **Telegram bot commands, webhook delivery and turn notifications.** The bot failure path was tested with a fake token. Real `/start`, `/play`, `/help`, menu-button setup, invitation deep links, turn-notification delivery, and webhook secret validation were not exercised against Telegram.
 5. **HTTPS deployment.** TLS, reverse proxy, `TRUST_PROXY`, domain configuration, and Telegram's HTTPS requirement were not deployed or tested. The production Blueprints were schema-validated locally but have not been executed in a live Render account.
 6. **Visual UI verification.** The client builds and the socket/HTTP flows work, but screens were not visually inspected in a real browser or Telegram WebView in this verification pass.
 7. **Load, concurrency, and multi-instance behavior.** The app is intentionally single-instance for in-memory queues and Socket.IO rooms. No Redis adapter or distributed queue was tested.
