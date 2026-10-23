@@ -11,7 +11,8 @@ import {
   opponentFor,
 } from '../lib/game';
 import { cn } from '../lib/cn';
-import { hapticImpact, setVerticalSwipeLock } from '../lib/telegram';
+import { hapticImpact, hapticNotify, setVerticalSwipeLock } from '../lib/telegram';
+import { useTelegramBackHandler } from '../hooks/use-hash-route';
 import { formatDuration, useCountdown } from '../hooks/use-time';
 import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spinner } from '../components/ui';
 import { Page } from '../components/Layout';
@@ -141,7 +142,9 @@ export function GameScreen({
       hapticImpact('light');
       try {
         await submitMove(match.id, cell, actionId);
+        hapticImpact('light');
       } catch (error) {
+        hapticNotify('error');
         if (error instanceof SocketRequestError && (error.code === 'CONNECTION_LOST' || error.code === 'TIMEOUT')) {
           pushToast({ type: 'error', title: 'Move not sent', message: error.message });
         }
@@ -194,6 +197,9 @@ export function GameScreen({
       setForfeiting(false);
     }
   }
+
+  // Intercept Telegram BackButton to dismiss forfeit confirmation modal if open
+  useTelegramBackHandler(forfeitOpen, () => setForfeitOpen(false));
 
   const youReaction = useMemo(
     () => client.reactions.filter((r) => r.isYou).slice(-1)[0] ?? null,
@@ -343,10 +349,14 @@ export function GameScreen({
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden overscroll-none bg-app">
+      <div aria-live="polite" aria-atomic="true" className="sr-only">
+        {yourTurn ? 'Your turn to place a stone' : `${opponent?.displayName || 'Opponent'}'s turn`}
+      </div>
       <Board
         board={displayBoard}
         winningLine={winningLine}
         lastMoveCell={lastMoveCell}
+        pendingCell={pendingCell}
         yourTurn={yourTurn}
         disabled={
           pendingCell !== null ||
@@ -370,6 +380,8 @@ export function GameScreen({
               }}
               mode={modeLabel(match.mode)}
               rated={isRatedMatch(match)}
+              connection={connection}
+              onRetry={client.reconnect}
             />
 
             <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-0.5">
@@ -553,10 +565,14 @@ function GameHeader({
   onBack,
   mode,
   rated,
+  connection,
+  onRetry,
 }: {
   onBack: () => void;
   mode?: string;
   rated?: boolean;
+  connection?: string;
+  onRetry?: () => void;
 }) {
   return (
     <header className="flex items-center justify-between gap-3 pb-2.5 sm:pb-3.5 pt-0">
@@ -575,6 +591,33 @@ function GameHeader({
           ) : null}
         </div>
       </div>
+      {connection && connection !== 'online' ? (
+        <div className="shrink-0 flex items-center">
+          {connection === 'reconnecting' ? (
+            <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+              <span className="relative flex h-2 w-2">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+              </span>
+              <span>Reconnecting…</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-2.5 py-1 text-[11px] font-medium text-danger">
+              <WifiOff className="h-3 w-3 shrink-0" aria-hidden />
+              <span>Offline</span>
+              {onRetry ? (
+                <button
+                  type="button"
+                  onClick={onRetry}
+                  className="ml-1 font-semibold underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current"
+                >
+                  Retry
+                </button>
+              ) : null}
+            </div>
+          )}
+        </div>
+      ) : null}
     </header>
   );
 }

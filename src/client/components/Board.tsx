@@ -8,6 +8,7 @@ interface BoardProps {
   board: BoardType;
   winningLine: number[] | null;
   lastMoveCell: number | null;
+  pendingCell?: number | null;
   yourTurn: boolean;
   disabled: boolean;
   onCell: (cell: number) => void;
@@ -95,6 +96,7 @@ export const Board = memo(function Board({
   board,
   winningLine,
   lastMoveCell,
+  pendingCell = null,
   yourTurn,
   disabled,
   onCell,
@@ -752,11 +754,15 @@ export const Board = memo(function Board({
             {stones.map(({ cell, x, y, side }) => {
               const isWinning = winningSet.has(cell);
               const isLast = lastMoveCell === cell;
+              const isPending = pendingCell === cell;
 
               return (
                 <div
                   key={cell}
-                  className="pointer-events-none absolute flex items-center justify-center"
+                  className={cn(
+                    'pointer-events-none absolute flex items-center justify-center transition-opacity duration-150',
+                    isPending && 'opacity-90',
+                  )}
                   style={{
                     left: `${x * CELL_SIZE}px`,
                     top: `${y * CELL_SIZE}px`,
@@ -768,8 +774,14 @@ export const Board = memo(function Board({
                   {isWinning ? (
                     <span className="win-cell pointer-events-none absolute inset-0.5 rounded-xl bg-amber-400/15 ring-2 ring-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.55)]" />
                   ) : null}
+                  {isPending ? (
+                    <span
+                      className="pointer-events-none absolute inset-0.5 rounded-xl ring-2 ring-accent/70 ring-dashed animate-pulse bg-accent/10"
+                      aria-hidden
+                    />
+                  ) : null}
                   {side === 'X' ? <XMark /> : <OMark />}
-                  {isLast ? (
+                  {isLast && !isPending ? (
                     <span
                       className={cn(
                         'last-move-dot pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',

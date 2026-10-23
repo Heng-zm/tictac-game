@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Modal } from './ui';
 import { cn } from '../lib/cn';
+import { useTelegramBackHandler } from '../hooks/use-hash-route';
 
 export interface HowToPlayModalProps {
   open: boolean;
@@ -232,6 +233,8 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
     persistGuidePreference(dontShowAgain);
     onClose();
   }
+
+  useTelegramBackHandler(open, handleClose);
 
   function handleComplete() {
     // Completing the guide counts as seen even if the early-close checkbox is unchecked.

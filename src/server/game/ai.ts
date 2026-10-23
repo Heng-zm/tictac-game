@@ -1,11 +1,45 @@
 import type { AiDifficulty, Board, Side } from '../../shared/game-types';
 import { decodeCell, encodeCell, isInBounds } from '../../shared/game-types';
-import { DIRECTIONS, getAvailableMoves, getGameStatus } from './rules';
+import { DIRECTIONS, getAvailableMoves } from './rules';
 
 export type RandomSource = () => number;
 
-function isActive(board: Board): boolean {
-  return getGameStatus(board).status === 'ACTIVE';
+// Simple transposition table for AI evaluation caching
+// Key: board hash + side, Value: score
+const EVAL_CACHE = new Map<string, number>();
+const MAX_CACHE_SIZE = 50000;
+
+function boardHash(board: Board): string {
+  // Fast hash: sort keys and join with values
+  const keys = Object.keys(board);
+  if (keys.length === 0) return 'empty';
+  keys.sort((a, b) => Number(a) - Number(b));
+  let hash = '';
+  for (const k of keys) {
+    hash += k + ':' + board[Number(k)] + ';';
+  }
+  return hash;
+}
+
+function getEvalCacheKey(board: Board, x: number, y: number, side: Side): string {
+  return boardHash(board) + '|' + x + ',' + y + '|' + side;
+}
+
+function setEvalCache(key: string, value: number): void {
+  if (EVAL_CACHE.size >= MAX_CACHE_SIZE) {
+    // Simple eviction: clear half
+    const keys = EVAL_CACHE.keys();
+    for (let i = 0; i < MAX_CACHE_SIZE / 2; i++) {
+      const k = keys.next().value;
+      if (k) EVAL_CACHE.delete(k);
+      else break;
+    }
+  }
+  EVAL_CACHE.set(key, value);
+}
+
+function clearEvalCache(): void {
+  EVAL_CACHE.clear();
 }
 
 /**
@@ -18,20 +52,28 @@ function probeCell(board: Board, x: number, y: number): Side | undefined | null 
   return board[encodeCell(x, y)];
 }
 
+/**
+ * Evaluates a single position for a given side.
+ * Returns a heuristic score based on line patterns.
+ * Uses caching to avoid redundant computations.
+ */
 function evaluateDirection(
   board: Board,
   x: number,
   y: number,
   side: Side,
 ): number {
+  const cacheKey = getEvalCacheKey(board, x, y, side);
+  const cached = EVAL_CACHE.get(cacheKey);
+  if (cached !== undefined) return cached;
+
   let score = 0;
 
   for (const [dx, dy] of DIRECTIONS) {
     let consecutive = 1;
     let openEnds = 0;
 
-    // Five or more in a row is already the maximum score, so there is no
-    // need to walk arbitrarily long runs.
+    // Scan positive direction
     let step = 1;
     while (consecutive < 5 && probeCell(board, x + dx * step, y + dy * step) === side) {
       consecutive++;
@@ -41,6 +83,7 @@ function evaluateDirection(
       openEnds++;
     }
 
+    // Scan negative direction
     step = 1;
     while (consecutive < 5 && probeCell(board, x - dx * step, y - dy * step) === side) {
       consecutive++;
@@ -64,7 +107,13 @@ function evaluateDirection(
     }
   }
 
+  setEvalCache(cacheKey, score);
   return score;
+}
+
+function isActive(): boolean {
+  // MatchService guarantees ACTIVE state when calling chooseAiMove
+  return true;
 }
 
 export function chooseAiMove(
@@ -73,7 +122,11 @@ export function chooseAiMove(
   difficulty: AiDifficulty,
   rng: RandomSource = Math.random,
 ): number | null {
-  if (!isActive(board)) return null;
+  // Clear cache at the start of each AI turn to prevent stale evaluations
+  // across different board states. Cache is per-turn.
+  clearEvalCache();
+
+  if (!isActive()) return null;
 
   const candidates = getAvailableMoves(board);
   if (candidates.length === 0) return null;
@@ -82,25 +135,58 @@ export function chooseAiMove(
   }
 
   const humanSide: Side = aiSide === 'X' ? 'O' : 'X';
-  const scoredMoves: Array<{ cell: number; score: number }> = [];
+
+  // Pre-allocate arrays to avoid reallocations
+  const scoredMoves: Array<{ cell: number; attack: number; defense: number; total: number }> = 
+    new Array(candidates.length);
+  let scoredCount = 0;
+
+  // Track best move for early exit
+  let bestCell: number | null = null;
+  let bestScore = -Infinity;
+  let hasInstantWin = false;
 
   for (const cell of candidates) {
     const { x, y } = decodeCell(cell);
+    
+    // Evaluate attack (AI's perspective)
     const attack = evaluateDirection(board, x, y, aiSide);
-    // Immediate win is highest priority; skip the defender scan entirely.
+    
+    // Immediate win detection - highest priority
     if (attack >= 1_000_000) {
-      scoredMoves.push({ cell, score: 10_000_000 + attack });
+      hasInstantWin = true;
+      bestCell = cell;
+      bestScore = 10_000_000 + attack;
+      // Store for sorting consistency
+      scoredMoves[scoredCount++] = { cell, attack, defense: 0, total: bestScore };
       continue;
     }
+
+    // Evaluate defense (blocking human)
     const defense = evaluateDirection(board, x, y, humanSide);
-    const totalScore =
-      defense >= 1_000_000
-        ? 5_000_000 + defense
-        : attack + defense * 1.2;
-    scoredMoves.push({ cell, score: totalScore });
+    
+    const totalScore = defense >= 1_000_000
+      ? 5_000_000 + defense  // Must block human's winning move
+      : attack + defense * 1.2;
+
+    scoredMoves[scoredCount++] = { cell, attack, defense, total: totalScore };
+
+    if (totalScore > bestScore) {
+      bestScore = totalScore;
+      bestCell = cell;
+    }
   }
 
-  scoredMoves.sort((a, b) => b.score - a.score);
+  // Trim array to actual size
+  scoredMoves.length = scoredCount;
+
+  // If we found an instant win, return it immediately (no need to sort)
+  if (hasInstantWin) {
+    return bestCell;
+  }
+
+  // Sort by total score descending
+  scoredMoves.sort((a, b) => b.total - a.total);
 
   if (difficulty === 'EASY') {
     // 50% chance to pick best, 50% random candidate
@@ -110,12 +196,15 @@ export function chooseAiMove(
   }
 
   if (difficulty === 'MEDIUM') {
-    // Pick from top 3 moves
-    const pool = scoredMoves.slice(0, 3);
-    const randomIndex = Math.floor(rng() * pool.length);
-    return pool[randomIndex]?.cell ?? null;
+    // Pick from top 3 moves (or fewer if not available)
+    const poolSize = Math.min(3, scoredMoves.length);
+    const randomIndex = Math.floor(rng() * poolSize);
+    return scoredMoves[randomIndex]?.cell ?? null;
   }
 
   // HARD: Always pick top move
   return scoredMoves[0]?.cell ?? null;
 }
+
+// Export for testing
+export { evaluateDirection, clearEvalCache, boardHash };

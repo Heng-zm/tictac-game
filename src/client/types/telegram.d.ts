@@ -44,10 +44,11 @@ export interface TelegramWebApp {
   offEvent: (event: string, callback: () => void) => void;
   setHeaderColor: (color: string) => void;
   setBackgroundColor: (color: string) => void;
+  setBottomBarColor?: (color: string) => void;
   enableClosingConfirmation: () => void;
   disableClosingConfirmation: () => void;
   // Bot API 6.9+. Optional because older Telegram clients do not expose them.
-  requestWriteAccess?: (callback?: (granted: boolean | string) => void) => void;
+  requestWriteAccess?: (callback?: (granted: boolean | string | { status?: string }) => void) => void;
   // Bot API 7.7+. Optional because older Telegram clients do not expose them.
   disableVerticalSwipes?: () => void;
   enableVerticalSwipes?: () => void;
@@ -63,6 +64,7 @@ export interface TelegramWebApp {
     hide: () => void;
     onClick: (callback: () => void) => void;
     offClick: (callback: () => void) => void;
+    is_visible?: boolean;
   };
 }
 

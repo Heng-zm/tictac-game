@@ -52,15 +52,19 @@ export function requestTelegramWriteAccess(): Promise<TelegramWriteAccessResult>
 
   return new Promise((resolve) => {
     let settled = false;
-    const state: { timer?: number } = {};
-    const finish = (granted: boolean | string) => {
+    const timer = { current: undefined as number | undefined };
+    const finish = (granted: boolean | string | { status?: string }) => {
       if (settled) return;
       settled = true;
-      if (state.timer !== undefined) window.clearTimeout(state.timer);
-      resolve(granted === true || granted === 'allowed' ? 'allowed' : 'denied');
+      if (timer.current !== undefined) window.clearTimeout(timer.current);
+      const isAllowed =
+        granted === true ||
+        granted === 'allowed' ||
+        (typeof granted === 'object' && granted !== null && granted.status === 'allowed');
+      resolve(isAllowed ? 'allowed' : 'denied');
     };
 
-    state.timer = window.setTimeout(() => finish(false), 60_000);
+    timer.current = window.setTimeout(() => finish(false), 60_000);
     try {
       tg.requestWriteAccess?.(finish);
     } catch {
@@ -108,7 +112,7 @@ export function applyTheme(): void {
     ['--app-muted', params.hint_color ?? params.subtitle_text_color],
     ['--app-border', params.section_separator_color],
     ['--app-accent', params.button_color ?? params.link_color],
-    ['--app-accent-text', params.button_text_color],
+    ['--app-accent-text', params.button_text_color ?? params.accent_text_color],
     ['--app-danger', params.destructive_text_color],
   ];
   for (const [variable, value] of mapped) {
@@ -125,8 +129,9 @@ export function applyTheme(): void {
   const bg = params.bg_color;
   if (bg) {
     try {
-      tg.setHeaderColor(bg);
+      tg.setHeaderColor(params.header_bg_color ?? bg);
       tg.setBackgroundColor(bg);
+      tg.setBottomBarColor?.(params.secondary_bg_color ?? bg);
     } catch {
       // Not supported on older Telegram clients.
     }
@@ -172,15 +177,26 @@ export function watchTheme(): ThemeCleanup {
   const tg = getWebApp();
   applyTheme();
 
+  const onViewport = () => updateViewportHeight();
+  if (typeof window !== 'undefined' && window.visualViewport) {
+    window.visualViewport.addEventListener('resize', onViewport);
+  }
+
   if (!tg) {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
     const onChange = () => applySystemTheme();
     media.addEventListener('change', onChange);
-    return { cleanup: () => media.removeEventListener('change', onChange) };
+    return {
+      cleanup: () => {
+        media.removeEventListener('change', onChange);
+        if (typeof window !== 'undefined' && window.visualViewport) {
+          window.visualViewport.removeEventListener('resize', onViewport);
+        }
+      },
+    };
   }
 
   const onTheme = () => applyTheme();
-  const onViewport = () => updateViewportHeight();
   tg.onEvent('themeChanged', onTheme);
   tg.onEvent('viewportChanged', onViewport);
   updateViewportHeight();
@@ -188,14 +204,22 @@ export function watchTheme(): ThemeCleanup {
     cleanup: () => {
       tg.offEvent('themeChanged', onTheme);
       tg.offEvent('viewportChanged', onViewport);
+      if (typeof window !== 'undefined' && window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', onViewport);
+      }
     },
   };
 }
 
 export function updateViewportHeight(): void {
   const tg = getWebApp();
-  const height = tg?.viewportStableHeight || window.innerHeight;
-  document.documentElement.style.setProperty('--app-vh', `${height}px`);
+  const stable = tg?.viewportStableHeight;
+  const current = tg?.viewportHeight;
+  const height = stable || current || window.innerHeight;
+  const root = document.documentElement;
+  root.style.setProperty('--app-vh', `${height}px`);
+  if (current) root.style.setProperty('--tg-viewport-height', `${current}px`);
+  if (stable) root.style.setProperty('--tg-viewport-stable-height', `${stable}px`);
 }
 
 /**
@@ -225,6 +249,14 @@ export function hapticImpact(style: 'light' | 'medium' | 'heavy' = 'light'): voi
 export function hapticNotify(type: 'error' | 'success' | 'warning'): void {
   try {
     getWebApp()?.HapticFeedback?.notificationOccurred(type);
+  } catch {
+    // Haptics are optional.
+  }
+}
+
+export function hapticSelection(): void {
+  try {
+    getWebApp()?.HapticFeedback?.selectionChanged();
   } catch {
     // Haptics are optional.
   }

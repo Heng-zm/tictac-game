@@ -110,7 +110,7 @@ export default function App() {
   const showActiveGameBar =
     Boolean(activeMatch) && (route.name === 'profile' || route.name === 'leaderboard');
 
-  const showConnectionBanner = route.name !== 'game' && route.name !== 'search';
+  const showConnectionBanner = route.name !== 'game';
   // The result modal already communicates the outcome while the player is on
   // the board, so keep its toast out of the modal's action area.
   const visibleToasts =
@@ -131,7 +131,7 @@ export default function App() {
           main?.scrollIntoView({ block: 'start' });
           main?.focus({ preventScroll: true });
         }}
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-surface focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-soft focus:outline-none focus:ring-2 focus:ring-accent"
+        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[100] focus:rounded-xl focus:bg-surface focus:px-4 focus:py-2.5 focus:text-sm focus:font-semibold focus:text-ink focus:shadow-soft focus:outline-none focus:ring-2 focus:ring-accent"
       >
         Skip to content
       </a>

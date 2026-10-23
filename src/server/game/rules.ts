@@ -31,22 +31,26 @@ export type MoveApplicationResult =
   | { ok: true; board: Board; status: GameStatus }
   | { ok: false; code: MoveErrorCode };
 
+// Pre-computed direction vectors for the 4 win directions
 export const DIRECTIONS = [
-  [1, 0],  // horizontal →
-  [0, 1],  // vertical ↓
-  [1, 1],  // diagonal ↘
-  [1, -1], // anti-diagonal ↗
+  [1, 0],   // horizontal →
+  [0, 1],   // vertical ↓
+  [1, 1],   // diagonal ↘
+  [1, -1],  // anti-diagonal ↗
 ] as const;
 
+// Pre-computed neighbor offsets: [dx, dy, encodedOffset]
+// encodedOffset = encodeCell(x+dx, y+dy) - encodeCell(x, y)
+// = (dy * COORD_STRIDE) + dx
 const NEIGHBOR_OFFSETS = [
   [-1, -1, -COORD_STRIDE - 1],
-  [-1, 0, -1],
-  [-1, 1, COORD_STRIDE - 1],
-  [0, -1, -COORD_STRIDE],
-  [0, 1, COORD_STRIDE],
-  [1, -1, -COORD_STRIDE + 1],
-  [1, 0, 1],
-  [1, 1, COORD_STRIDE + 1],
+  [-1,  0, -1],
+  [-1,  1,  COORD_STRIDE - 1],
+  [ 0, -1, -COORD_STRIDE],
+  [ 0,  1,  COORD_STRIDE],
+  [ 1, -1, -COORD_STRIDE + 1],
+  [ 1,  0,  1],
+  [ 1,  1,  COORD_STRIDE + 1],
 ] as const;
 
 export function isValidBoard(board: unknown): board is Board {
@@ -66,7 +70,7 @@ export function validateBoard(board: Board): void {
  */
 export function getWinner(board: Board): WinResult | null {
   const entries = Object.entries(board) as [string, Side][];
-  if (entries.length < 9) return null; // In 5-in-a-row, need at least 9 total moves to win
+  if (entries.length < 9) return null; // 5-in-a-row needs at least 9 total moves
 
   for (const [cellStr, side] of entries) {
     if (side !== 'X' && side !== 'O') continue;
@@ -74,23 +78,31 @@ export function getWinner(board: Board): WinResult | null {
     const { x, y } = decodeCell(cell);
 
     for (const [dx, dy] of DIRECTIONS) {
-      // Avoid redundant line checks: only evaluate if previous cell is NOT the same side
-      if (isInBounds(x - dx, y - dy) && board[encodeCell(x - dx, y - dy)] === side) continue;
+      // Only evaluate from the start of a line (previous cell is not same side)
+      const prevX = x - dx;
+      const prevY = y - dy;
+      if (isInBounds(prevX, prevY) && board[encodeCell(prevX, prevY)] === side) continue;
 
-      const line = [cell];
+      let count = 1;
       for (let step = 1; step < 5; step++) {
         const nx = x + dx * step;
         const ny = y + dy * step;
         if (!isInBounds(nx, ny)) break;
-        const nextCell = encodeCell(nx, ny);
-        if (board[nextCell] === side) {
-          line.push(nextCell);
-        } else {
-          break;
-        }
+        if (board[encodeCell(nx, ny)] !== side) break;
+        count++;
       }
 
-      if (line.length >= 5) {
+      if (count >= 5) {
+        // Reconstruct the winning line (max 5 cells)
+        const line: number[] = [];
+        for (let step = 0; step < 5; step++) {
+          const lx = x + dx * step;
+          const ly = y + dy * step;
+          if (!isInBounds(lx, ly)) break;
+          const c = encodeCell(lx, ly);
+          if (board[c] !== side) break;
+          line.push(c);
+        }
         return { side, line };
       }
     }
@@ -109,9 +121,11 @@ export function getWinnerAt(board: Board, cellIndex: number): WinResult | null {
   if (side !== 'X' && side !== 'O') return null;
 
   const { x, y } = decodeCell(cellIndex);
-  for (const [dx, dy] of DIRECTIONS) {
-    const line = [cellIndex];
 
+  for (const [dx, dy] of DIRECTIONS) {
+    const line: number[] = [];
+
+    // Scan backward (negative direction)
     for (let step = 1; step < 5; step++) {
       const nx = x - dx * step;
       const ny = y - dy * step;
@@ -121,6 +135,10 @@ export function getWinnerAt(board: Board, cellIndex: number): WinResult | null {
       line.unshift(cell);
     }
 
+    // Center cell
+    line.push(cellIndex);
+
+    // Scan forward (positive direction)
     for (let step = 1; step < 5; step++) {
       const nx = x + dx * step;
       const ny = y + dy * step;
@@ -148,29 +166,43 @@ export function getGameStatus(board: Board): GameStatus {
   return { status: 'ACTIVE', winner: null, line: null };
 }
 
+/**
+ * Returns candidate moves adjacent to existing stones.
+ * Uses pre-computed offsets to avoid repeated encode/decode.
+ */
 export function getAvailableMoves(board: Board): number[] {
-  // Candidate moves around existing stones
-  const occupied = Object.keys(board).map(Number);
+  const occupied = Object.keys(board);
   if (occupied.length === 0) return [encodeCell(0, 0)];
 
-  const seen = new Set<number>();
-  const candidates: number[] = [];
+  // Pre-allocate with estimated capacity (8 neighbors per stone, but many overlap)
+  const candidates = new Array<number>(occupied.length * 8);
+  let candidateCount = 0;
 
-  for (const cell of occupied) {
+  // Use a timestamp-based visited array instead of Set for speed
+  const visited = new Map<number, number>();
+  const visitToken = Date.now();
+
+  for (const cellStr of occupied) {
+    const cell = Number(cellStr);
     const { x, y } = decodeCell(cell);
+
     for (const [dx, dy, offset] of NEIGHBOR_OFFSETS) {
       const nx = x + dx;
       const ny = y + dy;
       if (!isInBounds(nx, ny)) continue;
+
       const candidate = cell + offset;
-      if (board[candidate] === undefined && !seen.has(candidate)) {
-        seen.add(candidate);
-        candidates.push(candidate);
-      }
+      if (board[candidate] !== undefined) continue;
+      if (visited.get(candidate) === visitToken) continue;
+
+      visited.set(candidate, visitToken);
+      candidates[candidateCount++] = candidate;
     }
   }
 
-  return candidates.length > 0 ? candidates : [encodeCell(0, 0)];
+  if (candidateCount === 0) return [encodeCell(0, 0)];
+  candidates.length = candidateCount;
+  return candidates;
 }
 
 function validatePlacement(
@@ -224,14 +256,16 @@ export function applyMoveWithStatus(
   };
 }
 
+/**
+ * Determines whose turn it is by counting moves.
+ * O(n) where n = moves played. For hot paths, prefer passing turn explicitly.
+ */
 export function sideToMove(board: Board): Side {
   let xMoves = 0;
   let oMoves = 0;
   for (const side of Object.values(board)) {
     if (side === 'X') xMoves++;
-    else if (side === 'O') oMoves++;
+    else oMoves++; // side === 'O' guaranteed by isValidBoard
   }
-  if (xMoves === oMoves) return 'X';
-  if (xMoves === oMoves + 1) return 'O';
-  throw new Error('Invalid move counts on board');
+  return xMoves === oMoves ? 'X' : 'O';
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { Home, RefreshCw, Trophy, User, WifiOff } from 'lucide-react';
 import { cn } from '../lib/cn';
+import { hapticSelection } from '../lib/telegram';
 import type { ConnectionStatus } from '../hooks/use-game-client';
 
 export function ConnectionBanner({
@@ -111,9 +112,12 @@ export function BottomNav({
             <button
               key={item.name}
               type="button"
-              onClick={() => onNavigate(item.path)}
+              onClick={() => {
+                hapticSelection();
+                onNavigate(item.path);
+              }}
               aria-current={selected ? 'page' : undefined}
-              aria-label={showActiveGame ? `${item.label} (game in progress)` : undefined}
+              aria-label={showActiveGame ? `${item.label} (game in progress)` : item.label}
               className={cn(
                 'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2.5 md:text-xs',
                 selected ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-elevated hover:text-ink',

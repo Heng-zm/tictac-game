@@ -12,7 +12,9 @@ export type Route =
 
 export function parseHash(hash: string): Route {
   const withoutHash = hash.replace(/^#\/?/, '');
-  const pathOnly = (withoutHash.split('?')[0] ?? '').replace(/\/+$/, '');
+  // Separate query parameters (?...) from the path, and handle any secondary '#' fragments
+  const firstSegment = (withoutHash.split('?')[0] ?? '').split('#')[0] ?? '';
+  const pathOnly = firstSegment.replace(/\/+$/, '');
   if (!pathOnly) return { name: 'home' };
   // Telegram appends its launch parameters directly to the fragment, e.g.
   // `#tgWebAppData=...&tgWebAppVersion=8.0`. They describe the WebApp session,
@@ -62,11 +64,27 @@ export function routeToPath(route: Route): string {
   }
 }
 
-export function useHashRoute(): { route: Route; navigate: (path: string) => void } {
+export interface NavigateOptions {
+  replace?: boolean;
+}
+
+export function useHashRoute(): {
+  route: Route;
+  navigate: (path: string, options?: NavigateOptions) => void;
+  canGoBack: boolean;
+} {
   const [route, setRoute] = useState<Route>(() => parseHash(window.location.hash));
+  const [historyDepth, setHistoryDepth] = useState(0);
 
   useEffect(() => {
-    const onChange = () => setRoute(parseHash(window.location.hash));
+    const onChange = () => {
+      setRoute(parseHash(window.location.hash));
+      // Focus management: move focus to main content container on navigation
+      const main = document.getElementById('main-content');
+      if (main && typeof main.focus === 'function') {
+        main.focus({ preventScroll: true });
+      }
+    };
     window.addEventListener('hashchange', onChange);
     if (!window.location.hash) {
       window.history.replaceState(null, '', '#/');
@@ -74,36 +92,89 @@ export function useHashRoute(): { route: Route; navigate: (path: string) => void
     return () => window.removeEventListener('hashchange', onChange);
   }, []);
 
-  const navigate = useCallback((path: string) => {
+  const navigate = useCallback((path: string, options?: NavigateOptions) => {
     const normalized = path.startsWith('/') ? path : `/${path}`;
-    if (window.location.hash === `#${normalized}`) {
-      setRoute(parseHash(`#${normalized}`));
+    const targetHash = `#${normalized}`;
+
+    if (options?.replace) {
+      if (typeof window.history.replaceState === 'function') {
+        window.history.replaceState(null, '', targetHash);
+        setRoute(parseHash(targetHash));
+        const main = document.getElementById('main-content');
+        if (main && typeof main.focus === 'function') {
+          main.focus({ preventScroll: true });
+        }
+        return;
+      }
+    }
+
+    if (window.location.hash === targetHash) {
+      setRoute(parseHash(targetHash));
+      const main = document.getElementById('main-content');
+      if (main && typeof main.focus === 'function') {
+        main.focus({ preventScroll: true });
+      }
       return;
     }
-    window.location.hash = `#${normalized}`;
+
+    setHistoryDepth((d) => d + 1);
+    window.location.hash = targetHash;
   }, []);
 
-  return { route, navigate };
+  return { route, navigate, canGoBack: historyDepth > 0 };
 }
 
-/** Adds the browser-back affordance used by the Telegram header. */
-export function useTelegramBackButton(visible: boolean, onBack: () => void): void {
+type BackHandler = () => void;
+const backHandlerStack: BackHandler[] = [];
+
+function syncTelegramBackButton(): void {
+  const backButton = window.Telegram?.WebApp?.BackButton;
+  if (!backButton) return;
+  if (backHandlerStack.length > 0) {
+    backButton.show();
+  } else {
+    backButton.hide();
+  }
+}
+
+let backButtonInitialized = false;
+
+function ensureBackButtonSubscription(): void {
+  if (backButtonInitialized) return;
+  const backButton = window.Telegram?.WebApp?.BackButton;
+  if (!backButton) return;
+  backButtonInitialized = true;
+  backButton.onClick(() => {
+    const handler = backHandlerStack[backHandlerStack.length - 1];
+    if (handler) {
+      handler();
+    }
+  });
+}
+
+/**
+ * Registers a priority back handler (e.g. Forfeit modal, HowToPlay guide, or screen back).
+ * The most recently mounted active handler handles the BackButton press first.
+ */
+export function useTelegramBackHandler(active: boolean, onBack: () => void): void {
   const callback = useRef(onBack);
   callback.current = onBack;
 
   useEffect(() => {
-    const backButton = window.Telegram?.WebApp?.BackButton;
-    if (!backButton) return;
-    if (!visible) {
-      backButton.hide();
-      return;
-    }
+    if (!active) return;
+    ensureBackButtonSubscription();
     const handler = () => callback.current();
-    backButton.onClick(handler);
-    backButton.show();
+    backHandlerStack.push(handler);
+    syncTelegramBackButton();
     return () => {
-      backButton.offClick(handler);
-      backButton.hide();
+      const idx = backHandlerStack.lastIndexOf(handler);
+      if (idx !== -1) backHandlerStack.splice(idx, 1);
+      syncTelegramBackButton();
     };
-  }, [visible]);
+  }, [active]);
+}
+
+/** Adds the browser-back affordance used by the Telegram header. */
+export function useTelegramBackButton(visible: boolean, onBack: () => void): void {
+  useTelegramBackHandler(visible, onBack);
 }

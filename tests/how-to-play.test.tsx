@@ -3,6 +3,19 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen, fireEvent } from '@testing-library/react';
 import { HowToPlayModal, HOW_TO_PLAY_STORAGE_KEY } from '../src/client/components/HowToPlayModal';
 
+// Mock localStorage for jsdom environment
+const localStorageMock = (() => {
+  let store: Record<string, string> = {};
+  return {
+    getItem: (key: string) => store[key] ?? null,
+    setItem: (key: string, value: string) => { store[key] = value; },
+    removeItem: (key: string) => { delete store[key]; },
+    clear: () => { store = {}; },
+  };
+})();
+
+Object.defineProperty(global, 'localStorage', { value: localStorageMock, writable: true });
+
 describe('HowToPlayModal', () => {
   beforeEach(() => {
     localStorage.clear();
