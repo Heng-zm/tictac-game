@@ -124,13 +124,21 @@ export function HomeScreen({
             <button
               type="button"
               onClick={() => navigate(`/game/${activeMatch.id}`)}
-              className="group flex w-full items-center gap-3 rounded-2xl border border-accent/20 bg-accent/5 p-3.5 text-left transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-r from-accent/15 via-accent/5 to-surface p-3.5 text-left transition-all duration-200 hover:border-accent/50 hover:shadow-glow active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+              <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-accent/10 blur-xl" aria-hidden />
+              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm">
                 <Play className="h-4 w-4" fill="currentColor" aria-hidden />
+                {yourTurn ? (
+                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+                    <span className="relative inline-flex h-3 w-3 rounded-full bg-success ring-2 ring-surface" />
+                  </span>
+                ) : null}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
+                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
+                  <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
                   Game in progress
                 </span>
                 <span className="mt-0.5 flex min-w-0 items-baseline gap-1.5">
@@ -142,8 +150,10 @@ export function HomeScreen({
               </span>
               <span
                 className={cn(
-                  'shrink-0 text-xs font-semibold',
-                  yourTurn ? 'text-success' : 'text-accent',
+                  'shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold shadow-xs',
+                  yourTurn
+                    ? 'border border-success/30 bg-success/15 text-success'
+                    : 'border border-accent/30 bg-accent/10 text-accent',
                 )}
               >
                 {yourTurn ? 'Your turn' : 'Resume'}
@@ -156,9 +166,9 @@ export function HomeScreen({
             <button
               type="button"
               onClick={() => navigate('/invite/waiting')}
-              className="group flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 text-left transition hover:bg-elevated active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+              className="group flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 text-left transition-all duration-200 hover:bg-elevated hover:border-accent/30 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
                 <Clock3 className="h-4 w-4" aria-hidden />
               </span>
               <span className="min-w-0 flex-1">
@@ -176,10 +186,10 @@ export function HomeScreen({
       <button
         type="button"
         onClick={() => setGuideOpen(true)}
-        className="group mb-3.5 flex w-full items-center justify-between gap-3 rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition hover:border-accent/40 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        className="group relative mb-3.5 flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition-all duration-200 hover:border-accent/45 hover:shadow-glow/30 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
       >
         <span className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm group-hover:scale-105 transition-transform duration-200">
             <BookOpen className="h-5 w-5" aria-hidden />
           </span>
           <span className="min-w-0">
@@ -187,7 +197,7 @@ export function HomeScreen({
               <span className="text-xs font-bold text-ink">
                 {isKhmer ? 'របៀបលេងសម្រាប់អ្នកថ្មី' : 'New here? Learn how to play'}
               </span>
-              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase">
+              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase tracking-wide">
                 {isKhmer ? 'ជំហានៗ' : 'Step by step'}
               </span>
             </span>
@@ -202,7 +212,8 @@ export function HomeScreen({
       </button>
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-5">
-        <Card className="p-4 lg:col-start-2 lg:row-start-1">
+        <Card className="relative overflow-hidden p-4 lg:col-start-2 lg:row-start-1">
+          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-accent/5 blur-2xl" aria-hidden />
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Ladder rating</p>
@@ -214,18 +225,18 @@ export function HomeScreen({
             </div>
           </div>
           <RankProgress rating={stats.rating} className="mt-3" />
-          <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
+          <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line/70 pt-3 text-center">
             <div>
-              <p className="text-sm font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
-              <p className="mt-0.5 text-[10px] text-muted">Games</p>
+              <p className="text-sm font-bold tabular-nums text-ink">{stats.gamesPlayed}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">Games</p>
             </div>
             <div>
-              <p className="text-sm font-semibold tabular-nums text-ink">{stats.wins}</p>
-              <p className="mt-0.5 text-[10px] text-muted">Wins</p>
+              <p className="text-sm font-bold tabular-nums text-ink">{stats.wins}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">Wins</p>
             </div>
             <div>
-              <p className="text-sm font-semibold tabular-nums text-ink">{stats.winRate}%</p>
-              <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
+              <p className="text-sm font-bold tabular-nums text-ink">{stats.winRate}%</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">Win rate</p>
             </div>
           </div>
         </Card>
@@ -245,6 +256,7 @@ export function HomeScreen({
             icon={Link2}
             title="Invite a friend"
             description="Private link · rated"
+            tone="emerald"
             onClick={() => navigate('/invite/waiting')}
             disabled={busy}
           />
@@ -256,7 +268,7 @@ export function HomeScreen({
         ) : null}
       </section>
 
-      <Card className="p-4 lg:col-start-1 lg:row-start-2">
+      <Card className="relative overflow-hidden p-4 lg:col-start-1 lg:row-start-2">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-ink">
             <Bot className="h-5 w-5" aria-hidden />
@@ -307,7 +319,7 @@ export function HomeScreen({
 
       <Card className="p-4 lg:col-start-2 lg:row-start-2">
         <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-success/25 bg-success/10 text-success">
             <ShieldCheck className="h-4 w-4" aria-hidden />
           </span>
           <div>
@@ -315,7 +327,7 @@ export function HomeScreen({
             <p className="text-[11px] text-muted">Every move is checked by the server.</p>
           </div>
         </div>
-        <div className="mt-3 space-y-2.5 border-t border-line pt-3 text-[11px] leading-relaxed text-muted">
+        <div className="mt-3 space-y-2.5 border-t border-line/70 pt-3 text-[11px] leading-relaxed text-muted">
           <p className="flex items-start gap-2">
             <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
             <span>Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)}.</span>
@@ -348,7 +360,7 @@ function ModeTile({
   icon: LucideIcon;
   title: string;
   description: string;
-  tone?: 'accent' | 'neutral';
+  tone?: 'accent' | 'emerald' | 'neutral';
   onClick: () => void;
   disabled: boolean;
 }) {
@@ -358,21 +370,33 @@ function ModeTile({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'group flex min-h-[130px] flex-col items-start rounded-2xl border p-4 text-left transition active:scale-[0.99] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+        'group relative flex min-h-[136px] flex-col items-start overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
         tone === 'accent'
-          ? 'border-accent/20 bg-accent/5 hover:border-accent/35'
-          : 'border-line bg-surface hover:border-accent/20 hover:bg-elevated/60',
+          ? 'border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-surface hover:border-accent/50 hover:shadow-glow'
+          : tone === 'emerald'
+            ? 'border-emerald-500/25 bg-gradient-to-br from-emerald-500/12 via-emerald-500/5 to-surface hover:border-emerald-500/40 hover:shadow-sm'
+            : 'border-line bg-surface hover:border-accent/20 hover:bg-elevated/60',
       )}
     >
-      <span
-        className={cn(
-          'flex h-10 w-10 items-center justify-center rounded-xl',
-          tone === 'accent' ? 'bg-accent text-accent-ink' : 'bg-elevated text-ink',
-        )}
-      >
-        <Icon className="h-5 w-5" aria-hidden />
-      </span>
-      <span className="mt-auto pt-5">
+      <div className="flex w-full items-center justify-between">
+        <span
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105',
+            tone === 'accent'
+              ? 'bg-accent text-accent-ink shadow-sm shadow-accent/25'
+              : tone === 'emerald'
+                ? 'border border-emerald-500/25 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                : 'bg-elevated text-ink',
+          )}
+        >
+          <Icon className="h-5 w-5" aria-hidden />
+        </span>
+        <ChevronRight
+          className="h-4 w-4 text-muted/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-ink/70"
+          aria-hidden
+        />
+      </div>
+      <span className="mt-auto pt-4">
         <span className="block text-sm font-semibold text-ink">{title}</span>
         <span className="mt-0.5 block text-[11px] leading-relaxed text-muted">{description}</span>
       </span>

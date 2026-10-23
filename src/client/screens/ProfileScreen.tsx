@@ -82,11 +82,12 @@ export function ProfileScreen({
       />
 
       <div className="grid gap-4 lg:grid-cols-[minmax(260px,0.78fr)_minmax(0,1.22fr)] lg:items-start lg:gap-6">
-        <Card className="p-4 lg:sticky lg:top-6">
+        <Card className="relative overflow-hidden p-4 lg:sticky lg:top-6">
+          <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-accent/5 blur-xl" aria-hidden />
           <div className="flex items-center gap-3.5">
             <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="lg" ring />
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-lg font-semibold tracking-tight text-ink">
+              <h2 className="truncate text-lg font-bold tracking-tight text-ink">
                 {profile.firstName} {profile.lastName ?? ''}
               </h2>
               {profile.username ? <p className="truncate text-xs text-muted">@{profile.username}</p> : null}
@@ -101,18 +102,18 @@ export function ProfileScreen({
             </div>
           </div>
           <RankProgress rating={stats.rating} className="mt-4" />
-          <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line pt-3 text-center">
+          <div className="mt-4 grid grid-cols-3 divide-x divide-line/70 border-t border-line/70 pt-3 text-center">
             <div>
-              <p className="text-base font-semibold tabular-nums text-ink">{stats.gamesPlayed}</p>
-              <p className="mt-0.5 text-[10px] text-muted">Games</p>
+              <p className="text-base font-bold tabular-nums text-ink">{stats.gamesPlayed}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">Games</p>
             </div>
             <div>
-              <p className="text-base font-semibold tabular-nums text-success">{stats.wins}</p>
-              <p className="mt-0.5 text-[10px] text-muted">Wins</p>
+              <p className="text-base font-bold tabular-nums text-success">{stats.wins}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">Wins</p>
             </div>
             <div>
-              <p className="text-base font-semibold tabular-nums text-accent">{stats.winRate}%</p>
-              <p className="mt-0.5 text-[10px] text-muted">Win rate</p>
+              <p className="text-base font-bold tabular-nums text-accent">{stats.winRate}%</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">Win rate</p>
             </div>
           </div>
         </Card>
@@ -221,16 +222,16 @@ function OverviewTab({ client, navigate }: { client: GameClient; navigate: (path
       <button
         type="button"
         onClick={() => navigate('/leaderboard')}
-        className="group flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-4 text-left transition hover:bg-elevated active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        className="group flex w-full items-center gap-3 rounded-2xl border border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-surface p-4 text-left transition-all duration-200 hover:border-amber-500/50 hover:shadow-sm active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/60"
       >
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500">
+        <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500 shadow-sm group-hover:scale-105 transition-transform duration-200">
           <Medal className="h-5 w-5" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-bold text-ink">Ladder leaderboard</span>
-          <span className="block text-[11px] text-muted">See where your rating ranks</span>
+          <span className="block text-[11px] text-muted">See where your rating ranks globally</span>
         </span>
-        <ChevronRight className="h-5 w-5 text-muted transition group-hover:translate-x-0.5" aria-hidden />
+        <ChevronRight className="h-5 w-5 text-amber-500/70 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
       </button>
 
       <Card className="flex items-start gap-2.5 p-3.5">
@@ -338,7 +339,13 @@ function HistoryRow({ item }: { item: HistoryRecord }) {
   const tone = outcome === 'WIN' ? 'success' : outcome === 'LOSS' ? 'danger' : 'neutral';
 
   return (
-    <Card className="flex items-center gap-3 p-3.5">
+    <Card
+      className={cn(
+        'flex items-center gap-3 p-3.5 transition-all duration-150',
+        outcome === 'WIN' && 'hover:border-success/35 hover:shadow-xs',
+        outcome === 'LOSS' && 'hover:border-danger/35',
+      )}
+    >
       <Avatar name={item.opponent.displayName} photoUrl={item.opponent.photoUrl} size="md" />
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
@@ -346,13 +353,13 @@ function HistoryRow({ item }: { item: HistoryRecord }) {
           {item.opponent.isAi ? <Bot className="h-3.5 w-3.5 shrink-0 text-accent" aria-label="Bot" /> : null}
         </div>
         <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[10px] font-medium text-muted">
-          <span>{modeShortLabel(item.mode as MatchMode)}</span>
+          <span className="font-semibold text-ink/70">{modeShortLabel(item.mode as MatchMode)}</span>
           <span aria-hidden>·</span>
           <span>{formatRelativeTime(item.playedAt)}</span>
           {item.opponent.isAi && item.opponent.aiDifficulty ? (
             <>
               <span aria-hidden>·</span>
-              <span>{item.opponent.aiDifficulty.toLowerCase()}</span>
+              <span className="capitalize">{item.opponent.aiDifficulty.toLowerCase()}</span>
             </>
           ) : null}
         </p>

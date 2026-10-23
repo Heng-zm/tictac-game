@@ -214,10 +214,19 @@ export function MatchmakingScreen({
       ) : (
         <>
           <div className="md:grid md:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)] md:items-start md:gap-3">
-          <Card className="p-6">
-            <div className="relative mx-auto flex h-28 w-28 items-center justify-center">
-              <span className="absolute inset-0 rounded-full bg-accent/5 animate-pulse-ring" />
-              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/15 bg-accent/5 text-accent">
+          <Card className="relative overflow-hidden p-6">
+            <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-accent/5 blur-2xl" aria-hidden />
+            <div className="relative mx-auto flex h-32 w-32 items-center justify-center">
+              <span className="absolute inset-0 rounded-full border border-accent/20 bg-accent/5 animate-pulse-ring" />
+              <span
+                className="absolute inset-0 rounded-full border border-accent/15 bg-accent/5 animate-pulse-ring"
+                style={{ animationDelay: '0.7s' }}
+              />
+              <span
+                className="absolute inset-0 rounded-full border border-accent/10 bg-accent/5 animate-pulse-ring"
+                style={{ animationDelay: '1.4s' }}
+              />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-accent shadow-glow/30 backdrop-blur-xs">
                 <Search className="h-7 w-7" aria-hidden />
               </span>
             </div>
@@ -226,11 +235,15 @@ export function MatchmakingScreen({
               <h2 className="text-xl font-bold tracking-tight text-ink">
                 {queue ? 'Finding an opponent' : 'Joining the queue'}
               </h2>
-              <p className="mt-1 text-sm text-muted">
-                {joining ? 'Connecting to matchmaking…' : `Searching for ${formatDuration(elapsed)}`}
-              </p>
+              <div className="mt-1.5 flex items-center justify-center gap-2 text-sm text-muted">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
+                </span>
+                <span>{joining ? 'Connecting to matchmaking…' : `Searching for ${formatDuration(elapsed)}`}</span>
+              </div>
               <div className="mt-3 flex items-center justify-center gap-2">
-                <Pill>
+                <Pill tone="accent">
                   <Users className="h-3 w-3" aria-hidden />
                   {queue?.waitingPlayers ?? 1} in queue
                 </Pill>
@@ -246,10 +259,10 @@ export function MatchmakingScreen({
                 aria-valuemax={100}
                 aria-valuenow={Math.round(searchProgress * 100)}
                 aria-valuetext={`${Math.round(searchProgress * 100)}% of the maximum wait used`}
-                className="mx-auto mt-3 h-1.5 max-w-[14rem] overflow-hidden rounded-full bg-elevated"
+                className="mx-auto mt-3 h-2 max-w-[14rem] overflow-hidden rounded-full bg-elevated/80 p-0.5 border border-line/40"
               >
                 <div
-                  className="h-full rounded-full bg-accent transition-[width] duration-1000 ease-linear"
+                  className="h-full rounded-full bg-accent shadow-glow/40 transition-[width] duration-1000 ease-linear"
                   style={{ width: `${Math.round(searchProgress * 100)}%` }}
                 />
               </div>

@@ -13,13 +13,13 @@ const rankIcons: Record<RankTier, LucideIcon> = {
 };
 
 const badgeStyles: Record<RankTier, string> = {
-  rookie: 'border-line bg-elevated text-muted',
-  bronze: 'border-amber-600/25 bg-amber-600/10 text-amber-700 dark:text-amber-300',
-  silver: 'border-slate-400/30 bg-slate-400/10 text-slate-600 dark:text-slate-300',
-  gold: 'border-yellow-500/30 bg-yellow-500/10 text-yellow-700 dark:text-yellow-300',
-  platinum: 'border-cyan-500/30 bg-cyan-500/10 text-cyan-700 dark:text-cyan-300',
-  diamond: 'border-indigo-500/30 bg-indigo-500/10 text-indigo-600 dark:text-indigo-300',
-  master: 'border-rose-500/30 bg-rose-500/10 text-rose-600 dark:text-rose-300',
+  rookie: 'border-line bg-elevated/70 text-muted',
+  bronze: 'border-amber-600/30 bg-amber-600/10 text-amber-700 dark:text-amber-300',
+  silver: 'border-slate-400/35 bg-slate-400/10 text-slate-600 dark:text-slate-300',
+  gold: 'border-yellow-500/35 bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 shadow-glow-gold/10',
+  platinum: 'border-cyan-500/35 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-glow/10',
+  diamond: 'border-indigo-500/35 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 shadow-glow/15',
+  master: 'border-rose-500/35 bg-rose-500/15 text-rose-600 dark:text-rose-300 shadow-glow-danger/15',
 };
 
 const textStyles: Record<RankTier, string> = {
@@ -34,12 +34,12 @@ const textStyles: Record<RankTier, string> = {
 
 const barStyles: Record<RankTier, string> = {
   rookie: 'bg-muted',
-  bronze: 'bg-amber-500',
-  silver: 'bg-slate-400',
-  gold: 'bg-yellow-500',
-  platinum: 'bg-cyan-500',
-  diamond: 'bg-indigo-500',
-  master: 'bg-rose-500',
+  bronze: 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]',
+  silver: 'bg-slate-300 dark:bg-slate-400 shadow-[0_0_8px_rgba(148,163,184,0.4)]',
+  gold: 'bg-yellow-500 shadow-[0_0_10px_rgba(234,179,8,0.5)]',
+  platinum: 'bg-cyan-500 shadow-[0_0_10px_rgba(6,182,212,0.5)]',
+  diamond: 'bg-indigo-500 shadow-[0_0_10px_rgba(99,102,241,0.5)]',
+  master: 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]',
 };
 
 export function RankBadge({ rating, className }: { rating: number; className?: string }) {
@@ -49,7 +49,7 @@ export function RankBadge({ rating, className }: { rating: number; className?: s
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold tracking-wide',
+        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold tracking-wide backdrop-blur-xs',
         badgeStyles[rank.tier],
         className,
       )}
@@ -77,10 +77,10 @@ export function RankProgress({ rating, className }: { rating: number; className?
     <div className={className}>
       <div className="flex items-center justify-between gap-2 text-[10px]">
         <span className="font-medium text-muted">{label}</span>
-        <span className="tabular-nums text-muted">{percent}%</span>
+        <span className="tabular-nums font-semibold text-ink">{percent}%</span>
       </div>
       <div
-        className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-elevated"
+        className="mt-1.5 h-2 overflow-hidden rounded-full bg-elevated/80 p-0.5 border border-line/40"
         role="progressbar"
         aria-label={`${rank.name} rank progress`}
         aria-valuemin={0}

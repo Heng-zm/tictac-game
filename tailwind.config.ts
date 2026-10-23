@@ -19,13 +19,19 @@ const config: Config = {
       },
       fontFamily: {
         sans: [
+          'Outfit',
+          'Inter',
           '-apple-system',
           'BlinkMacSystemFont',
           'SF Pro Display',
           'Segoe UI',
           'Roboto',
-          'Helvetica Neue',
-          'Arial',
+          'sans-serif',
+        ],
+        display: [
+          'Outfit',
+          '-apple-system',
+          'BlinkMacSystemFont',
           'sans-serif',
         ],
       },
@@ -34,7 +40,10 @@ const config: Config = {
       },
       boxShadow: {
         soft: '0 10px 35px -18px rgba(0, 0, 0, 0.35)',
-        card: '0 1px 0 0 rgba(255,255,255,0.04) inset, 0 12px 30px -22px rgba(0,0,0,0.4)',
+        card: '0 1px 0 0 rgba(255,255,255,0.06) inset, 0 14px 34px -20px rgba(0,0,0,0.4)',
+        glow: '0 0 24px -4px rgba(37, 99, 235, 0.35)',
+        'glow-danger': '0 0 24px -4px rgba(239, 68, 68, 0.35)',
+        'glow-gold': '0 0 24px -4px rgba(234, 179, 8, 0.35)',
       },
       keyframes: {
         'fade-in': {

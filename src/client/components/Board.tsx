@@ -61,7 +61,7 @@ function cancelScheduledFrame(id: number): void {
 
 function XMark() {
   return (
-    <svg viewBox="0 0 100 100" className="mark-enter h-[68%] w-[68%] text-accent" aria-hidden>
+    <svg viewBox="0 0 100 100" className="mark-enter neon-x h-[68%] w-[68%] text-accent" aria-hidden>
       <path
         d="M22 22 L78 78 M78 22 L22 78"
         fill="none"
@@ -77,7 +77,7 @@ function XMark() {
 
 function OMark() {
   return (
-    <svg viewBox="0 0 100 100" className="mark-enter h-[70%] w-[70%] text-danger" aria-hidden>
+    <svg viewBox="0 0 100 100" className="mark-enter neon-o h-[70%] w-[70%] text-danger" aria-hidden>
       <circle
         cx="50"
         cy="50"

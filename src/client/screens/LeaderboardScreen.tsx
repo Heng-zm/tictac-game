@@ -105,9 +105,10 @@ export function LeaderboardScreen({
       ) : data ? (
         <>
           {!currentInList && profile ? (
-            <Card className="mb-3 border-accent/25 bg-accent/5 p-3.5">
+            <Card className="relative mb-3 overflow-hidden border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-surface p-4 shadow-sm">
+              <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/10 blur-xl" aria-hidden />
               <div className="flex items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent text-accent-ink shadow-sm shadow-accent/25">
                   <UserRound className="h-5 w-5" aria-hidden />
                 </span>
                 <div className="min-w-0 flex-1">
@@ -153,25 +154,44 @@ export function LeaderboardScreen({
 }
 
 function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
-  const rankTone =
-    entry.rank === 1
-      ? 'border-amber-500/35 bg-amber-500/15 text-amber-600 dark:text-amber-400'
-      : entry.rank === 2
-        ? 'border-slate-400/35 bg-slate-400/15 text-slate-600 dark:text-slate-300'
-        : entry.rank === 3
-          ? 'border-orange-500/35 bg-orange-500/15 text-orange-600 dark:text-orange-400'
-          : 'border-line bg-elevated text-muted';
+  const isRank1 = entry.rank === 1;
+  const isRank2 = entry.rank === 2;
+  const isRank3 = entry.rank === 3;
+
+  const rankBadgeStyle = isRank1
+    ? 'border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-glow-gold/20'
+    : isRank2
+      ? 'border-slate-400/50 bg-slate-400/20 text-slate-600 dark:text-slate-300'
+      : isRank3
+        ? 'border-amber-700/50 bg-amber-700/20 text-amber-600 dark:text-amber-400'
+        : 'border-line bg-elevated/70 text-muted';
+
+  const rowHighlight = isRank1
+    ? 'bg-gradient-to-r from-amber-500/10 via-amber-500/[0.03] to-transparent'
+    : isRank2
+      ? 'bg-gradient-to-r from-slate-400/10 via-slate-400/[0.02] to-transparent'
+      : isRank3
+        ? 'bg-gradient-to-r from-amber-700/10 via-orange-600/[0.02] to-transparent'
+        : entry.isYou
+          ? 'bg-accent/10 border-l-2 border-l-accent'
+          : '';
 
   return (
-    <div className={cn('flex items-center gap-3 px-3.5 py-3 sm:px-5 sm:py-3.5', entry.isYou && 'bg-accent/5')}>
+    <div className={cn('flex items-center gap-3 px-3.5 py-3 transition-colors sm:px-5 sm:py-3.5', rowHighlight)}>
       <span
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-semibold tabular-nums',
-          rankTone,
+          'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-bold tabular-nums',
+          rankBadgeStyle,
         )}
         aria-label={`Rank ${entry.rank}`}
       >
-        {entry.rank <= 3 ? <Medal className="h-3.5 w-3.5" aria-hidden /> : entry.rank}
+        {isRank1 ? (
+          <Crown className="h-4 w-4" aria-hidden />
+        ) : entry.rank <= 3 ? (
+          <Medal className="h-3.5 w-3.5" aria-hidden />
+        ) : (
+          entry.rank
+        )}
       </span>
 
       <Avatar name={entry.displayName} photoUrl={entry.photoUrl} size="sm" />
@@ -187,7 +207,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
       </div>
 
       <div className="shrink-0 text-right">
-        <p className="text-sm font-semibold tabular-nums text-ink">{entry.rating}</p>
+        <p className="text-sm font-bold tabular-nums text-ink">{entry.rating}</p>
         <p className="mt-0.5 whitespace-nowrap text-[10px] text-muted">
           <RankLabel rating={entry.rating} /> · {entry.ratedGames} rated
         </p>
