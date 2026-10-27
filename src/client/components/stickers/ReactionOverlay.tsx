@@ -28,7 +28,7 @@ export const ReactionOverlay = memo(function ReactionOverlay({
     <div
       role="status"
       aria-live="polite"
-      className="pointer-events-none absolute z-30 flex flex-col items-center animate-reaction-pop"
+      className="pointer-events-none relative z-30 flex flex-col items-center animate-reaction-pop"
       style={{
         filter: 'drop-shadow(0 6px 14px rgba(0, 0, 0, 0.16))',
       }}
