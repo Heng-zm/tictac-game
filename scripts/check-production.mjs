@@ -64,6 +64,18 @@ try {
     Boolean(health.response.headers.get('strict-transport-security')),
     'HSTS header is present',
   );
+  check(
+    (health.response.headers.get('strict-transport-security') ?? '').includes('max-age=31536000'),
+    'HSTS max-age is one year',
+  );
+  const csp = health.response.headers.get('content-security-policy') ?? '';
+  const connectSrc = /connect-src ([^;]+)/.exec(csp)?.[1] ?? '';
+  check(Boolean(connectSrc), 'CSP defines connect-src');
+  check(!/(^|\s)wss?:(\s|$)/.test(connectSrc), 'CSP does not allow arbitrary WebSocket origins');
+  check(
+    Boolean(health.response.headers.get('permissions-policy')),
+    'Permissions-Policy header is present',
+  );
 
   const ready = await get('/ready');
   check(ready.response.status === 200 && ready.body?.status === 'ready', 'GET /ready confirms the database');

@@ -35,6 +35,7 @@ import {
 } from './auth/session';
 import { createRequireAuth } from './auth/middleware';
 import { isSameOriginRequest } from './http/origin';
+import { sanitizeRequestUrl } from './logger';
 import type { AppConfig } from './config';
 import { getAllowedOrigins } from './config';
 import type { AppConfigPayload, ApiErrorPayload, LeaderboardResponse } from '../shared/game-types';
@@ -112,6 +113,15 @@ export function createApp(deps: AppDependencies): express.Express {
   if (config.trustProxy > 0) app.set('trust proxy', config.trustProxy);
 
   const allowedOrigins = getAllowedOrigins(config);
+  const connectSources = ["'self'"];
+  for (const origin of allowedOrigins) {
+    connectSources.push(origin);
+    if (origin.startsWith('https://')) {
+      connectSources.push(`wss://${origin.slice('https://'.length)}`);
+    } else if (origin.startsWith('http://')) {
+      connectSources.push(`ws://${origin.slice('http://'.length)}`);
+    }
+  }
   app.disable('x-powered-by');
   app.set('json escape', true);
 
@@ -133,7 +143,7 @@ export function createApp(deps: AppDependencies): express.Express {
         req: (req) => ({
           id: req.id,
           method: req.method,
-          url: sanitizeUrl(req.url ?? ''),
+          url: sanitizeRequestUrl(req.url ?? ''),
         }),
         res: (res) => ({ statusCode: res.statusCode }),
       },
@@ -149,7 +159,9 @@ export function createApp(deps: AppDependencies): express.Express {
     helmet({
       frameguard: false,
       // HSTS on localhost would poison development browsers for other projects.
-      hsts: config.isProduction,
+      hsts: config.isProduction
+        ? { maxAge: 31_536_000, includeSubDomains: true, preload: true }
+        : false,
       crossOriginEmbedderPolicy: false,
       crossOriginOpenerPolicy: { policy: 'same-origin-allow-popups' },
       referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
@@ -160,7 +172,8 @@ export function createApp(deps: AppDependencies): express.Express {
           scriptSrc: ["'self'", 'https://telegram.org'],
           styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
           imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
-          connectSrc: ["'self'", 'ws:', 'wss:'],
+          connectSrc: connectSources,
+          mediaSrc: ["'self'", 'blob:', 'data:'],
           fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
@@ -172,6 +185,15 @@ export function createApp(deps: AppDependencies): express.Express {
       },
     }),
   );
+  // Helmet 8 no longer emits Permissions-Policy. Keep microphone available for
+  // the in-game voice notes while disabling capabilities the app never uses.
+  app.use((_req, res, next) => {
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), geolocation=(), microphone=(self), payment=(), usb=(), interest-cohort=()',
+    );
+    next();
+  });
   app.use(compression());
   app.use((req, res, next) => {
     const origin = req.headers.origin;
@@ -198,6 +220,13 @@ export function createApp(deps: AppDependencies): express.Express {
 
     next();
   });
+  // Authenticated API responses must never be reused by a shared cache. This
+  // runs before body parsing so 413/415 error responses are not cacheable.
+  app.use('/api', (_req, res, next) => {
+    res.setHeader('cache-control', 'no-store');
+    next();
+  });
+
   app.use(express.json({ limit: '32kb', type: ['application/json'] }));
   app.use(cookieParser());
 
@@ -598,12 +627,6 @@ export function createApp(deps: AppDependencies): express.Express {
   return app;
 }
 
-function sanitizeUrl(url: string): string {
-  return url
-    .replace(/invite_[A-Za-z0-9_-]{43}/g, 'invite_[redacted]')
-    .replace(/\/api\/invites\/[^/?#]+/g, '/api/invites/[redacted]');
-}
-
 function clearBrowserLoginCookie(res: Response, secure: boolean): void {
   res.clearCookie(BROWSER_LOGIN_COOKIE, {
     httpOnly: true,
@@ -630,6 +653,23 @@ function passthrough(_req: Request, _res: Response, next: NextFunction): void {
 function errorHandler(logger: Logger): ErrorRequestHandler {
   return (error: unknown, req: Request, res: Response, _next: NextFunction): void => {
     if (res.headersSent) return;
+
+    const bodyErrorType =
+      typeof error === 'object' && error !== null && 'type' in error
+        ? (error as { type?: unknown }).type
+        : undefined;
+    if (bodyErrorType === 'entity.too.large') {
+      res
+        .status(413)
+        .json(errorBody(req, 'PAYLOAD_TOO_LARGE', 'Request body is too large.'));
+      return;
+    }
+    if (bodyErrorType === 'encoding.unsupported' || bodyErrorType === 'charset.unsupported') {
+      res
+        .status(415)
+        .json(errorBody(req, 'UNSUPPORTED_MEDIA_TYPE', 'Request body encoding is not supported.'));
+      return;
+    }
 
     if (error instanceof ZodError) {
       res.status(400).json(errorBody(req, 'VALIDATION_ERROR', 'The request contains invalid data.'));

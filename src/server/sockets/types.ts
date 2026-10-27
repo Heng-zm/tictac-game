@@ -10,6 +10,8 @@ export interface InterServerEvents {
 export interface SocketData {
   userId: string;
   user: UserEntity;
+  /** Unix seconds at which the signed session used for the handshake expires. */
+  sessionExpiresAt: number;
 }
 
 export type GameServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;

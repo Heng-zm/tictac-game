@@ -199,7 +199,7 @@ Copy `.env.example` to `.env`. Important variables:
 | `PORT` | Server port (default `3000`). |
 | `DATABASE_URL` | PostgreSQL URL. Required in production unless `DB_MODE=memory`. For Supabase, use the transaction pooler URL. |
 | `DB_MODE` | `postgres` or `memory`. Defaults to `postgres` when `DATABASE_URL` is set, otherwise `memory` outside production. `memory` in production is explicit and ephemeral. |
-| `DEMO_MODE` | `true` enables guest login without Telegram and allows in-memory data. Render enables it automatically when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. Set `false` to require real configuration. |
+| `DEMO_MODE` | `true` enables guest login without Telegram and allows in-memory data. Render enables it automatically when neither `DATABASE_URL` nor `TELEGRAM_BOT_TOKEN` is configured. In production it must not be combined with a persistent `DATABASE_URL`. Set `false` to require real configuration. |
 | `DIRECT_URL` | Session-pooler PostgreSQL URL (port `5432`) used by Prisma Migrate and the start entrypoint. Use the Session pooler, not Supabase's IPv6-only direct host, on Render. |
 | `SESSION_SECRET` | At least 32 random characters. Required in production; placeholders are rejected. |
 | `MINI_APP_URL` | Public HTTPS origin in production. Automatically set from `RENDER_EXTERNAL_URL` on Render when unset. |
@@ -208,7 +208,8 @@ Copy `.env.example` to `.env`. Important variables:
 | `TELEGRAM_WEBHOOK_URL` | Optional. On Render with a bot token, derived automatically from `MINI_APP_URL`; otherwise set it to use a webhook instead of long polling. |
 | `TELEGRAM_WEBHOOK_SECRET` | Required with an explicit webhook URL (16–256 chars; letters, digits, `_`, `-` only). On Render it is derived from `SESSION_SECRET` when unset, and incompatible base64 values are normalized automatically; set a safe explicit value to rotate it independently. |
 | `DEV_AUTH_ENABLED` | Local guest auth. Rejected in production. |
-| `CORS_ORIGINS` | Comma-separated allowed browser origins. `MINI_APP_URL` is added automatically. |
+| `CORS_ORIGINS` | Comma-separated allowed browser origins. Entries must be `http(s)` origins without paths or embedded credentials; `MINI_APP_URL` is added automatically. |
+| `MAX_SOCKETS_PER_USER` | Maximum simultaneous authenticated Socket.IO connections per account (default `5`, range `1`–`50`). Excess connections are rejected. |
 | `DISCONNECT_GRACE_MS` | Reconnect grace period before a disconnect can forfeit (default 30s). |
 | `TURN_TIMEOUT_MS` | Per-turn timeout in milliseconds (default `90000`). A player who runs out of time loses; `0` disables turn timers. |
 | `INVITE_TTL_MINUTES` | Invitation lifetime (default 24h). |
@@ -223,7 +224,7 @@ Generate a session secret:
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
 ```
 
-Production startup fails fast if required secrets, the HTTPS Mini App URL, or Telegram credentials are missing, or if development auth is enabled.
+Production startup fails fast if required secrets, the HTTPS Mini App URL, or Telegram credentials are missing, if development auth is enabled, or if URLs use unsupported schemes, contain embedded credentials, or if demo mode is combined with a persistent database.
 
 ## Telegram setup
 
@@ -244,7 +245,7 @@ Production startup fails fast if required secrets, the HTTPS Mini App URL, or Te
    TELEGRAM_WEBHOOK_SECRET=<random 16-256 chars, letters/digits/_/->
    ```
 
-   The app serves the webhook at `/api/telegram/webhook` and validates Telegram's secret header. It requests both `message` and `callback_query` updates so browser sign-in verification works. If `TELEGRAM_WEBHOOK_URL` is unset outside Render, the bot starts long polling.
+   The app serves the webhook at `/api/telegram/webhook` and validates Telegram's secret header. The route is only mounted when both `TELEGRAM_WEBHOOK_URL` and `TELEGRAM_WEBHOOK_SECRET` are configured, so polling mode never exposes an unsigned webhook. It requests both `message` and `callback_query` updates so browser sign-in verification works. If `TELEGRAM_WEBHOOK_URL` is unset outside Render, the bot starts long polling.
 
 6. Invitations use `https://t.me/<BOT_USERNAME>?startapp=invite_<TOKEN>`. The bot's `/start` handler also recognizes `invite_<TOKEN>` payloads and opens the Mini App with the invitation.
 
@@ -376,8 +377,11 @@ tests/                    Unit, HTTP, E2E, and gated PostgreSQL tests
 - Disconnects do not immediately end a game; the configured grace period applies.
 - Invitation tokens are stored as SHA-256 hashes, expire, and can be accepted once.
 - Sessions are HttpOnly, Secure in production, and signed. Production cookies use `SameSite=None` so the Mini App works inside Telegram Web's iframe; API mutations also enforce the origin allowlist.
+- Socket connections verify the signed session at handshake, expire with it, and are capped per account (`MAX_SOCKETS_PER_USER`).
 - Rate limits apply to authentication, HTTP APIs, and socket events.
-- CSP allows Telegram's script/frame origins while keeping `frame-ancestors` limited to Telegram.
+- The Telegram webhook endpoint is only mounted when a webhook secret is configured, and every update must carry Telegram's signed secret header.
+- CSP allows Telegram's script/frame origins while keeping `frame-ancestors` limited to Telegram. `connect-src` is restricted to the app's configured origins and their WebSocket equivalents rather than arbitrary `ws:`/`wss:` hosts.
+- Production demo mode is ephemeral only: guest authentication cannot be enabled together with a persistent database.
 
 ## Limitations
 

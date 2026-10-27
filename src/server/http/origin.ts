@@ -14,7 +14,11 @@ export function isSameOriginRequest(
   const host = req.headers.host;
   if (!host) return false;
   try {
-    return new URL(origin).host === host;
+    const parsed = new URL(origin);
+    // Browser origins are http(s). Reject opaque and non-HTTP origins such as
+    // `null`, `file:`, or a data URL even if their host happens to match.
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return false;
+    return parsed.host === host.toLowerCase();
   } catch {
     return false;
   }

@@ -57,6 +57,8 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
   }
 
   const httpServer = createServer();
+  // Bound request-header work before any application middleware runs.
+  httpServer.maxHeadersCount = 100;
   const browserLogins = new BrowserLoginStore();
   const allowedOrigins = getAllowedOrigins(config);
   const io = new SocketServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
@@ -109,7 +111,7 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     logger,
     matchService,
     browserLogins,
-    ...(bot ? { botWebhook: bot.webhook } : {}),
+    ...(bot?.webhook ? { botWebhook: bot.webhook } : {}),
     ...(turnNotifier ? { turnNotificationTester: turnNotifier } : {}),
     beforeMatchAction: (userId) => {
       gateway.queue.cancel(userId, false);

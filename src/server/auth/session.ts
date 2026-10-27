@@ -4,6 +4,8 @@ import type { UserEntity } from '../database/types';
 
 export const SESSION_COOKIE_NAME = 'ttt_session';
 export const DEFAULT_SESSION_TTL_SECONDS = 7 * 24 * 60 * 60;
+/** Small allowance for clock skew when validating tokens minted by this server. */
+const MAX_SESSION_TTL_SECONDS = DEFAULT_SESSION_TTL_SECONDS + 5 * 60;
 
 export interface SessionPayload {
   v: 1;
@@ -71,12 +73,14 @@ function isSessionPayload(value: unknown): value is SessionPayload {
     candidate.uid.length > 0 &&
     candidate.uid.length <= 64 &&
     typeof candidate.tid === 'string' &&
+    candidate.tid.length <= 32 &&
     /^-?\d+$/.test(candidate.tid) &&
     typeof candidate.iat === 'number' &&
     Number.isInteger(candidate.iat) &&
     typeof candidate.exp === 'number' &&
     Number.isInteger(candidate.exp) &&
-    candidate.exp > candidate.iat
+    candidate.exp > candidate.iat &&
+    candidate.exp - candidate.iat <= MAX_SESSION_TTL_SECONDS
   );
 }
 

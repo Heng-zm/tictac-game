@@ -27,6 +27,7 @@ export function makeTestConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     allowedOrigins: ['https://tictac-game-om8r.onrender.com'],
     queueAiTimeoutMs: 10_000,
     queueMaxWaitMs: 600_000,
+    maxSocketsPerUser: 5,
     disconnectGraceMs: 30_000,
     turnTimeoutMs: 0,
     inviteTtlMinutes: 1_440,

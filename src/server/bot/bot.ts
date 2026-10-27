@@ -15,11 +15,14 @@ import type { TurnNotificationDelivery } from '../services/turn-notifier';
 
 export const BOT_WEBHOOK_PATH = '/api/telegram/webhook';
 
+export interface BotWebhook {
+  path: string;
+  handler: RequestHandler;
+}
+
 export interface BotController {
-  webhook: {
-    path: string;
-    handler: RequestHandler;
-  };
+  /** Present only when Telegram sends updates over a signed webhook. */
+  webhook: BotWebhook | null;
   start: () => Promise<void>;
   stop: () => Promise<void>;
   sendTurnNotification: (
@@ -46,6 +49,9 @@ interface BotControllerDependencies {
 export function createBotController(deps: BotControllerDependencies): BotController | null {
   const { config, logger, browserLogins } = deps;
   if (!config.telegramBotToken) return null;
+  if (config.telegramWebhookUrl && !config.telegramWebhookSecret) {
+    throw new Error('TELEGRAM_WEBHOOK_SECRET is required when TELEGRAM_WEBHOOK_URL is set.');
+  }
 
   const log = logger.child({ component: 'telegram-bot' });
   const apiRoot = deps.apiRoot?.replace(/\/+$/, '');
@@ -310,14 +316,20 @@ export function createBotController(deps: BotControllerDependencies): BotControl
     }
   }
 
-  const handler = webhookCallback(bot, 'express', {
-    onTimeout: 'return',
-    timeoutMilliseconds: 10_000,
-    ...(config.telegramWebhookSecret ? { secretToken: config.telegramWebhookSecret } : {}),
-  }) as RequestHandler;
+  const webhookHandler = config.telegramWebhookSecret
+    ? (webhookCallback(bot, 'express', {
+        onTimeout: 'return',
+        timeoutMilliseconds: 10_000,
+        secretToken: config.telegramWebhookSecret,
+      }) as RequestHandler)
+    : null;
+  const webhook: BotWebhook | null =
+    config.telegramWebhookUrl && webhookHandler
+      ? { path: BOT_WEBHOOK_PATH, handler: webhookHandler }
+      : null;
 
   return {
-    webhook: { path: BOT_WEBHOOK_PATH, handler },
+    webhook,
     start,
     stop,
     sendTurnNotification,

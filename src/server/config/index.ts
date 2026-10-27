@@ -5,15 +5,51 @@ const booleanString = z
   .enum(['true', 'false', '1', '0'])
   .transform((value) => value === 'true' || value === '1');
 
+const httpUrlString = z
+  .string()
+  .url()
+  .refine((value) => {
+    try {
+      const url = new URL(value);
+      return (
+        (url.protocol === 'http:' || url.protocol === 'https:') &&
+        !url.username &&
+        !url.password
+      );
+    } catch {
+      return false;
+    }
+  }, 'Must use an http:// or https:// URL without embedded credentials');
+
+const postgresUrlString = z
+  .string()
+  .url()
+  .refine((value) => {
+    try {
+      const protocol = new URL(value).protocol;
+      return protocol === 'postgres:' || protocol === 'postgresql:';
+    } catch {
+      return false;
+    }
+  }, 'Must use a postgres:// or postgresql:// URL');
+
+function urlProtocol(value: string): string | null {
+  try {
+    return new URL(value).protocol;
+  } catch {
+    return null;
+  }
+}
+
 const envSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(3000),
-    DATABASE_URL: z.string().url().optional(),
+    DATABASE_URL: postgresUrlString.optional(),
     DB_MODE: z.enum(['postgres', 'memory']).optional(),
     DEMO_MODE: booleanString.optional(),
     SESSION_SECRET: z.string().min(32).optional(),
-    MINI_APP_URL: z.string().url().optional(),
+    MINI_APP_URL: httpUrlString.optional(),
     TELEGRAM_BOT_TOKEN: z
       .string()
       .regex(/^\d+:[A-Za-z0-9_-]{30,}$/, 'Malformed TELEGRAM_BOT_TOKEN')
@@ -26,7 +62,7 @@ const envSchema = z
       .string()
       .regex(/^[A-Za-z0-9_]{3,64}$/, 'Malformed TELEGRAM_APP_NAME')
       .optional(),
-    TELEGRAM_WEBHOOK_URL: z.string().url().optional(),
+    TELEGRAM_WEBHOOK_URL: httpUrlString.optional(),
     TELEGRAM_WEBHOOK_SECRET: z
       .string()
       .transform((val) => val.replace(/=+$/, ''))
@@ -39,6 +75,7 @@ const envSchema = z
     CORS_ORIGINS: z.string().default('http://localhost:5173'),
     QUEUE_AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(10_000),
     QUEUE_MAX_WAIT_MS: z.coerce.number().int().min(10_000).max(3_600_000).default(600_000),
+    MAX_SOCKETS_PER_USER: z.coerce.number().int().min(1).max(50).default(5),
     DISCONNECT_GRACE_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
     TURN_TIMEOUT_MS: z.coerce.number().int().min(0).max(600_000).default(90_000),
     INVITE_TTL_MINUTES: z.coerce.number().int().min(5).max(10_080).default(1_440),
@@ -69,6 +106,14 @@ const envSchema = z
           message: 'Required in production unless DB_MODE=memory or DEMO_MODE=true',
         });
       }
+    }
+    if (isProduction && demoMode && value.DATABASE_URL) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['DEMO_MODE'],
+        message:
+          'Demo mode must not use a persistent database in production; set DB_MODE=memory and remove DATABASE_URL',
+      });
     }
     if (isProduction && !value.SESSION_SECRET) {
       ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['SESSION_SECRET'], message: 'Required in production' });
@@ -106,11 +151,18 @@ const envSchema = z
         message: 'Development authentication must be disabled in production unless DEMO_MODE=true',
       });
     }
-    if (value.MINI_APP_URL && isProduction && !value.MINI_APP_URL.startsWith('https://')) {
+    if (value.MINI_APP_URL && isProduction && urlProtocol(value.MINI_APP_URL) !== 'https:') {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
         path: ['MINI_APP_URL'],
         message: 'Telegram Mini App URLs must use HTTPS in production',
+      });
+    }
+    if (value.TELEGRAM_WEBHOOK_URL && isProduction && urlProtocol(value.TELEGRAM_WEBHOOK_URL) !== 'https:') {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ['TELEGRAM_WEBHOOK_URL'],
+        message: 'Telegram webhook URLs must use HTTPS in production',
       });
     }
     if (value.TELEGRAM_WEBHOOK_URL && !value.TELEGRAM_WEBHOOK_SECRET) {
@@ -134,12 +186,45 @@ const envSchema = z
         message: 'Must be greater than or equal to AI_THINK_MIN_MS',
       });
     }
-    if (isProduction && value.CORS_ORIGINS.split(',').some((origin) => origin.trim() === '*')) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ['CORS_ORIGINS'],
-        message: 'Wildcard CORS origins are not allowed in production',
-      });
+    const corsOrigins = value.CORS_ORIGINS.split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+    for (const origin of corsOrigins) {
+      if (origin === '*') {
+        if (isProduction) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ['CORS_ORIGINS'],
+            message: 'Wildcard CORS origins are not allowed in production',
+          });
+        }
+        continue;
+      }
+      let parsed: URL;
+      try {
+        parsed = new URL(origin);
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['CORS_ORIGINS'],
+          message: `CORS_ORIGINS contains an invalid origin: ${origin}`,
+        });
+        continue;
+      }
+      if (
+        (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') ||
+        parsed.username ||
+        parsed.password ||
+        parsed.pathname !== '/' ||
+        parsed.search ||
+        parsed.hash
+      ) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ['CORS_ORIGINS'],
+          message: `CORS_ORIGINS entries must be http(s) origins without paths or credentials: ${origin}`,
+        });
+      }
     }
   });
 
@@ -161,6 +246,7 @@ export interface AppConfig {
   allowedOrigins: string[];
   queueAiTimeoutMs: number;
   queueMaxWaitMs: number;
+  maxSocketsPerUser: number;
   disconnectGraceMs: number;
   turnTimeoutMs: number;
   inviteTtlMinutes: number;
@@ -238,6 +324,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: origins,
     queueAiTimeoutMs: parsed.QUEUE_AI_TIMEOUT_MS,
     queueMaxWaitMs: parsed.QUEUE_MAX_WAIT_MS,
+    maxSocketsPerUser: parsed.MAX_SOCKETS_PER_USER,
     disconnectGraceMs: parsed.DISCONNECT_GRACE_MS,
     turnTimeoutMs: parsed.TURN_TIMEOUT_MS,
     inviteTtlMinutes: parsed.INVITE_TTL_MINUTES,

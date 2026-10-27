@@ -41,6 +41,16 @@ const BOT_USER = {
   has_main_web_app: false,
 };
 
+const WEBHOOK_SECRET = 'webhook-secret';
+
+function mountWebhook(controller: BotController): { app: express.Express; path: string } {
+  if (!controller.webhook) throw new Error('Expected a webhook-enabled bot controller');
+  const app = express();
+  app.use(express.json());
+  app.post(controller.webhook.path, controller.webhook.handler);
+  return { app, path: controller.webhook.path };
+}
+
 function reply(res: ServerResponse, status: number, body: unknown): void {
   res.statusCode = status;
   res.setHeader('content-type', 'application/json');
@@ -200,6 +210,17 @@ describe('Telegram bot controller', () => {
     expect(controller).toBeNull();
   });
 
+  it('does not expose a webhook while the bot uses long polling', () => {
+    const controller = makeController();
+    expect(controller.webhook).toBeNull();
+  });
+
+  it('refuses a webhook URL without a webhook secret', () => {
+    expect(() => makeController({ telegramWebhookUrl: 'https://game.example.com' })).toThrow(
+      /TELEGRAM_WEBHOOK_SECRET/,
+    );
+  });
+
   it('sends a turn notification with a Mini App button and no link preview', async () => {
     const controller = makeController();
     const url = 'https://game.example.com/#/game/match-123';
@@ -257,7 +278,7 @@ describe('Telegram bot controller', () => {
   it('registers commands, the menu button and the webhook on startup', async () => {
     const controller = makeController({
       telegramWebhookUrl: 'https://game.example.com',
-      telegramWebhookSecret: 'webhook-secret',
+      telegramWebhookSecret: WEBHOOK_SECRET,
     });
 
     await controller.start();
@@ -281,7 +302,7 @@ describe('Telegram bot controller', () => {
     const webhook = calls.find((item) => item.method === 'setWebhook');
     expect(webhook?.body).toMatchObject({
       url: 'https://game.example.com/api/telegram/webhook',
-      secret_token: 'webhook-secret',
+      secret_token: WEBHOOK_SECRET,
       allowed_updates: ['message', 'callback_query'],
       drop_pending_updates: false,
     });
@@ -294,7 +315,7 @@ describe('Telegram bot controller', () => {
     failWebhook = true;
     const controller = makeController({
       telegramWebhookUrl: 'https://game.example.com',
-      telegramWebhookSecret: 'webhook-secret',
+      telegramWebhookSecret: WEBHOOK_SECRET,
     });
 
     await expect(controller.start()).resolves.toBeUndefined();
@@ -306,20 +327,18 @@ describe('Telegram bot controller', () => {
   it('rejects unsigned webhook updates and dispatches signed commands', async () => {
     const controller = makeController({
       telegramWebhookUrl: 'https://game.example.com',
-      telegramWebhookSecret: 'webhook-secret',
+      telegramWebhookSecret: WEBHOOK_SECRET,
     });
-    const app = express();
-    app.use(express.json());
-    app.post(controller.webhook.path, controller.webhook.handler);
+    const { app, path } = mountWebhook(controller);
 
     const unauthorized = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
       .send(commandUpdate(1, '/help'));
     expect(unauthorized.status).toBe(401);
 
     const help = await request(app)
-      .post(controller.webhook.path)
-      .set('x-telegram-bot-api-secret-token', 'webhook-secret')
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(commandUpdate(2, '/help'));
     expect(help.status).toBe(200);
 
@@ -328,8 +347,8 @@ describe('Telegram bot controller', () => {
     expect(helpReply?.body.text).toContain('Connect five stones');
 
     const start = await request(app)
-      .post(controller.webhook.path)
-      .set('x-telegram-bot-api-secret-token', 'webhook-secret')
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(commandUpdate(3, '/start invite_abc'));
     expect(start.status).toBe(200);
 
@@ -345,14 +364,19 @@ describe('Telegram bot controller', () => {
 
   it('shows a Verify button for browser sign-in links and verifies the account', async () => {
     const browserLogins = new BrowserLoginStore();
-    const controller = makeController({}, browserLogins);
-    const app = express();
-    app.use(express.json());
-    app.post(controller.webhook.path, controller.webhook.handler);
+    const controller = makeController(
+      {
+        telegramWebhookUrl: 'https://game.example.com',
+        telegramWebhookSecret: WEBHOOK_SECRET,
+      },
+      browserLogins,
+    );
+    const { app, path } = mountWebhook(controller);
 
     const pending = browserLogins.create();
     const start = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(commandUpdate(10, `/start login_${pending.id}`));
     expect(start.status).toBe(200);
 
@@ -367,7 +391,8 @@ describe('Telegram bot controller', () => {
     expect(button?.web_app).toBeUndefined();
 
     const verify = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(callbackUpdate(11, `login_verify:${pending.id}`));
     expect(verify.status).toBe(200);
 
@@ -385,7 +410,8 @@ describe('Telegram bot controller', () => {
     });
 
     const duplicate = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(callbackUpdate(12, `login_verify:${pending.id}`));
     expect(duplicate.status).toBe(200);
     const duplicateAnswer = calls.filter((item) => item.method === 'answerCallbackQuery').at(-1);
@@ -394,18 +420,24 @@ describe('Telegram bot controller', () => {
 
   it('does not let another Telegram account claim a browser sign-in', async () => {
     const browserLogins = new BrowserLoginStore();
-    const controller = makeController({}, browserLogins);
-    const app = express();
-    app.use(express.json());
-    app.post(controller.webhook.path, controller.webhook.handler);
+    const controller = makeController(
+      {
+        telegramWebhookUrl: 'https://game.example.com',
+        telegramWebhookSecret: WEBHOOK_SECRET,
+      },
+      browserLogins,
+    );
+    const { app, path } = mountWebhook(controller);
 
     const pending = browserLogins.create();
     await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(commandUpdate(20, `/start login_${pending.id}`));
 
     const otherUser = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(callbackUpdate(21, `login_verify:${pending.id}`, 99));
     expect(otherUser.status).toBe(200);
 
@@ -414,7 +446,8 @@ describe('Telegram bot controller', () => {
     expect(browserLogins.lookup(pending.id, pending.secret).status).toBe('pending');
 
     await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(callbackUpdate(22, `login_verify:${pending.id}`));
     expect(browserLogins.lookup(pending.id, pending.secret).status).toBe('verified');
   });
@@ -422,13 +455,18 @@ describe('Telegram bot controller', () => {
   it('reports expired or unknown browser sign-in links without a Verify button', async () => {
     const clock = new MutableClock();
     const browserLogins = new BrowserLoginStore({ ttlMs: 1_000, now: clock.now });
-    const controller = makeController({}, browserLogins);
-    const app = express();
-    app.use(express.json());
-    app.post(controller.webhook.path, controller.webhook.handler);
+    const controller = makeController(
+      {
+        telegramWebhookUrl: 'https://game.example.com',
+        telegramWebhookSecret: WEBHOOK_SECRET,
+      },
+      browserLogins,
+    );
+    const { app, path } = mountWebhook(controller);
 
     const unknown = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(commandUpdate(30, `/start login_${'a'.repeat(32)}`));
     expect(unknown.status).toBe(200);
     const unknownReply = calls.filter((item) => item.method === 'sendMessage').at(-1);
@@ -438,7 +476,8 @@ describe('Telegram bot controller', () => {
     const pending = browserLogins.create();
     clock.advance(2_000);
     const expired = await request(app)
-      .post(controller.webhook.path)
+      .post(path)
+      .set('x-telegram-bot-api-secret-token', WEBHOOK_SECRET)
       .send(commandUpdate(31, `/start login_${pending.id}`));
     expect(expired.status).toBe(200);
     const expiredReply = calls.filter((item) => item.method === 'sendMessage').at(-1);

@@ -49,6 +49,7 @@ describe('configuration', () => {
     expect(config.telegramBotToken).toBeNull();
     expect(config.telegramWebhookUrl).toBeNull();
     expect(config.telegramWebhookSecret).toBeNull();
+    expect(config.maxSocketsPerUser).toBe(5);
     expect(config.logLevel).toBe('info');
     expect(config.turnTimeoutMs).toBe(90_000);
     expect(loadConfig({ NODE_ENV: 'development', TURN_TIMEOUT_MS: '0' }).turnTimeoutMs).toBe(0);
@@ -127,6 +128,13 @@ describe('configuration', () => {
     expect(() =>
       loadConfig({
         ...PRODUCTION_ENV,
+        TELEGRAM_WEBHOOK_URL: 'http://game.example.com/api/telegram/webhook',
+        TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32),
+      }),
+    ).toThrow(/must use HTTPS/);
+    expect(() =>
+      loadConfig({
+        ...PRODUCTION_ENV,
         TELEGRAM_WEBHOOK_URL: 'https://game.example.com/api/telegram/webhook',
       }),
     ).toThrow(/TELEGRAM_WEBHOOK_SECRET/);
@@ -155,6 +163,39 @@ describe('configuration', () => {
     expect(() => loadConfig({ ...PRODUCTION_ENV, PORT: '70000' })).toThrow(/PORT/);
   });
 
+  it('rejects non-HTTP app and webhook URLs and non-Postgres database URLs', () => {
+    expect(() =>
+      loadConfig({ ...PRODUCTION_ENV, MINI_APP_URL: 'ftp://game.example.com' }),
+    ).toThrow(/http:\/\/ or https:\/\//);
+    expect(() =>
+      loadConfig({
+        ...PRODUCTION_ENV,
+        TELEGRAM_WEBHOOK_URL: 'ftp://game.example.com/api/telegram/webhook',
+        TELEGRAM_WEBHOOK_SECRET: 'a'.repeat(32),
+      }),
+    ).toThrow(/http:\/\/ or https:\/\//);
+    expect(() =>
+      loadConfig({ ...PRODUCTION_ENV, DATABASE_URL: 'mysql://user:secret@db.example.com/game' }),
+    ).toThrow(/postgres:\/\/ or postgresql:\/\//);
+    expect(() =>
+      loadConfig({ ...PRODUCTION_ENV, MINI_APP_URL: 'https://user:secret@game.example.com' }),
+    ).toThrow(/embedded credentials/);
+  });
+
+  it('does not allow production demo mode with a persistent database', () => {
+    expect(() =>
+      loadConfig({ ...PRODUCTION_ENV, DEMO_MODE: 'true', DEV_AUTH_ENABLED: 'true' }),
+    ).toThrow(/Demo mode must not use a persistent database/);
+  });
+
+  it('parses and bounds the per-user socket connection limit', () => {
+    expect(loadConfig({ NODE_ENV: 'test' }).maxSocketsPerUser).toBe(5);
+    expect(loadConfig({ NODE_ENV: 'test', MAX_SOCKETS_PER_USER: '2' }).maxSocketsPerUser).toBe(2);
+    expect(() => loadConfig({ NODE_ENV: 'test', MAX_SOCKETS_PER_USER: '0' })).toThrow(
+      /MAX_SOCKETS_PER_USER/,
+    );
+  });
+
   it('normalizes allowed origins and Mini App origins', () => {
     const config = loadConfig({
       NODE_ENV: 'test',
@@ -168,11 +209,16 @@ describe('configuration', () => {
     );
   });
 
-  it('ignores malformed origins when building the allow-list', () => {
-    const config = loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: 'not-a-url, http://localhost:3000' });
-    expect(getAllowedOrigins(config)).toEqual(
-      new Set(['http://localhost:3000', 'http://localhost:5173']),
-    );
+  it('rejects malformed CORS origins instead of silently ignoring them', () => {
+    expect(() =>
+      loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: 'not-a-url, http://localhost:3000' }),
+    ).toThrow(/invalid origin/);
+    expect(() =>
+      loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: 'https://example.com/path' }),
+    ).toThrow(/http\(s\) origins/);
+    expect(() =>
+      loadConfig({ NODE_ENV: 'test', CORS_ORIGINS: 'ftp://example.com' }),
+    ).toThrow(/http\(s\) origins/);
   });
 
   it('accepts boolean variants', () => {

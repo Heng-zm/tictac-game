@@ -176,8 +176,35 @@ describe('HTTP API', () => {
     expect(response.headers['content-security-policy']).toContain('https://web.telegram.org');
     expect(response.headers['content-security-policy']).toContain('frame-src');
     expect(response.headers['content-security-policy']).not.toContain('oauth.telegram.org');
+    const connectSrc =
+      /connect-src ([^;]+)/.exec(response.headers['content-security-policy'] ?? '')?.[1] ?? '';
+    expect(connectSrc).toContain("'self'");
+    // Only explicitly allowed origins and their WebSocket equivalents may be
+    // contacted; bare `ws:`/`wss:` schemes would allow any origin.
+    expect(connectSrc).not.toMatch(/(^|\s)wss?:(\s|$)/);
+    expect(connectSrc).toContain('wss://tictac-game-om8r.onrender.com');
+    expect(response.headers['permissions-policy']).toContain('camera=()');
+    expect(response.headers['permissions-policy']).toContain('microphone=(self)');
     // HSTS is only sent in production; localhost development must not pin HTTPS.
     expect(response.headers['strict-transport-security']).toBeUndefined();
+  });
+
+  it('sets a one-year HSTS policy in production', async () => {
+    const productionApp = buildTestApp({
+      nodeEnv: 'production',
+      isProduction: true,
+      demoMode: true,
+      devAuthEnabled: true,
+      databaseMode: 'memory',
+    });
+    try {
+      const response = await request(productionApp.app).get('/health');
+      expect(response.headers['strict-transport-security']).toContain('max-age=31536000');
+      expect(response.headers['strict-transport-security']).toContain('includeSubDomains');
+      expect(response.headers['strict-transport-security']).toContain('preload');
+    } finally {
+      productionApp.service.shutdown();
+    }
   });
 
   it('authenticates development users and keeps the session in an HttpOnly cookie', async () => {
@@ -258,6 +285,14 @@ describe('HTTP API', () => {
       .send('{not-json');
     expect(invalidJson.status).toBe(400);
     expect(invalidJson.body.error.code).toBe('INVALID_JSON');
+
+    const oversized = await request(current.app)
+      .post('/api/auth/dev')
+      .set('Content-Type', 'application/json')
+      .send(JSON.stringify({ deviceKey: 'a'.repeat(40_000) }));
+    expect(oversized.status).toBe(413);
+    expect(oversized.body.error.code).toBe('PAYLOAD_TOO_LARGE');
+    expect(oversized.headers['cache-control']).toBe('no-store');
   });
 
   it('updates player preferences independently', async () => {
@@ -689,6 +724,15 @@ describe('HTTP API', () => {
       .set('Origin', 'http://192.168.18.11:3000');
     expect(response.status).toBe(200);
     expect(response.headers['access-control-allow-origin']).toBe('http://192.168.18.11:3000');
+  });
+
+  it('rejects non-HTTP same-host origins', async () => {
+    const response = await request(current.app)
+      .get('/api/config')
+      .set('Host', 'example.com')
+      .set('Origin', 'ftp://example.com');
+    expect(response.status).toBe(403);
+    expect(response.body.error.code).toBe('ORIGIN_NOT_ALLOWED');
   });
 
   it('disables development authentication in production', async () => {

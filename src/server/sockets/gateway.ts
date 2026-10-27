@@ -60,6 +60,13 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
   const userSockets = new Map<string, Set<string>>();
   const socketLogger = logger.child({ component: 'socket' });
 
+  function releaseSocket(userId: string, socketId: string): void {
+    const sockets = userSockets.get(userId);
+    if (!sockets) return;
+    sockets.delete(socketId);
+    if (sockets.size === 0) userSockets.delete(userId);
+  }
+
   const queue = new MatchmakingQueue({
     config,
     logger: socketLogger,
@@ -84,8 +91,25 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
       if (!user || user.telegramId.toString() !== payload.tid) {
         throw new AppError(401, 'AUTH_REQUIRED', 'Your session is no longer valid');
       }
+
+      // Reserve the slot before the asynchronous handshake completes so a burst
+      // of simultaneous connects cannot exceed the per-account limit.
+      const sockets = userSockets.get(user.id);
+      if (sockets && sockets.size >= config.maxSocketsPerUser) {
+        throw new AppError(
+          429,
+          'TOO_MANY_CONNECTIONS',
+          'Too many active connections for this account. Close another tab and try again.',
+        );
+      }
+      const reserved = sockets ?? new Set<string>();
+      reserved.add(socket.id);
+      userSockets.set(user.id, reserved);
+      socket.conn.once('close', () => releaseSocket(user.id, socket.id));
+
       socket.data.user = user;
       socket.data.userId = user.id;
+      socket.data.sessionExpiresAt = payload.exp;
       next();
     } catch (error) {
       const appError =
@@ -108,6 +132,21 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
     userSockets.set(user.id, sockets);
 
     socket.join(userRoom(user.id));
+    const sessionExpiresInMs = socket.data.sessionExpiresAt * 1000 - Date.now();
+    const expiryTimer = setTimeout(
+      () => {
+        socket.emit('server:error', {
+          code: 'AUTH_REQUIRED',
+          message: 'Your session expired. Please sign in again.',
+        });
+        socket.disconnect(true);
+        log.info({ event: 'socket_session_expired' }, 'Socket session expired');
+      },
+      Math.max(0, Math.min(sessionExpiresInMs, 2_147_483_647)),
+    );
+    expiryTimer.unref?.();
+    socket.once('disconnect', () => clearTimeout(expiryTimer));
+
     socket.emit('session:ready', {
       protocol: 1,
       serverTime: new Date().toISOString(),
@@ -121,9 +160,9 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
 
     socket.on('disconnect', (reason) => {
       const current = userSockets.get(user.id);
-      current?.delete(socket.id);
-      if (current && current.size > 0) return;
-      userSockets.delete(user.id);
+      const wasLast = !current || current.size <= 1;
+      releaseSocket(user.id, socket.id);
+      if (!wasLast) return;
       queue.handleDisconnect(user.id);
       void matchService.handleDisconnected(user.id).catch((error: unknown) => {
         log.error({ err: error, event: 'presence_disconnect_failed' }, 'Failed to mark player offline');
@@ -368,6 +407,14 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
   ): Promise<void> {
     const requestId = randomUUID();
     const respond = typeof ack === 'function' ? ack : () => undefined;
+    if (socket.data.sessionExpiresAt * 1000 <= Date.now()) {
+      respond({
+        ok: false,
+        error: { code: 'AUTH_REQUIRED', message: 'Your session expired. Please sign in again.' },
+      });
+      socket.disconnect(true);
+      return;
+    }
     const limit = EVENT_LIMITS[event] ?? { max: 60, windowMs: 60_000 };
 
     if (!limiter.allow('*', 240, 60_000) || !limiter.allow(event, limit.max, limit.windowMs)) {

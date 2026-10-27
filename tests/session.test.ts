@@ -70,6 +70,16 @@ describe('session tokens', () => {
     expect(verifySessionToken(future, TEST_SESSION_SECRET, NOW)).toBeNull();
   });
 
+  it('rejects tokens with an excessive lifetime', () => {
+    const token = createSessionToken(
+      { id: 'user-1', telegramId: 1n },
+      TEST_SESSION_SECRET,
+      NOW,
+      DEFAULT_SESSION_TTL_SECONDS + 60 * 60,
+    );
+    expect(verifySessionToken(token, TEST_SESSION_SECRET, NOW)).toBeNull();
+  });
+
   it('rejects malformed tokens and unsafe payloads', () => {
     expect(verifySessionToken(undefined, TEST_SESSION_SECRET, NOW)).toBeNull();
     expect(verifySessionToken('', TEST_SESSION_SECRET, NOW)).toBeNull();

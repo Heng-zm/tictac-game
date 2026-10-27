@@ -4,13 +4,14 @@ import request from 'supertest';
 import { io as createClient, type Socket } from 'socket.io-client';
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest';
 import { createGameServer, type GameServerRuntime } from '../src/server/create-server';
+import { createSessionToken } from '../src/server/auth/session';
 import {
   encodeCell,
   type QueueStatus,
   type SocketAck,
   type UserProfile,
 } from '../src/shared/game-types';
-import { makeTestConfig, makeTestLogger } from './helpers';
+import { makeTestConfig, makeTestLogger, TEST_SESSION_SECRET } from './helpers';
 
 interface Session {
   cookie: string;
@@ -65,6 +66,7 @@ describe('Socket.IO end-to-end', () => {
         aiThinkMinMs: 0,
         aiThinkMaxMs: 0,
         queueAiTimeoutMs: 10_000,
+        maxSocketsPerUser: 2,
       }),
       logger: makeTestLogger(),
       disableRateLimits: true,
@@ -226,6 +228,39 @@ describe('Socket.IO end-to-end', () => {
     expect(ready?.protocol).toBe(1);
     expect(ready?.serverTime).toEqual(expect.any(String));
     expect(ready?.user.id).toBe(session.user.id);
+  });
+
+  it('caps simultaneous authenticated sockets per account', async () => {
+    const session = await authenticate(`e2e-cap-${randomUUID().slice(0, 8)}`, 'Cap Player');
+    await connect(session.cookie);
+    await connect(session.cookie);
+
+    const error = await connectExpectFailure(session.cookie);
+    expect((error as Error & { data?: { code?: string } }).data?.code).toBe('TOO_MANY_CONNECTIONS');
+    expect(error.message).toMatch(/Too many active connections/);
+  });
+
+  it('disconnects sockets when the signed session expires', async () => {
+    const session = await authenticate(`e2e-expiry-${randomUUID().slice(0, 8)}`, 'Expiry Player');
+    const user = await runtime.repository.getUserById(session.user.id);
+    if (!user) throw new Error('Missing expiry test user');
+
+    // The HTTP login issues a normal 7-day session; mint a deliberately short
+    // one so the server-side expiry path can be observed without waiting.
+    const token = createSessionToken(user, TEST_SESSION_SECRET, new Date(), 2);
+    const socket = await connect(`ttt_session=${token}`);
+    const expired = waitFor<{ code: string; message: string }>(
+      socket,
+      'server:error',
+      (payload) => payload.code === 'AUTH_REQUIRED',
+      6_000,
+    );
+    const disconnected = new Promise<string>((resolve) => {
+      socket.once('disconnect', resolve);
+    });
+
+    expect((await expired).message).toMatch(/expired/i);
+    await expect(disconnected).resolves.toBe('io server disconnect');
   });
 
   it('matches two players, enforces room authorization and plays a full game', async () => {
