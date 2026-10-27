@@ -49,12 +49,12 @@ export function ConnectionBanner({
       >
         <div
           className={cn(
-            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-xl border px-3 py-1.5 text-xs font-medium leading-snug shadow-soft backdrop-blur-md',
+            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-xl border border-solid px-3 py-1.5 text-xs font-medium leading-snug shadow-soft',
             shutdown || offline
-              ? 'border-danger/25 bg-danger/10 text-danger'
+              ? 'border-danger bg-danger/10 text-danger'
               : connecting
-                ? 'border-accent/25 bg-surface/95 text-accent'
-                : 'border-line bg-surface/95 text-ink',
+                ? 'border-accent bg-surface text-accent'
+                : 'border-line bg-surface text-ink',
           )}
         >
           {shutdown || offline ? (
@@ -100,10 +100,10 @@ export function BottomNav({
   ];
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 px-3 pb-[calc(env(safe-area-inset-bottom)+10px)] sm:px-4 md:pb-[calc(env(safe-area-inset-bottom)+14px)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-solid border-line bg-surface shadow-[0_-14px_32px_-28px_rgba(0,0,0,0.5)]"
       aria-label="Main navigation"
     >
-      <div className="mx-auto flex max-w-[560px] items-stretch gap-1 rounded-2xl border border-line bg-surface/95 p-1.5 shadow-soft backdrop-blur-xl">
+      <div className="mx-auto flex max-w-[560px] items-stretch gap-1 px-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1.5 sm:px-4 md:pb-[calc(env(safe-area-inset-bottom)+10px)]">
         {items.map((item) => {
           const selected = active === item.name;
           const Icon = item.icon;
@@ -119,8 +119,10 @@ export function BottomNav({
               aria-current={selected ? 'page' : undefined}
               aria-label={showActiveGame ? `${item.label} (game in progress)` : item.label}
               className={cn(
-                'flex flex-1 flex-col items-center gap-1 rounded-xl px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2.5 md:text-xs',
-                selected ? 'bg-accent/10 text-accent' : 'text-muted hover:bg-elevated hover:text-ink',
+                'flex flex-1 flex-col items-center gap-1 rounded-xl border border-solid border-transparent px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2.5 md:text-xs',
+                selected
+                  ? 'border-accent/20 bg-accent/10 text-accent'
+                  : 'text-muted hover:bg-elevated hover:text-ink',
               )}
             >
               <span className="relative">
