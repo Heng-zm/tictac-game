@@ -124,7 +124,7 @@ export function GameScreen({
     () => (pendingCell !== null && youSide ? { ...board, [pendingCell]: youSide } : board),
     [board, pendingCell, youSide],
   );
-  const activeBoard = match?.status === 'FINISHED' ? board : displayBoard;
+  const activeBoard = match && match.status !== 'ACTIVE' ? board : displayBoard;
   const winningLine = useMemo(() => findWinningLine(activeBoard), [activeBoard]);
   const lastMoveCell =
     (client.lastMove && client.match?.id === match?.id ? client.lastMove.cell : null) ??
@@ -318,11 +318,12 @@ export function GameScreen({
 
   const opponent = opponentFor(match);
   const you = match.players[match.youSide];
+  const gameOver = match.status === 'FINISHED' || match.status === 'ABANDONED';
   const opponentDisconnected =
     match.opponentConnection === 'disconnected' || Boolean(client.opponentGraceEndsAt);
 
   const clockText =
-    match.status === 'FINISHED'
+    gameOver
       ? '—'
       : match.turnTimerPaused
         ? 'Paused'
@@ -332,7 +333,7 @@ export function GameScreen({
             ? 'You'
             : `${match.currentTurn ?? '—'}`;
   const clockLabel =
-    match.status === 'FINISHED'
+    gameOver
       ? 'Finished'
       : match.turnTimerPaused
         ? 'Clock paused'
@@ -407,7 +408,7 @@ export function GameScreen({
                 label={clockLabel}
                 progress={clockProgress}
                 urgent={clockUrgent}
-                muted={match.turnTimerPaused || match.status === 'FINISHED'}
+                muted={match.turnTimerPaused || gameOver}
               />
 
               <div className="relative">
@@ -467,7 +468,7 @@ export function GameScreen({
 
       <GameResult
         match={match}
-        open={match.status === 'FINISHED'}
+        open={match.status === 'FINISHED' || match.status === 'ABANDONED'}
         rematchBusy={rematchBusy}
         onRematch={() => void rematch()}
         onHome={() => void leaveGame('/')}

@@ -39,6 +39,13 @@ export const DIRECTIONS = [
   [1, -1],  // anti-diagonal ↗
 ] as const;
 
+/**
+ * A boundless board can never be physically full, so games are capped by the
+ * number of moves instead. This keeps draws reachable and bounds the board size
+ * that is serialized to the database, sent to clients, and retained in memory.
+ */
+export const MAX_GAME_MOVES = 400;
+
 // Pre-computed neighbor offsets: [dx, dy, encodedOffset]
 // encodedOffset = encodeCell(x+dx, y+dy) - encodeCell(x, y)
 // = (dy * COORD_STRIDE) + dx
@@ -155,14 +162,14 @@ export function getWinnerAt(board: Board, cellIndex: number): WinResult | null {
   return null;
 }
 
-export function isBoardFull(_board: Board): boolean {
-  // Infinite grid never fills up; games play until a 5-in-a-row win
-  return false;
+export function isBoardFull(board: Board): boolean {
+  return Object.keys(board).length >= MAX_GAME_MOVES;
 }
 
 export function getGameStatus(board: Board): GameStatus {
   const winner = getWinner(board);
   if (winner) return { status: 'WON', winner: winner.side, line: winner.line };
+  if (isBoardFull(board)) return { status: 'DRAW', winner: null, line: null };
   return { status: 'ACTIVE', winner: null, line: null };
 }
 
@@ -214,7 +221,7 @@ function validatePlacement(
   const { x, y } = decodeCell(cellIndex);
   if (!isInBounds(x, y)) return 'INVALID_CELL';
   if (board[cellIndex] !== undefined) return 'OCCUPIED_CELL';
-  if (checkFinished && getWinner(board)) return 'GAME_FINISHED';
+  if (checkFinished && (isBoardFull(board) || getWinner(board))) return 'GAME_FINISHED';
   return null;
 }
 
@@ -247,13 +254,13 @@ export function applyMoveWithStatus(
 
   const next: Board = { ...board, [cellIndex]: side };
   const winner = getWinnerAt(next, cellIndex);
-  return {
-    ok: true,
-    board: next,
-    status: winner
-      ? { status: 'WON', winner: winner.side, line: winner.line }
-      : { status: 'ACTIVE', winner: null, line: null },
-  };
+  if (winner) {
+    return { ok: true, board: next, status: { status: 'WON', winner: winner.side, line: winner.line } };
+  }
+  if (isBoardFull(next)) {
+    return { ok: true, board: next, status: { status: 'DRAW', winner: null, line: null } };
+  }
+  return { ok: true, board: next, status: { status: 'ACTIVE', winner: null, line: null } };
 }
 
 /**

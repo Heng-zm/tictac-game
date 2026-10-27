@@ -153,6 +153,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const [bootAttempt, setBootAttempt] = useState(0);
 
   const socketRef = useRef<GameClientSocket | null>(null);
+  const voicePlaybackRef = useRef<{ stop: () => void } | null>(null);
   const onMatchFoundRef = useRef(onMatchFound);
   onMatchFoundRef.current = onMatchFound;
   const toastTimers = useRef(new Map<string, number>());
@@ -488,11 +489,15 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       if (!currentMatch || currentMatch.id !== event.matchId) return;
       if (event.senderSide !== currentMatch.youSide) {
         setIncomingVoice(event);
-        playVoiceAudio(event.audioData, ({ isPlaying }) => {
+        voicePlaybackRef.current?.stop();
+        let playback: { stop: () => void } | null = null;
+        playback = playVoiceAudio(event.audioData, ({ isPlaying }) => {
           if (!isPlaying && active) {
             setIncomingVoice(null);
+            if (voicePlaybackRef.current === playback) voicePlaybackRef.current = null;
           }
         });
+        voicePlaybackRef.current = playback;
       }
       hapticImpact('light');
     });
@@ -513,6 +518,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     return () => {
       active = false;
+      voicePlaybackRef.current?.stop();
+      voicePlaybackRef.current = null;
       socket.removeAllListeners();
       socket.disconnect();
       socketRef.current = null;
@@ -682,6 +689,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   );
 
   const clearIncomingVoice = useCallback(() => {
+    voicePlaybackRef.current?.stop();
+    voicePlaybackRef.current = null;
     setIncomingVoice(null);
   }, []);
 
@@ -815,6 +824,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 }
 
 export function resultHeadline(match: PublicMatchState): string {
+  if (match.status === 'ABANDONED') return 'Game abandoned';
   if (match.result === 'DRAW') return 'Draw';
   if (!match.winnerSide) return 'Game over';
   return match.winnerSide === match.youSide ? 'You win!' : 'You lost';
@@ -825,7 +835,7 @@ export function finishReasonText(reason: PublicMatchState['finishReason']): stri
     case 'LINE':
       return 'Five in a row.';
     case 'DRAW':
-      return 'The board is full — nobody gave an inch.';
+      return 'Both players reached the move limit — nobody gave an inch.';
     case 'DISCONNECT':
       return 'The opponent did not reconnect in time.';
     case 'TIMEOUT':

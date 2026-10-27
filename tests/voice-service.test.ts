@@ -79,6 +79,19 @@ describe('MatchService — Walkie-Talkie Voice Transmission', () => {
 
     // Audio data empty
     expect(matchVoiceSchema.safeParse({ ...valid, audioData: '' }).success).toBe(false);
+
+    // Rejects non-audio, spoofed containers, and non-base64 payloads.
+    expect(
+      matchVoiceSchema.safeParse({ ...valid, audioData: 'data:text/plain;base64,aGVsbG8=' }).success,
+    ).toBe(false);
+    expect(
+      matchVoiceSchema.safeParse({ ...valid, audioData: 'data:audio/webm;base64,bW9jaw==' }).success,
+    ).toBe(false);
+    expect(matchVoiceSchema.safeParse({ ...valid, audioData: 'not-a-data-url' }).success).toBe(false);
+
+    // The data URL limit aligns with the Socket.IO transport limit.
+    const oversized = `data:audio/webm;base64,${'A'.repeat(800_000)}`;
+    expect(matchVoiceSchema.safeParse({ ...valid, audioData: oversized }).success).toBe(false);
   });
 
   it('allows active match participants to transmit walkie-talkie audio and broadcasts to matchRoom', async () => {
@@ -122,11 +135,35 @@ describe('MatchService — Walkie-Talkie Voice Transmission', () => {
     });
   });
 
+  it('rejects malformed or unsupported audio before broadcasting', async () => {
+    const match = await service.startAi(alice.id, 'EASY', 'X');
+    const validAudio = 'data:audio/webm;base64,GkXfo59ChoEBQveBAULygQ8=';
+
+    await expect(
+      service.sendVoice(alice.id, match.id, 'data:audio/webm;base64,bW9jaw==', 1_200),
+    ).rejects.toMatchObject({ code: 'INVALID_AUDIO' });
+    await expect(
+      service.sendVoice(alice.id, match.id, validAudio, 12_000),
+    ).rejects.toMatchObject({ code: 'INVALID_AUDIO' });
+    await expect(
+      service.sendVoice(alice.id, match.id, 'data:text/plain;base64,aGVsbG8=', 1_200),
+    ).rejects.toMatchObject({ code: 'INVALID_AUDIO' });
+
+    expect(
+      io.emitted.filter((event) => event.room === `match:${match.id}` && event.event === 'match:voice'),
+    ).toHaveLength(0);
+  });
+
   it('schedules AI simulated roger-beep walkie-talkie response in AI match', async () => {
     const match = await service.startAi(alice.id, 'EASY', 'X');
     io.emitted.length = 0;
 
-    await service.sendVoice(alice.id, match.id, 'dummy-data', 1200);
+    await service.sendVoice(
+      alice.id,
+      match.id,
+      'data:audio/webm;base64,GkXfo59ChoEBQveBAULygQ8=',
+      1200,
+    );
 
     const initialEvents = io.emitted.filter(
       (e) => e.room === `match:${match.id}` && e.event === 'match:voice',

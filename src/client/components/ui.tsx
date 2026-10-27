@@ -456,6 +456,9 @@ export function Modal({
           )}
         >
           {dismissible && showClose ? (
+            <div className="mx-auto mb-3 h-1 w-10 rounded-full bg-line sm:hidden" aria-hidden />
+          ) : null}
+          {dismissible && showClose ? (
             <button
               type="button"
               onClick={onClose}

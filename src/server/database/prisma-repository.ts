@@ -693,7 +693,7 @@ export class PrismaGameRepository implements GameRepository {
           where: { id: { in: ids }, status: { in: ['ACTIVE', 'WAITING'] } },
           data: {
             status: 'ABANDONED',
-            finishReason: 'SERVER_SHUTDOWN',
+            finishReason: 'ABANDONED',
             finishedAt: now,
             currentTurn: null,
             turnDeadline: null,
@@ -790,18 +790,16 @@ async function applyFinalization(
 
     if (participant.userId && finalization.countStats) {
       const stats = statsDeltaFor(match.mode, outcome);
-      const existing = await tx.userStats.findUnique({
-        where: { userId: participant.userId },
-        select: { rating: true },
-      });
-      const nextRating = Math.max(0, (existing?.rating ?? 1000) + delta);
-
+      // Apply the rating change as an atomic increment. Reading the current
+      // rating first and writing an absolute value could lose a concurrent
+      // update from another finished match. The conditional clamp keeps the
+      // floor at zero without a read-modify-write race.
       await tx.userStats.upsert({
         where: { userId: participant.userId },
         create: {
           userId: participant.userId,
           ...stats,
-          rating: nextRating,
+          rating: Math.max(0, 1000 + delta),
         },
         update: {
           gamesPlayed: { increment: stats.gamesPlayed },
@@ -814,9 +812,16 @@ async function applyFinalization(
           aiLosses: { increment: stats.aiLosses },
           aiDraws: { increment: stats.aiDraws },
           ratingGames: { increment: stats.ratingGames },
-          rating: nextRating,
+          rating: { increment: delta },
         },
       });
+      if (delta < 0) {
+        await tx.$executeRaw`
+          UPDATE "UserStats"
+          SET "rating" = 0
+          WHERE "userId" = ${participant.userId} AND "rating" < 0
+        `;
+      }
     }
   }
 

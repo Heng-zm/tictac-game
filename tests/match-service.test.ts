@@ -472,6 +472,44 @@ describe('MatchService', () => {
     expect((await repo.getUserById(alice.id))?.stats.gamesPlayed).toBe(0);
   });
 
+  it('keeps an AI game alive through the shorter human grace period, then abandons it', async () => {
+    const match = await service.startAi(alice.id, 'EASY', 'X');
+    await service.handleDisconnected(alice.id);
+
+    await advance(60_000);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ACTIVE');
+
+    await advance(9 * 60_000);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ABANDONED');
+    expect((await repo.getUserById(alice.id))?.stats.gamesPlayed).toBe(0);
+  });
+
+  it('cancels the AI abandonment timer when the player reconnects', async () => {
+    const match = await service.startAi(alice.id, 'EASY', 'X');
+    await service.handleDisconnected(alice.id);
+    await advance(5 * 60_000);
+
+    await service.handleConnected(alice);
+    await advance(6 * 60_000);
+
+    expect((await repo.getMatchById(match.id))?.status).toBe('ACTIVE');
+  });
+
+  it('reconciles an in-memory match abandoned by repository maintenance', async () => {
+    const match = await createRandomMatch();
+    const now = new Date(clock.now().getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    await repo.runMaintenance(now, 24 * 60 * 60 * 1000);
+    expect((await repo.getMatchById(match.id))?.status).toBe('ABANDONED');
+
+    await service.reconcileActiveMatches();
+
+    const state = io.lastForRoom<{ match: PublicMatchState }>(alice.id, 'match:state')?.match;
+    expect(state).toMatchObject({ id: match.id, status: 'ABANDONED', finishReason: 'ABANDONED' });
+    expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
+    await expect(service.assertAvailable(alice.id)).resolves.toBeUndefined();
+  });
+
   it('restores a disconnect timer when one player reconnects after a restart', async () => {
     const match = await createRandomMatch();
     service.shutdown();

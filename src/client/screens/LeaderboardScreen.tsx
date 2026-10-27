@@ -144,8 +144,8 @@ export function LeaderboardScreen({
           )}
 
           <p className="mt-4 px-4 text-center text-[11px] leading-relaxed text-muted">
-            Rankings use ladder rating from rated human matches only. Wins add 20, draws add 5, and losses subtract 10.
-            Bot and abandoned games never change your rating.
+            Rankings use ladder rating from rated human matches only. Wins add 20, losses subtract 20, and draws do
+            not change rating. Bot and abandoned games never change your rating.
           </p>
         </>
       ) : null}
@@ -159,7 +159,7 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
   const isRank3 = entry.rank === 3;
 
   const rankBadgeStyle = isRank1
-    ? 'border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-glow-gold/20'
+    ? 'border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-glow-gold'
     : isRank2
       ? 'border-slate-400/50 bg-slate-400/20 text-slate-600 dark:text-slate-300'
       : isRank3
@@ -173,11 +173,16 @@ function LeaderboardRow({ entry }: { entry: LeaderboardEntry }) {
       : isRank3
         ? 'bg-gradient-to-r from-amber-700/10 via-orange-600/[0.02] to-transparent'
         : entry.isYou
-          ? 'bg-accent/10 border-l-2 border-l-accent'
+          ? 'border-l-accent bg-accent/10'
           : '';
 
   return (
-    <div className={cn('flex items-center gap-3 px-3.5 py-3 transition-colors sm:px-5 sm:py-3.5', rowHighlight)}>
+    <div
+      className={cn(
+        'flex items-center gap-3 border-l-2 border-l-transparent px-3.5 py-3 transition-colors sm:px-5 sm:py-3.5',
+        rowHighlight,
+      )}
+    >
       <span
         className={cn(
           'flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border text-xs font-bold tabular-nums',

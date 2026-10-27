@@ -14,7 +14,7 @@ if (process.env.DEV_AUTH_ENABLED === 'true' && process.env.DEMO_MODE !== 'true')
   process.env.DEV_AUTH_ENABLED = 'false';
 }
 
-if (!process.env.TRUST_PROXY || process.env.TRUST_PROXY === '0') {
+if (process.env.TRUST_PROXY === undefined || process.env.TRUST_PROXY.trim() === '') {
   process.env.TRUST_PROXY = '1';
 }
 

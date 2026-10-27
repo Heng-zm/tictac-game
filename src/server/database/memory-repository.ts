@@ -533,7 +533,7 @@ export class MemoryGameRepository implements GameRepository {
     const cutoff = now.getTime() - staleAfterMs;
     for (const match of this.matches.values()) {
       if ((match.status === 'ACTIVE' || match.status === 'WAITING') && match.lastActivityAt.getTime() < cutoff) {
-        await this.abandonMatch({ matchId: match.id, finishReason: 'SERVER_SHUTDOWN', finishedAt: now });
+        await this.abandonMatch({ matchId: match.id, finishReason: 'ABANDONED', finishedAt: now });
         summary.abandonedMatches += 1;
       }
     }

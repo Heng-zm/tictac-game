@@ -8,6 +8,8 @@
  * 4. Audio playback with auto-play handling for opponent ("auto play auto waw").
  */
 
+import { validateVoiceDataUrl } from '../../shared/audio';
+
 let sharedAudioContext: AudioContext | null = null;
 
 export function getAudioContext(): AudioContext | null {
@@ -492,6 +494,11 @@ export function playVoiceAudio(
   audioData: string,
   onStateChange?: (state: { isPlaying: boolean; progress: number }) => void,
 ): { stop: () => void } {
+  if (!validateVoiceDataUrl(audioData)) {
+    onStateChange?.({ isPlaying: false, progress: 0 });
+    return { stop: () => undefined };
+  }
+
   // Squelch tone when incoming transmission opens
   playPttStartChirp();
 

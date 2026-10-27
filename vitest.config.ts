@@ -6,9 +6,8 @@ export default defineConfig({
     include: ['tests/**/*.test.{ts,tsx}'],
     environment: 'node',
     pool: 'forks',
-    poolOptions: {
-      forks: { singleFork: true },
-    },
+    // All test files share one worker; the server tests use shared global state.
+    fileParallelism: false,
     testTimeout: 20_000,
     hookTimeout: 20_000,
     coverage: {

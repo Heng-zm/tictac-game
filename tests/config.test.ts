@@ -50,6 +50,8 @@ describe('configuration', () => {
     expect(config.telegramWebhookUrl).toBeNull();
     expect(config.telegramWebhookSecret).toBeNull();
     expect(config.logLevel).toBe('info');
+    expect(config.turnTimeoutMs).toBe(90_000);
+    expect(loadConfig({ NODE_ENV: 'development', TURN_TIMEOUT_MS: '0' }).turnTimeoutMs).toBe(0);
   });
 
   it('disables development auth by default outside development', () => {

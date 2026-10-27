@@ -232,7 +232,7 @@ export function MatchmakingScreen({
             </div>
 
             <div className="mt-4 text-center">
-              <h2 className="text-xl font-bold tracking-tight text-ink">
+              <h2 aria-live="polite" className="text-xl font-bold tracking-tight text-ink">
                 {queue ? 'Finding an opponent' : 'Joining the queue'}
               </h2>
               <div className="mt-1.5 flex items-center justify-center gap-2 text-sm text-muted">
@@ -278,7 +278,7 @@ export function MatchmakingScreen({
             </div>
 
             {localError ? (
-              <div className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-center">
+              <div role="alert" className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-center">
                 <p className="text-xs font-medium text-danger">{localError}</p>
                 <Button size="sm" variant="secondary" className="mt-2" onClick={() => void retry()}>
                   Try again
@@ -291,7 +291,10 @@ export function MatchmakingScreen({
           <Card className="p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <p className="text-sm font-medium text-ink">Auto-play a bot</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-ink">Auto-play a bot</p>
+                  {autoFallback ? <Pill tone="accent">On</Pill> : null}
+                </div>
                 <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
                   After {formatDuration(config?.queueAiTimeoutMs ?? 0)}, start a bot game automatically.
                 </p>

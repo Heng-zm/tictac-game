@@ -204,7 +204,7 @@ export function InviteWaitingScreen({
                 <button
                   type="button"
                   onClick={() => void copyLink()}
-                  aria-label="Copy invitation link"
+                  aria-label={copied ? 'Invitation link copied' : 'Copy invitation link'}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   {copied ? <Check className="h-4 w-4 text-success" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
@@ -233,7 +233,7 @@ export function InviteWaitingScreen({
           ) : null}
 
           {error ? (
-            <div className="mt-3 rounded-2xl border border-danger/25 bg-danger/10 p-3 text-xs text-danger">
+            <div role="alert" className="mt-3 rounded-2xl border border-danger/25 bg-danger/10 p-3 text-xs text-danger">
               {error}
               {!deepLink ? (
                 <button
@@ -452,7 +452,7 @@ export function InviteAcceptScreen({
             </div>
 
             {error ? (
-              <div className="mt-4 rounded-2xl border border-danger/25 bg-danger/10 p-3 text-center text-xs text-danger">
+              <div role="alert" className="mt-4 rounded-2xl border border-danger/25 bg-danger/10 p-3 text-center text-xs text-danger">
                 {error.message}
                 {error.code === 'INVITATION_USED' || error.code === 'INVITATION_EXPIRED' ? (
                   <button

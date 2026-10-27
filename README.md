@@ -210,7 +210,7 @@ Copy `.env.example` to `.env`. Important variables:
 | `DEV_AUTH_ENABLED` | Local guest auth. Rejected in production. |
 | `CORS_ORIGINS` | Comma-separated allowed browser origins. `MINI_APP_URL` is added automatically. |
 | `DISCONNECT_GRACE_MS` | Reconnect grace period before a disconnect can forfeit (default 30s). |
-| `TURN_TIMEOUT_MS` | Per-turn timeout; `0` disables turn timers. |
+| `TURN_TIMEOUT_MS` | Per-turn timeout in milliseconds (default `90000`). A player who runs out of time loses; `0` disables turn timers. |
 | `INVITE_TTL_MINUTES` | Invitation lifetime (default 24h). |
 | `AUTH_MAX_AGE_SECONDS` | Maximum accepted `initData` age (default 24h). |
 | `MAINTENANCE_INTERVAL_MS` | Background cleanup interval. |
@@ -348,7 +348,8 @@ tests/                    Unit, HTTP, E2E, and gated PostgreSQL tests
 ## Game and security rules
 
 - The server owns the board, turn order, result, and rating changes.
-- Human rated games: win `+20`, draw `+5`, loss `−10`. AI games and abandoned/incomplete games are unrated.
+- Human rated games: win `+20`, loss `−20`, draw `0`. The changes are symmetric, so rated games are zero-sum. AI games and abandoned/incomplete games are unrated.
+- A game also ends in a draw after `400` moves, which keeps the boundless board bounded in storage and transit.
 - Move action IDs are unique per match; retries are idempotent.
 - Socket actions verify that the authenticated user is a participant in the match room.
 - Disconnects do not immediately end a game; the configured grace period applies.

@@ -43,7 +43,9 @@ describe('HowToPlayModal', () => {
     expect(screen.getByText('How to Play')).toBeTruthy();
     expect(screen.getByText('Infinite Grid & Controls')).toBeTruthy();
     expect(
-      screen.getByText('The board is an infinite grid. Pan, zoom, and place your stones freely anywhere.'),
+      screen.getByText(
+        'The board is a large, endless grid. Pan, zoom, and place your stones freely. If 400 moves pass without a five-in-a-row, the game is a draw.',
+      ),
     ).toBeTruthy();
     expect(screen.queryByText('ក្តារគ្មានដែនកំណត់ & ការបញ្ជា')).toBeNull();
     expect(screen.getByText('Next')).toBeTruthy();

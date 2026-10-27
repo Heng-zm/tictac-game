@@ -1,4 +1,4 @@
-import { History, Home, Minus, RotateCcw, Trophy, X } from 'lucide-react';
+import { Flag, History, Home, Minus, RotateCcw, Trophy, X } from 'lucide-react';
 import type { PublicMatchState } from '../../shared/game-types';
 import { decodeCell, encodeCell } from '../../shared/game-types';
 import { cn } from '../lib/cn';
@@ -30,18 +30,28 @@ export function GameResult({
 }) {
   const outcome = describeOutcome(match);
   const opponent = opponentFor(match);
-  const title = outcome === 'win' ? 'You win!' : outcome === 'loss' ? 'You lost' : 'Draw';
+  const title =
+    outcome === 'win'
+      ? 'You win!'
+      : outcome === 'loss'
+        ? 'You lost'
+        : outcome === 'draw'
+          ? 'Draw'
+          : 'Game abandoned';
   const impact = ratingImpactFor(match);
-  const impactTone = impact === null ? 'neutral' : impact > 0 ? 'success' : 'danger';
+  const impactTone = impact === null ? 'neutral' : impact > 0 ? 'success' : impact < 0 ? 'danger' : 'neutral';
   const impactLabel =
     impact === null
       ? isRatedMatch(match)
         ? 'No rating change'
         : 'Unrated'
-      : `Rating ${impact > 0 ? '+' : ''}${impact}`;
+      : impact === 0
+        ? 'No rating change'
+        : `Rating ${impact > 0 ? '+' : ''}${impact}`;
   const rematch = match.rematch;
   const waiting = rematch.requestedByYou && !rematch.requestedByOpponent;
   const opponentWaiting = rematch.requestedByOpponent && !rematch.requestedByYou;
+  const canRematch = match.status === 'FINISHED' && (rematch.available || match.mode === 'AI');
 
   const rematchLabel = waiting
     ? 'Waiting for opponent…'
@@ -61,13 +71,17 @@ export function GameResult({
               ? 'border-success/30 bg-success/15 text-success'
               : outcome === 'draw'
                 ? 'border-line bg-elevated text-muted'
-                : 'border-danger/25 bg-danger/10 text-danger',
+                : outcome === 'abandoned'
+                  ? 'border-line bg-elevated text-muted'
+                  : 'border-danger/25 bg-danger/10 text-danger',
           )}
         >
           {outcome === 'win' ? (
             <Trophy className="h-8 w-8" aria-hidden />
           ) : outcome === 'draw' ? (
             <Minus className="h-8 w-8" aria-hidden />
+          ) : outcome === 'abandoned' ? (
+            <Flag className="h-8 w-8" aria-hidden />
           ) : (
             <X className="h-8 w-8" aria-hidden />
           )}
@@ -89,7 +103,7 @@ export function GameResult({
         <FinalBoard match={match} />
 
         <div className="mt-5 space-y-2">
-          {rematch.available || match.mode === 'AI' ? (
+          {canRematch ? (
             <Button
               size="lg"
               className="w-full"
@@ -102,7 +116,9 @@ export function GameResult({
             </Button>
           ) : (
             <p className="rounded-2xl border border-line bg-elevated/60 px-3 py-2.5 text-xs font-medium text-muted">
-              The rematch window for this game has closed.
+              {match.status === 'ABANDONED'
+                ? 'This game ended without a result. No rating was changed.'
+                : 'The rematch window for this game has closed.'}
             </p>
           )}
           <div className="grid grid-cols-2 gap-2">

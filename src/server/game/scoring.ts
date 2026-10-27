@@ -26,13 +26,13 @@ export function isRatedMode(mode: MatchMode): boolean {
 }
 
 /**
- * Elo-independent ladder: rated human wins +20, draws +5, losses -10.
+ * Elo-independent ladder: rated human wins +20, losses -20, and draws 0.
+ * The signs are symmetric so a rated game is zero-sum between the two players.
  * AI games never alter rating; incomplete games never reach this function.
  */
 export function ratingDeltaFor(mode: MatchMode, outcome: ParticipantOutcome): number {
   if (!isRatedMode(mode)) return 0;
-  // Use a lookup table for branchless execution
-  return outcome === 'WIN' ? 20 : outcome === 'DRAW' ? 5 : -10;
+  return outcome === 'WIN' ? 20 : outcome === 'DRAW' ? 0 : -20;
 }
 
 // Pre-computed stat deltas for each (mode, outcome) combination

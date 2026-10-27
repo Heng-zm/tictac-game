@@ -40,7 +40,7 @@ const envSchema = z
     QUEUE_AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(10_000),
     QUEUE_MAX_WAIT_MS: z.coerce.number().int().min(10_000).max(3_600_000).default(600_000),
     DISCONNECT_GRACE_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
-    TURN_TIMEOUT_MS: z.coerce.number().int().min(0).max(600_000).default(0),
+    TURN_TIMEOUT_MS: z.coerce.number().int().min(0).max(600_000).default(90_000),
     INVITE_TTL_MINUTES: z.coerce.number().int().min(5).max(10_080).default(1_440),
     AUTH_MAX_AGE_SECONDS: z.coerce.number().int().min(60).max(86_400).default(86_400),
     AI_THINK_MIN_MS: z.coerce.number().int().min(0).max(5_000).default(350),

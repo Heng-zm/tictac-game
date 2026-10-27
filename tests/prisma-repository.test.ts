@@ -237,7 +237,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     });
     expect(finish.match.participants.find((p) => p.side === 'O')).toMatchObject({
       outcome: 'LOSS',
-      ratingDelta: -10,
+      ratingDelta: -20,
     });
 
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBeNull();
@@ -252,7 +252,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
     expect((await repo.getUserById(bob.id))?.stats).toMatchObject({
       gamesPlayed: 1,
       losses: 1,
-      rating: 990,
+      rating: 980,
       ratingGames: 1,
     });
 
@@ -268,7 +268,7 @@ describeIntegration('PrismaGameRepository (PostgreSQL integration)', () => {
       }),
       expect.objectContaining({
         user: expect.objectContaining({ id: bob.id }),
-        stats: expect.objectContaining({ rating: 990 }),
+        stats: expect.objectContaining({ rating: 980 }),
       }),
     ]);
     expect(await repo.getUserRank(alice.id)).toBe(1);

@@ -56,9 +56,9 @@ const STEPS: StepData[] = [
     titleKhmer: 'ក្តារគ្មានដែនកំណត់ & ការបញ្ជា',
     titleEnglish: 'Infinite Grid & Controls',
     descriptionKhmer:
-      'ក្តារលេងមានទំហំធំទូលាយគ្មានដែនកំណត់។ អ្នកអាចរំកិល ពង្រីក និងដាក់កូនបានដោយសេរីគ្រប់ទីកន្លែង។',
+      'ក្តារលេងមានទំហំធំទូលាយគ្មានដែនកំណត់។ អ្នកអាចរំកិល ពង្រីក និងដាក់កូនបានដោយសេរីគ្រប់ទីកន្លែង។ ប្រសិនបើគ្មានជួរ ៥ គ្រាប់ក្នុង ៤០០ ជំហាន ហ្គេមនឹងស្មើ។',
     descriptionEnglish:
-      'The board is an infinite grid. Pan, zoom, and place your stones freely anywhere.',
+      'The board is a large, endless grid. Pan, zoom, and place your stones freely. If 400 moves pass without a five-in-a-row, the game is a draw.',
     highlights: [
       {
         icon: Hand,

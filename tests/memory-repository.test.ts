@@ -211,7 +211,7 @@ describe('MemoryGameRepository', () => {
     });
     expect(finish.match.participants.find((p) => p.side === 'O')).toMatchObject({
       outcome: 'LOSS',
-      ratingDelta: -10,
+      ratingDelta: -20,
       leftAt: now,
     });
 
@@ -230,7 +230,7 @@ describe('MemoryGameRepository', () => {
     expect(updatedBob?.stats).toMatchObject({
       gamesPlayed: 1,
       losses: 1,
-      rating: 990,
+      rating: 980,
       ratingGames: 1,
     });
 
@@ -241,7 +241,7 @@ describe('MemoryGameRepository', () => {
 
     expect(await repo.getLeaderboard(10)).toEqual([
       expect.objectContaining({ user: expect.objectContaining({ id: alice.id }), stats: expect.objectContaining({ rating: 1020 }) }),
-      expect.objectContaining({ user: expect.objectContaining({ id: bob.id }), stats: expect.objectContaining({ rating: 990 }) }),
+      expect.objectContaining({ user: expect.objectContaining({ id: bob.id }), stats: expect.objectContaining({ rating: 980 }) }),
     ]);
     expect(await repo.getUserRank(alice.id)).toBe(1);
     expect(await repo.getUserRank(bob.id)).toBe(2);

@@ -23,9 +23,10 @@ describe('scoring', () => {
   it('applies the documented rating ladder only to human games', () => {
     expect(ratingDeltaFor('RANDOM', 'WIN')).toBe(20);
     expect(ratingDeltaFor('FRIEND', 'WIN')).toBe(20);
-    expect(ratingDeltaFor('RANDOM', 'DRAW')).toBe(5);
-    expect(ratingDeltaFor('FRIEND', 'DRAW')).toBe(5);
-    expect(ratingDeltaFor('RANDOM', 'LOSS')).toBe(-10);
+    expect(ratingDeltaFor('RANDOM', 'DRAW')).toBe(0);
+    expect(ratingDeltaFor('FRIEND', 'DRAW')).toBe(0);
+    expect(ratingDeltaFor('RANDOM', 'LOSS')).toBe(-20);
+    expect(ratingDeltaFor('FRIEND', 'LOSS')).toBe(-20);
     expect(ratingDeltaFor('AI', 'WIN')).toBe(0);
     expect(ratingDeltaFor('AI', 'LOSS')).toBe(0);
     expect(ratingDeltaFor('AI', 'DRAW')).toBe(0);

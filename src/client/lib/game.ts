@@ -72,7 +72,8 @@ export function modeShortLabel(mode: MatchMode): string {
   return 'Bot';
 }
 
-export function describeOutcome(match: PublicMatchState): 'win' | 'loss' | 'draw' {
+export function describeOutcome(match: PublicMatchState): 'win' | 'loss' | 'draw' | 'abandoned' {
+  if (match.status === 'ABANDONED' || match.result === null) return 'abandoned';
   if (match.result === 'DRAW') return 'draw';
   return match.winnerSide === match.youSide ? 'win' : 'loss';
 }
@@ -83,7 +84,7 @@ export function finishReasonCopy(match: PublicMatchState): string {
     case 'LINE':
       return youWon ? 'Five in a row! Beautifully played.' : 'Five in a row for your opponent.';
     case 'DRAW':
-      return 'The board is full. Nobody gave an inch.';
+      return 'Both players reached the move limit. Nobody gave an inch.';
     case 'DISCONNECT':
       return youWon ? 'Your opponent did not reconnect in time.' : 'You did not reconnect in time.';
     case 'TIMEOUT':
@@ -95,7 +96,7 @@ export function finishReasonCopy(match: PublicMatchState): string {
     case 'SERVER_SHUTDOWN':
       return 'The server restarted and this game could not continue.';
     case 'ABANDONED':
-      return 'This game was abandoned.';
+      return 'This game was abandoned. No rating was changed.';
     default:
       return 'This game has ended.';
   }
@@ -118,6 +119,6 @@ export function ratingImpactFor(match: PublicMatchState): number | null {
   ) {
     return null;
   }
-  if (match.result === 'DRAW') return 5;
-  return match.winnerSide === match.youSide ? 20 : -10;
+  if (match.result === 'DRAW') return 0;
+  return match.winnerSide === match.youSide ? 20 : -20;
 }

@@ -141,8 +141,8 @@ export function ProfileScreen({
                   onClick={() => selectTab(item.value)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={cn(
-                    'relative flex flex-1 items-center justify-center gap-1.5 pb-2.5 pt-1 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm',
-                    selected ? 'text-accent' : 'text-muted hover:text-ink',
+                    'relative flex flex-1 items-center justify-center gap-2 rounded-t-lg pb-3 pt-2.5 text-xs font-medium transition-colors hover:bg-elevated/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm',
+                    selected ? 'text-accent hover:bg-transparent' : 'text-muted hover:text-ink',
                   )}
                 >
                   <Icon className="h-3.5 w-3.5" aria-hidden />
@@ -237,7 +237,7 @@ function OverviewTab({ client, navigate }: { client: GameClient; navigate: (path
       <Card className="flex items-start gap-2.5 p-3.5">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
         <p className="text-[11px] leading-relaxed text-muted">
-          Rated human wins add 20 points, draws add 5, losses subtract 10. Abandoned or unfinished games never touch
+          Rated human wins add 20 points, losses subtract 20, and draws leave rating unchanged. Abandoned or unfinished games never touch
           your rating; bot games are always unrated.
         </p>
       </Card>

@@ -127,6 +127,9 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     maintenanceRunning = true;
     try {
       const summary = await repository.runMaintenance(new Date(), config.matchStaleAfterMs);
+      // Stale matches are abandoned directly in the repository. Reconcile the
+      // service cache so timers and player state do not stay active.
+      await matchService.reconcileActiveMatches();
       if (
         summary.expiredInvitations > 0 ||
         summary.abandonedMatches > 0 ||

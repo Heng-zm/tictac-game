@@ -7,6 +7,7 @@ import {
   getWinnerAt,
   isBoardFull,
   isValidBoard,
+  MAX_GAME_MOVES,
   sideToMove,
 } from '../src/server/game/rules';
 import {
@@ -149,7 +150,31 @@ describe('infinite grid 5-in-a-row rules', () => {
     expect(getGameStatus(board)).toEqual({ status: 'ACTIVE', winner: null, line: null });
   });
 
-  it('infinite board never fills up and has no draw', () => {
+  it('ends in a draw when the game-move cap is reached', () => {
+    const board: Board = createEmptyBoard();
+    // Stones separated by one empty cell cannot form a winning line.
+    for (let index = 0; index < MAX_GAME_MOVES; index += 1) {
+      board[encodeCell(index * 2, 0)] = index % 2 === 0 ? 'X' : 'O';
+    }
+
+    expect(isBoardFull(board)).toBe(true);
+    expect(getGameStatus(board)).toEqual({ status: 'DRAW', winner: null, line: null });
+    expect(applyMove(board, 'X', encodeCell(1, 0))).toEqual({ ok: false, code: 'GAME_FINISHED' });
+  });
+
+  it('reports a draw for the move that reaches the cap', () => {
+    const board: Board = createEmptyBoard();
+    for (let index = 0; index < MAX_GAME_MOVES - 1; index += 1) {
+      board[encodeCell(index * 2, 0)] = index % 2 === 0 ? 'X' : 'O';
+    }
+
+    const applied = applyMoveWithStatus(board, 'X', encodeCell(1_000, 0));
+    expect(applied.ok).toBe(true);
+    if (!applied.ok) throw new Error('unreachable');
+    expect(applied.status).toEqual({ status: 'DRAW', winner: null, line: null });
+  });
+
+  it('keeps small boards active', () => {
     const board: Board = createEmptyBoard();
     expect(isBoardFull(board)).toBe(false);
   });

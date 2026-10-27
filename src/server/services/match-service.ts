@@ -30,10 +30,16 @@ import { buildMatchView } from '../services/match-view';
 import type { TurnNotificationService } from '../services/turn-notifier';
 import type { GameServer } from '../sockets/types';
 import { matchRoom, userRoom } from '../sockets/types';
+import { VOICE_MAX_DURATION_MS, validateVoiceDataUrl } from '../../shared/audio';
 
 const REMATCH_WINDOW_MS = 2 * 60 * 1000;
 const FINISHED_GAME_TTL_MS = 10 * 60 * 1000;
 const RECENT_FINISHED_TTL_MS = 5 * 60 * 1000;
+/**
+ * AI games have no second human connection to keep the match alive. Give the
+ * player a generous window to come back before the abandoned game is cleaned up.
+ */
+const AI_DISCONNECT_ABANDON_MS = 10 * 60 * 1000;
 
 interface ActiveGame {
   match: MatchEntity;
@@ -156,8 +162,13 @@ export class MatchService {
     if (!game || game.match.status !== 'ACTIVE') return;
 
     if (game.match.mode === 'AI') {
+      // There is no human opponent who could win by forfeit. Pause the bot and
+      // start a longer abandonment timer so closing Telegram briefly does not
+      // destroy a bot game.
       this.clearAiTimer(game);
       this.clearTurnTimer(game);
+      game.disconnectedUsers.add(userId);
+      this.startDisconnectTimer(game, userId, AI_DISCONNECT_ABANDON_MS);
       return;
     }
 
@@ -657,6 +668,14 @@ export class MatchService {
     if (match.status !== 'ACTIVE' && match.status !== 'FINISHED') {
       throw new AppError(409, 'GAME_NOT_ACTIVE', 'Voice messages are only available during or after a game');
     }
+    if (
+      !Number.isInteger(durationMs) ||
+      durationMs < 400 ||
+      durationMs > VOICE_MAX_DURATION_MS ||
+      !validateVoiceDataUrl(audioData)
+    ) {
+      throw new AppError(400, 'INVALID_AUDIO', 'Voice messages must be a supported audio recording');
+    }
 
     const defaultWaveform = [0.2, 0.5, 0.8, 0.4, 0.7, 0.9, 0.6, 0.3, 0.7, 0.8, 0.4, 0.2];
     const safeWaveform = waveform && waveform.length > 0 ? waveform : defaultWaveform;
@@ -735,6 +754,53 @@ export class MatchService {
       if (tracker.timer) clearTimeout(tracker.timer);
     }
     this.rematches.clear();
+  }
+
+  /**
+   * Maintenance can abandon stale matches directly in the repository. Reconcile
+   * the in-memory cache afterwards so players are not left on a board that the
+   * database already considers finished.
+   */
+  async reconcileActiveMatches(): Promise<void> {
+    const activeGames = [...this.games.values()].filter((game) => game.match.status === 'ACTIVE');
+    for (const game of activeGames) {
+      let persisted: MatchEntity | null;
+      try {
+        persisted = await this.deps.repository.getMatchById(game.match.id);
+      } catch (error) {
+        this.deps.logger.warn(
+          {
+            event: 'match_reconcile_failed',
+            matchId: game.match.id,
+            errorName: error instanceof Error ? error.name : 'unknown',
+          },
+          'Could not reconcile an active match after maintenance',
+        );
+        continue;
+      }
+      if (!persisted || persisted.status === 'ACTIVE') continue;
+      // A newer game object may have replaced this one while the query ran.
+      if (this.games.get(game.match.id) !== game) continue;
+
+      game.match = persisted;
+      this.clearAllGameTimers(game);
+      this.removeUserMatch(persisted);
+      if (persisted.status === 'FINISHED') {
+        this.emitToParticipants(persisted, 'match:finished');
+      } else {
+        this.emitToParticipants(persisted, 'match:state');
+      }
+      this.games.delete(persisted.id);
+      this.deps.logger.info(
+        {
+          event: 'match_reconciled',
+          matchId: persisted.id,
+          status: persisted.status,
+          reason: persisted.finishReason,
+        },
+        'In-memory match reconciled with storage',
+      );
+    }
   }
 
   private async resumeReservation(user: UserEntity): Promise<boolean> {
@@ -983,12 +1049,12 @@ export class MatchService {
     }
   }
 
-  private startDisconnectTimer(game: ActiveGame, userId: string): void {
+  private startDisconnectTimer(game: ActiveGame, userId: string, delayMs = this.deps.config.disconnectGraceMs): void {
     const existing = game.disconnectTimers.get(userId);
     if (existing) clearTimeout(existing);
     const timer = setTimeout(() => {
       void this.handleDisconnectExpiry(game.match.id, userId);
-    }, this.deps.config.disconnectGraceMs);
+    }, delayMs);
     timer.unref?.();
     game.disconnectTimers.set(userId, timer);
   }
@@ -1003,10 +1069,18 @@ export class MatchService {
       return;
     }
     const disconnected = game.match.participants.find((participant) => participant.userId === userId);
+    if (!disconnected) return;
+
+    if (game.match.mode === 'AI') {
+      game.disconnectTimers.delete(userId);
+      await this.abandonGame(game, 'ABANDONED');
+      return;
+    }
+
     const opponent = game.match.participants.find(
       (participant) => !participant.isAi && participant.userId !== userId,
     );
-    if (!disconnected || !opponent) return;
+    if (!opponent) return;
 
     if (opponent.userId && this.online.has(opponent.userId)) {
       await this.finishGameWithWinner(game, opponent.side, 'DISCONNECT');

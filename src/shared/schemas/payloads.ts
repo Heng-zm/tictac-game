@@ -1,4 +1,9 @@
 import { z } from 'zod';
+import {
+  VOICE_MAX_DATA_URL_LENGTH,
+  VOICE_MAX_DURATION_MS,
+  validateVoiceDataUrl,
+} from '../audio';
 import { STICKER_IDS } from '../stickers';
 
 export const SIDE_VALUES = ['X', 'O'] as const;
@@ -57,8 +62,15 @@ export type MatchReactionInput = z.infer<typeof matchReactionSchema>;
 export const matchVoiceSchema = z
   .object({
     matchId: uuidSchema,
-    audioData: z.string().min(1).max(2_000_000),
-    durationMs: z.number().int().min(400).max(11_000),
+    audioData: z
+      .string()
+      .min(1)
+      .max(VOICE_MAX_DATA_URL_LENGTH)
+      .refine(
+        (value) => validateVoiceDataUrl(value) !== null,
+        'Voice data must be a supported base64 audio recording',
+      ),
+    durationMs: z.number().int().min(400).max(VOICE_MAX_DURATION_MS),
     waveform: z.array(z.number().min(0).max(1)).max(32).optional(),
   })
   .strict();

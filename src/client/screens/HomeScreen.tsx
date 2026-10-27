@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   Sparkles,
   Swords,
+  Timer,
   type LucideIcon,
 } from 'lucide-react';
 import type { AiDifficulty, Side } from '../../shared/game-types';
@@ -101,7 +102,7 @@ export function HomeScreen({
           <button
             type="button"
             onClick={() => navigate('/profile')}
-            className="shrink-0 rounded-full transition active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+            className="shrink-0 rounded-full ring-1 ring-line transition hover:ring-accent/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             aria-label="Open profile"
           >
             <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="md" />
@@ -183,36 +184,38 @@ export function HomeScreen({
         </div>
       ) : null}
 
-      <button
-        type="button"
-        onClick={() => setGuideOpen(true)}
-        className="group relative mb-3.5 flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition-all duration-200 hover:border-accent/45 hover:shadow-glow/30 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-      >
-        <span className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm group-hover:scale-105 transition-transform duration-200">
-            <BookOpen className="h-5 w-5" aria-hidden />
-          </span>
-          <span className="min-w-0">
-            <span className="flex items-center gap-2">
-              <span className="text-xs font-bold text-ink">
-                {isKhmer ? 'របៀបលេងសម្រាប់អ្នកថ្មី' : 'New here? Learn how to play'}
+      {stats.gamesPlayed === 0 ? (
+        <button
+          type="button"
+          onClick={() => setGuideOpen(true)}
+          className="group relative mb-3.5 flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition-all duration-200 hover:border-accent/45 hover:shadow-glow/30 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm group-hover:scale-105 transition-transform duration-200">
+              <BookOpen className="h-5 w-5" aria-hidden />
+            </span>
+            <span className="min-w-0">
+              <span className="flex items-center gap-2">
+                <span className="text-xs font-bold text-ink">
+                  {isKhmer ? 'របៀបលេងសម្រាប់អ្នកថ្មី' : 'New here? Learn how to play'}
+                </span>
+                <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase tracking-wide">
+                  {isKhmer ? 'ជំហានៗ' : 'Step by step'}
+                </span>
               </span>
-              <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase tracking-wide">
-                {isKhmer ? 'ជំហានៗ' : 'Step by step'}
+              <span className="mt-0.5 block text-[11px] text-muted">
+                {isKhmer
+                  ? 'ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី'
+                  : 'Learn the five-in-a-row rules and winning tactics in one minute.'}
               </span>
             </span>
-            <span className="mt-0.5 block text-[11px] text-muted">
-              {isKhmer
-                ? 'ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី'
-                : 'Learn the five-in-a-row rules and winning tactics in one minute.'}
-            </span>
           </span>
-        </span>
-        <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
-      </button>
+          <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
+        </button>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-5">
-        <Card className="relative overflow-hidden p-4 lg:col-start-2 lg:row-start-1">
+        <Card className="relative overflow-hidden p-4 order-3 lg:order-none lg:col-start-2 lg:row-start-1">
           <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-accent/5 blur-2xl" aria-hidden />
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -241,7 +244,7 @@ export function HomeScreen({
           </div>
         </Card>
 
-      <section className="order-first lg:order-none lg:col-start-1 lg:row-start-1">
+      <section className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
         <h2 className="mb-2.5 text-sm font-semibold text-ink">Play</h2>
         <div className="grid grid-cols-2 gap-2.5">
           <ModeTile
@@ -268,7 +271,7 @@ export function HomeScreen({
         ) : null}
       </section>
 
-      <Card className="relative overflow-hidden p-4 lg:col-start-1 lg:row-start-2">
+      <Card className="relative overflow-hidden p-4 order-2 lg:order-none lg:col-start-1 lg:row-start-2">
         <div className="flex items-center gap-3">
           <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-ink">
             <Bot className="h-5 w-5" aria-hidden />
@@ -317,7 +320,7 @@ export function HomeScreen({
         </div>
       </Card>
 
-      <Card className="p-4 lg:col-start-2 lg:row-start-2">
+      <Card className="p-4 order-4 lg:order-none lg:col-start-2 lg:row-start-2">
         <div className="flex items-center gap-2.5">
           <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-success/25 bg-success/10 text-success">
             <ShieldCheck className="h-4 w-4" aria-hidden />
@@ -329,12 +332,20 @@ export function HomeScreen({
         </div>
         <div className="mt-3 space-y-2.5 border-t border-line/70 pt-3 text-[11px] leading-relaxed text-muted">
           <p className="flex items-start gap-2">
+            <Timer className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+            <span>
+              {(config?.turnTimeoutMs ?? 0) > 0
+                ? `Each turn gets ${formatDuration(config?.turnTimeoutMs ?? 0)} on the clock.`
+                : 'Turn timers are off, so take your time.'}
+            </span>
+          </p>
+          <p className="flex items-start gap-2">
             <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
             <span>Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)}.</span>
           </p>
           <p className="flex items-start gap-2">
             <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-            <span>Line up five in a row on the infinite board to win.</span>
+            <span>Line up five in a row to win. Four hundred moves without a winner is a draw.</span>
           </p>
         </div>
       </Card>
