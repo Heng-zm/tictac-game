@@ -78,7 +78,7 @@ export function ReactionPicker({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-black/40 backdrop-blur-sm transition-opacity animate-fade-in"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -86,7 +86,7 @@ export function ReactionPicker({
       {/* Floating Tray Bottom Sheet */}
       <div
         ref={trayRef}
-        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 shadow-2xl backdrop-blur-md transition-transform animate-in slide-in-from-bottom duration-200 sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:pb-5"
+        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 shadow-2xl backdrop-blur-md transition-transform animate-sheet-up sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:pb-5"
       >
         {/* Grab Handle */}
         <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted/30 sm:hidden" />

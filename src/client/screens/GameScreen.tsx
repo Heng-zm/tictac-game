@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ArrowLeft, Bot, Clock3, Flag, Loader2, ShieldCheck, Timer, Volume2, WifiOff, X } from 'lucide-react';
+import {
+  ArrowLeft,
+  Bot,
+  Clock3,
+  Flag,
+  Loader2,
+  MessageCircle,
+  ShieldCheck,
+  Timer,
+  Volume2,
+  WifiOff,
+  X,
+} from 'lucide-react';
 import type { Side } from '../../shared/game-types';
+import type { StickerId } from '../../shared/stickers';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
 import { SocketRequestError } from '../lib/socket';
@@ -18,6 +31,7 @@ import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spin
 import { Page } from '../components/Layout';
 import { Board } from '../components/Board';
 import { GameResult } from '../components/GameResult';
+import { ReactionPicker } from '../components/stickers/ReactionPicker';
 import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
 import { WalkieTalkieButton } from '../components/voice/WalkieTalkieButton';
 
@@ -38,6 +52,7 @@ export function GameScreen({
   const [rematchBusy, setRematchBusy] = useState(false);
   const [forfeitOpen, setForfeitOpen] = useState(false);
   const [forfeiting, setForfeiting] = useState(false);
+  const [reactionPickerOpen, setReactionPickerOpen] = useState(false);
   const joinRequested = useRef(false);
 
   const match = currentMatch?.id === matchId ? currentMatch : null;
@@ -86,6 +101,7 @@ export function GameScreen({
     setPendingActionId(null);
     setRematchBusy(false);
     setForfeitOpen(false);
+    setReactionPickerOpen(false);
   }, [matchId]);
 
   useEffect(() => {
@@ -200,6 +216,7 @@ export function GameScreen({
 
   // Intercept Telegram BackButton to dismiss forfeit confirmation modal if open
   useTelegramBackHandler(forfeitOpen, () => setForfeitOpen(false));
+  useTelegramBackHandler(reactionPickerOpen, () => setReactionPickerOpen(false));
 
   const youReaction = useMemo(
     () => client.reactions.filter((r) => r.isYou).slice(-1)[0] ?? null,
@@ -210,6 +227,22 @@ export function GameScreen({
     [client.reactions],
   );
 
+
+  const handleSendReaction = useCallback(
+    async (stickerId: StickerId): Promise<void> => {
+      if (!match) return;
+      try {
+        await client.sendReaction(match.id, stickerId);
+      } catch (error) {
+        client.pushToast({
+          type: 'error',
+          title: 'Reaction not sent',
+          message: errorMessage(error),
+        });
+      }
+    },
+    [client, match],
+  );
 
   const handleSendVoice = useCallback(
     async (audioData: string, durationMs: number, waveform: number[]): Promise<void> => {
@@ -457,7 +490,23 @@ export function GameScreen({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute right-3 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center sm:right-4">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center justify-end gap-2 px-3 sm:px-4">
+        <button
+          type="button"
+          onClick={() => {
+            hapticImpact('light');
+            setReactionPickerOpen(true);
+          }}
+          disabled={
+            connection !== 'online' ||
+            (match.status !== 'ACTIVE' && match.status !== 'FINISHED')
+          }
+          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition hover:border-accent/40 hover:bg-elevated active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+          title="Sticker reactions and quick chat"
+          aria-label="Open sticker reactions and quick chat"
+        >
+          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+        </button>
         <WalkieTalkieButton
           matchId={match.id}
           onSendVoice={handleSendVoice}
@@ -495,6 +544,14 @@ export function GameScreen({
           </Button>
         </div>
       </Modal>
+
+      <ReactionPicker
+        isOpen={reactionPickerOpen}
+        onClose={() => setReactionPickerOpen(false)}
+        onSelect={(stickerId) => void handleSendReaction(stickerId)}
+        languageCode={client.profile?.languageCode}
+        disabled={connection !== 'online'}
+      />
     </div>
   );
 }

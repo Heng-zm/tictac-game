@@ -74,6 +74,15 @@ const config: Config = {
           '0%, 80%, 100%': { transform: 'translateY(0)', opacity: '0.4' },
           '40%': { transform: 'translateY(-3px)', opacity: '1' },
         },
+        'reaction-pop': {
+          '0%': { opacity: '0', transform: 'translateY(6px) scale(0.75)' },
+          '60%': { opacity: '1', transform: 'translateY(-2px) scale(1.04)' },
+          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+        },
+        'sheet-up': {
+          '0%': { opacity: '0', transform: 'translateY(24px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 160ms ease-out both',
@@ -83,6 +92,8 @@ const config: Config = {
         'pulse-ring': 'pulse-ring 2.2s cubic-bezier(0.2, 0.6, 0.4, 1) infinite',
         shimmer: 'shimmer 1.8s linear infinite',
         'thinking-dot': 'thinking-dot 1.2s ease-in-out infinite',
+        'reaction-pop': 'reaction-pop 240ms cubic-bezier(0.2, 0.8, 0.3, 1) both',
+        'sheet-up': 'sheet-up 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both',
       },
     },
   },
