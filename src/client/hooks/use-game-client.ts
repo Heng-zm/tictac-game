@@ -127,32 +127,6 @@ export interface GameClient {
 
 const INVITE_LINK_PREFIX = 'ttt:invite-link:';
 
-type TelegramLoginFailure = 'expired' | 'invalid' | 'unavailable';
-
-/** Reads a widget redirect error once, then removes it from the address bar. */
-function consumeTelegramLoginFailure(): TelegramLoginFailure | null {
-  if (typeof window === 'undefined') return null;
-  const url = new URL(window.location.href);
-  const reason = url.searchParams.get('telegram_login');
-  if (reason !== 'expired' && reason !== 'invalid' && reason !== 'unavailable') return null;
-  url.searchParams.delete('telegram_login');
-  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`);
-  return reason;
-}
-
-function telegramLoginFailureMessage(reason: TelegramLoginFailure | null): string {
-  switch (reason) {
-    case 'expired':
-      return 'Telegram sign-in expired. Please sign in again.';
-    case 'invalid':
-      return 'Telegram sign-in could not be verified. Please try again.';
-    case 'unavailable':
-      return 'Telegram sign-in is not available on this server. Open the game from the bot instead.';
-    default:
-      return 'Sign in with Telegram to start playing.';
-  }
-}
-
 export function inviteLinkStorageKey(invitationId: string): string {
   return `${INVITE_LINK_PREFIX}${invitationId}`;
 }
@@ -228,7 +202,6 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     setPhase('booting');
     setBootError(null);
     setBootErrorCode(null);
-    const loginFailure = consumeTelegramLoginFailure();
     const startParam = readStartParam();
     const inviteToken = parseInviteToken(startParam);
     if (inviteToken) setInitialInviteToken(inviteToken);
@@ -292,10 +265,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
             const auth = await authenticateDev(getDeviceKey());
             user = auth.user;
           } else {
-            setBootError(loginFailure ? telegramLoginFailureMessage(loginFailure) : null);
-            setBootErrorCode(
-              loginFailure ? `TELEGRAM_LOGIN_${loginFailure.toUpperCase()}` : 'AUTH_REQUIRED',
-            );
+            setBootError(null);
+            setBootErrorCode('AUTH_REQUIRED');
             setPhase('auth-required');
             return;
           }

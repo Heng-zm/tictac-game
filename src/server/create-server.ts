@@ -3,6 +3,7 @@ import type { Logger } from 'pino';
 import { Server as SocketServer } from 'socket.io';
 import type { ClientToServerEvents, ServerToClientEvents } from '../shared/events';
 import { createApp } from './app';
+import { BrowserLoginStore } from './auth/browser-login';
 import { createBotController, type BotController } from './bot/bot';
 import { getAllowedOrigins, type AppConfig } from './config';
 import { isSameOriginRequest } from './http/origin';
@@ -56,6 +57,7 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
   }
 
   const httpServer = createServer();
+  const browserLogins = new BrowserLoginStore();
   const allowedOrigins = getAllowedOrigins(config);
   const io = new SocketServer<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>(
     httpServer,
@@ -84,7 +86,7 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     },
   );
 
-  const bot = options.startBot === false ? null : createBotController({ config, logger });
+  const bot = options.startBot === false ? null : createBotController({ config, logger, browserLogins });
   const turnNotifier = bot ? new TurnNotifier({ repository, config, logger, sender: bot }) : undefined;
   const matchService = new MatchService({
     io,
@@ -106,6 +108,7 @@ export function createGameServer(options: CreateGameServerOptions): GameServerRu
     repository,
     logger,
     matchService,
+    browserLogins,
     ...(bot ? { botWebhook: bot.webhook } : {}),
     ...(turnNotifier ? { turnNotificationTester: turnNotifier } : {}),
     beforeMatchAction: (userId) => {

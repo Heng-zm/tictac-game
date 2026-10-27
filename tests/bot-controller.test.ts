@@ -7,8 +7,9 @@ import {
   createBotController,
   type BotController,
 } from '../src/server/bot/bot';
+import { BrowserLoginStore } from '../src/server/auth/browser-login';
 import type { AppConfig } from '../src/server/config';
-import { makeTestConfig, makeTestLogger, TEST_BOT_TOKEN } from './helpers';
+import { MutableClock, makeTestConfig, makeTestLogger, TEST_BOT_TOKEN } from './helpers';
 
 interface TelegramCall {
   method: string;
@@ -46,7 +47,10 @@ function reply(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
-function makeController(overrides: Partial<AppConfig> = {}): BotController {
+function makeController(
+  overrides: Partial<AppConfig> = {},
+  browserLogins = new BrowserLoginStore(),
+): BotController {
   const controller = createBotController({
     config: makeTestConfig({
       telegramBotToken: TEST_BOT_TOKEN,
@@ -55,6 +59,7 @@ function makeController(overrides: Partial<AppConfig> = {}): BotController {
       ...overrides,
     }),
     logger: makeTestLogger(),
+    browserLogins,
     apiRoot,
   });
   if (!controller) throw new Error('Expected a bot controller');
@@ -71,6 +76,29 @@ function commandUpdate(updateId: number, text: string): Record<string, unknown> 
       from: { id: 42, is_bot: false, first_name: 'Alice', language_code: 'en' },
       text,
       entities: [{ type: 'bot_command', offset: 0, length: text.split(' ')[0]!.length }],
+    },
+  };
+}
+
+function callbackUpdate(updateId: number, data: string, fromId = 42): Record<string, unknown> {
+  return {
+    update_id: updateId,
+    callback_query: {
+      id: `callback-${updateId}`,
+      from: {
+        id: fromId,
+        is_bot: false,
+        first_name: fromId === 42 ? 'Alice' : 'Mallory',
+        language_code: 'en',
+      },
+      chat_instance: 'test-chat-instance',
+      data,
+      message: {
+        message_id: updateId,
+        date: 1_700_000_000,
+        chat: { id: fromId, type: 'private' },
+        text: 'Sign in to Tic Tac Toe',
+      },
     },
   };
 }
@@ -166,6 +194,7 @@ describe('Telegram bot controller', () => {
     const controller = createBotController({
       config: makeTestConfig(),
       logger: makeTestLogger(),
+      browserLogins: new BrowserLoginStore(),
       apiRoot,
     });
     expect(controller).toBeNull();
@@ -312,5 +341,107 @@ describe('Telegram bot controller', () => {
     const buttonUrl = markup.inline_keyboard[0]?.[0]?.web_app?.url;
     expect(buttonUrl).toBeDefined();
     expect(new URL(buttonUrl!).searchParams.get('startapp')).toBe('invite_abc');
+  });
+
+  it('shows a Verify button for browser sign-in links and verifies the account', async () => {
+    const browserLogins = new BrowserLoginStore();
+    const controller = makeController({}, browserLogins);
+    const app = express();
+    app.use(express.json());
+    app.post(controller.webhook.path, controller.webhook.handler);
+
+    const pending = browserLogins.create();
+    const start = await request(app)
+      .post(controller.webhook.path)
+      .send(commandUpdate(10, `/start login_${pending.id}`));
+    expect(start.status).toBe(200);
+
+    const startReply = calls.filter((item) => item.method === 'sendMessage').at(-1);
+    expect(startReply?.body.text).toContain('Sign in to Tic Tac Toe');
+    const markup = startReply?.body.reply_markup as {
+      inline_keyboard: Array<Array<{ text: string; callback_data?: string; web_app?: unknown }>>;
+    };
+    const button = markup.inline_keyboard[0]?.[0];
+    expect(button?.text).toBe('Verify sign-in');
+    expect(button?.callback_data).toBe(`login_verify:${pending.id}`);
+    expect(button?.web_app).toBeUndefined();
+
+    const verify = await request(app)
+      .post(controller.webhook.path)
+      .send(callbackUpdate(11, `login_verify:${pending.id}`));
+    expect(verify.status).toBe(200);
+
+    const answer = calls.filter((item) => item.method === 'answerCallbackQuery').at(-1);
+    expect(answer?.body.text).toContain('Verified');
+    expect(calls.some((item) => item.method === 'editMessageText')).toBe(true);
+
+    const result = browserLogins.lookup(pending.id, pending.secret);
+    expect(result.status).toBe('verified');
+    if (result.status !== 'verified') throw new Error('Expected verified login');
+    expect(result.identity).toMatchObject({
+      telegramId: 42n,
+      firstName: 'Alice',
+      languageCode: 'en',
+    });
+
+    const duplicate = await request(app)
+      .post(controller.webhook.path)
+      .send(callbackUpdate(12, `login_verify:${pending.id}`));
+    expect(duplicate.status).toBe(200);
+    const duplicateAnswer = calls.filter((item) => item.method === 'answerCallbackQuery').at(-1);
+    expect(duplicateAnswer?.body.text).toContain('already verified');
+  });
+
+  it('does not let another Telegram account claim a browser sign-in', async () => {
+    const browserLogins = new BrowserLoginStore();
+    const controller = makeController({}, browserLogins);
+    const app = express();
+    app.use(express.json());
+    app.post(controller.webhook.path, controller.webhook.handler);
+
+    const pending = browserLogins.create();
+    await request(app)
+      .post(controller.webhook.path)
+      .send(commandUpdate(20, `/start login_${pending.id}`));
+
+    const otherUser = await request(app)
+      .post(controller.webhook.path)
+      .send(callbackUpdate(21, `login_verify:${pending.id}`, 99));
+    expect(otherUser.status).toBe(200);
+
+    const answer = calls.filter((item) => item.method === 'answerCallbackQuery').at(-1);
+    expect(answer?.body.text).toContain('another Telegram account');
+    expect(browserLogins.lookup(pending.id, pending.secret).status).toBe('pending');
+
+    await request(app)
+      .post(controller.webhook.path)
+      .send(callbackUpdate(22, `login_verify:${pending.id}`));
+    expect(browserLogins.lookup(pending.id, pending.secret).status).toBe('verified');
+  });
+
+  it('reports expired or unknown browser sign-in links without a Verify button', async () => {
+    const clock = new MutableClock();
+    const browserLogins = new BrowserLoginStore({ ttlMs: 1_000, now: clock.now });
+    const controller = makeController({}, browserLogins);
+    const app = express();
+    app.use(express.json());
+    app.post(controller.webhook.path, controller.webhook.handler);
+
+    const unknown = await request(app)
+      .post(controller.webhook.path)
+      .send(commandUpdate(30, `/start login_${'a'.repeat(32)}`));
+    expect(unknown.status).toBe(200);
+    const unknownReply = calls.filter((item) => item.method === 'sendMessage').at(-1);
+    expect(unknownReply?.body.text).toContain('invalid or has expired');
+    expect(unknownReply?.body.reply_markup).toBeUndefined();
+
+    const pending = browserLogins.create();
+    clock.advance(2_000);
+    const expired = await request(app)
+      .post(controller.webhook.path)
+      .send(commandUpdate(31, `/start login_${pending.id}`));
+    expect(expired.status).toBe(200);
+    const expiredReply = calls.filter((item) => item.method === 'sendMessage').at(-1);
+    expect(expiredReply?.body.text).toContain('invalid or has expired');
   });
 });

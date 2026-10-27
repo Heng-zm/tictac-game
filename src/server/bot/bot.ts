@@ -1,6 +1,15 @@
 import type { RequestHandler } from 'express';
-import { Bot, GrammyError, InlineKeyboard, webhookCallback } from 'grammy';
+import {
+  Bot,
+  GrammyError,
+  InlineKeyboard,
+  webhookCallback,
+  type CommandContext,
+  type Context,
+} from 'grammy';
 import type { Logger } from 'pino';
+import { normalizeDisplayName } from '../../shared/schemas/payloads';
+import type { BrowserLoginIdentity, BrowserLoginStore } from '../auth/browser-login';
 import type { AppConfig } from '../config';
 import type { TurnNotificationDelivery } from '../services/turn-notifier';
 
@@ -23,16 +32,19 @@ export interface BotController {
 interface BotControllerDependencies {
   config: AppConfig;
   logger: Logger;
+  /** Shared with the HTTP app so browser sign-ins can be verified here. */
+  browserLogins: BrowserLoginStore;
   /** Optional Bot API root, used by integration tests and self-hosted Bot API servers. */
   apiRoot?: string;
 }
 
 /**
- * Builds the Telegram bot used for discovery and invitation links. The bot
- * token never leaves this module or the server environment.
+ * Builds the Telegram bot used for discovery, invitation links, and browser
+ * sign-in verification. The bot token never leaves this module or the server
+ * environment.
  */
 export function createBotController(deps: BotControllerDependencies): BotController | null {
-  const { config, logger } = deps;
+  const { config, logger, browserLogins } = deps;
   if (!config.telegramBotToken) return null;
 
   const log = logger.child({ component: 'telegram-bot' });
@@ -57,6 +69,12 @@ export function createBotController(deps: BotControllerDependencies): BotControl
 
   bot.command('start', async (context) => {
     const payload = context.match?.trim() ?? '';
+    const loginId = parseLoginPayload(payload);
+    if (loginId) {
+      await handleBrowserLoginStart(context, loginId);
+      return;
+    }
+
     const invitePayload = payload.startsWith('invite_') ? payload : null;
     const keyboard = new InlineKeyboard();
     const targetUrl = invitePayload ? appendQuery(miniAppUrl, 'startapp', invitePayload) : miniAppUrl;
@@ -78,6 +96,76 @@ export function createBotController(deps: BotControllerDependencies): BotControl
       reply_markup: keyboard,
       link_preview_options: { is_disabled: true },
     });
+  });
+
+  async function handleBrowserLoginStart(
+    context: CommandContext<Context>,
+    loginId: string,
+  ): Promise<void> {
+    const from = context.from;
+    if (!from || from.is_bot) {
+      await context.reply('This sign-in link can only be used by a Telegram account.');
+      return;
+    }
+
+    const result = browserLogins.claim(loginId, BigInt(from.id));
+    if (result.status === 'pending') {
+      const keyboard = new InlineKeyboard().text('Verify sign-in', `login_verify:${loginId}`);
+      await context.reply(
+        [
+          'Sign in to Tic Tac Toe',
+          '',
+          'Tap Verify to connect this Telegram account to the browser tab that requested sign-in.',
+          'Only continue if you started this yourself.',
+        ].join('\n'),
+        {
+          reply_markup: keyboard,
+          link_preview_options: { is_disabled: true },
+        },
+      );
+      return;
+    }
+    if (result.status === 'verified') {
+      await context.reply('This sign-in is already verified. Return to your browser tab.');
+      return;
+    }
+    if (result.status === 'claimed') {
+      await context.reply('This sign-in link is already connected to another Telegram account.');
+      return;
+    }
+    await context.reply('This sign-in link is invalid or has expired. Return to the game and request a new one.');
+  }
+
+  bot.callbackQuery(/^login_verify:[a-f0-9]{32}$/, async (context) => {
+    const data = context.callbackQuery.data ?? '';
+    const loginId = data.slice('login_verify:'.length);
+    const identity = identityFromTelegramUser(context.from);
+    const result = browserLogins.verify(loginId, identity.telegramId, identity);
+
+    if (result.status === 'verified') {
+      await answerCallback(context, 'Verified. Return to your browser tab.');
+      try {
+        await context.editMessageText('✅ Verified. Return to your browser tab and continue.', {
+          reply_markup: { inline_keyboard: [] },
+        });
+      } catch {
+        // The message may be too old to edit, but the sign-in is complete.
+      }
+      return;
+    }
+    if (result.status === 'already_verified') {
+      await answerCallback(context, 'This sign-in is already verified.');
+      return;
+    }
+    if (result.status === 'claimed_by_other') {
+      await answerCallback(context, 'This sign-in link belongs to another Telegram account.');
+      return;
+    }
+    await answerCallback(context, 'This sign-in link has expired. Request a new one from the browser.');
+  });
+
+  bot.on('callback_query', async (context) => {
+    await answerCallback(context, 'This button is no longer active.');
   });
 
   bot.command('play', async (context) => {
@@ -249,4 +337,35 @@ function appendQuery(baseUrl: string, key: string, value: string): string {
   const url = new URL(baseUrl);
   url.searchParams.set(key, value);
   return url.toString();
+}
+
+const LOGIN_PAYLOAD_PATTERN = /^login_([a-f0-9]{32})$/;
+
+function parseLoginPayload(payload: string): string | null {
+  return LOGIN_PAYLOAD_PATTERN.exec(payload)?.[1] ?? null;
+}
+
+function identityFromTelegramUser(user: {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  language_code?: string;
+}): BrowserLoginIdentity {
+  const lastName = normalizeDisplayName(user.last_name ?? '', '');
+  return {
+    telegramId: BigInt(user.id),
+    firstName: normalizeDisplayName(user.first_name, 'Player'),
+    lastName: lastName || null,
+    username: user.username ?? null,
+    languageCode: user.language_code ?? null,
+  };
+}
+
+async function answerCallback(context: Context, text: string): Promise<void> {
+  try {
+    await context.answerCallbackQuery({ text });
+  } catch {
+    // Callback queries expire quickly; the browser poll still completes.
+  }
 }

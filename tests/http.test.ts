@@ -3,8 +3,9 @@ import request from 'supertest';
 import type { Express } from 'express';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { createApp } from '../src/server/app';
+import { BrowserLoginStore } from '../src/server/auth/browser-login';
 import { createSessionToken } from '../src/server/auth/session';
-import { buildTelegramInitDataForTest, buildTelegramLoginDataForTest } from '../src/server/auth/telegram';
+import { buildTelegramInitDataForTest } from '../src/server/auth/telegram';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import type { UserProfile } from '../src/shared/game-types';
 import { MatchService } from '../src/server/services/match-service';
@@ -47,6 +48,7 @@ describe('HTTP API', () => {
     overrides: Partial<AppConfig> = {},
     turnNotificationTester?: TurnNotificationTestService,
     disableRateLimits = true,
+    browserLogins = new BrowserLoginStore(),
   ): TestApp {
     const config = makeTestConfig(overrides);
     const repo = new MemoryGameRepository();
@@ -62,6 +64,7 @@ describe('HTTP API', () => {
       repository: repo,
       logger: makeTestLogger(),
       matchService: service,
+      browserLogins,
       ...(turnNotificationTester ? { turnNotificationTester } : {}),
       disableRateLimits,
     });
@@ -172,7 +175,7 @@ describe('HTTP API', () => {
     expect(response.headers['content-security-policy']).toContain('frame-ancestors');
     expect(response.headers['content-security-policy']).toContain('https://web.telegram.org');
     expect(response.headers['content-security-policy']).toContain('frame-src');
-    expect(response.headers['content-security-policy']).toContain('https://oauth.telegram.org');
+    expect(response.headers['content-security-policy']).not.toContain('oauth.telegram.org');
     // HSTS is only sent in production; localhost development must not pin HTTPS.
     expect(response.headers['strict-transport-security']).toBeUndefined();
   });
@@ -521,116 +524,139 @@ describe('HTTP API', () => {
     expect(response.body.error.code).toBe('TELEGRAM_AUTH_UNAVAILABLE');
   });
 
-  it('signs browser users in through the Telegram Login Widget redirect', async () => {
-    const telegramApp = buildTestApp({
-      telegramBotToken: TEST_BOT_TOKEN,
-      authMaxAgeSeconds: 300,
-      devAuthEnabled: false,
-    });
+  it('signs browser users in after the Telegram bot verifies the request', async () => {
+    const browserLogins = new BrowserLoginStore();
+    const telegramApp = buildTestApp(
+      {
+        telegramBotToken: TEST_BOT_TOKEN,
+        telegramBotUsername: 'test_bot',
+        authMaxAgeSeconds: 300,
+        devAuthEnabled: false,
+      },
+      undefined,
+      true,
+      browserLogins,
+    );
     try {
-      const authDate = Math.floor(Date.now() / 1000) - 10;
-      const loginState = 'a'.repeat(32);
-      const data = buildTelegramLoginDataForTest(
-        TEST_BOT_TOKEN,
-        { id: 5550101, first_name: 'Browser Alice', username: 'browser_alice' },
-        authDate,
-      );
       const agent = request.agent(telegramApp.app);
-      const response = await agent
-        .get('/api/auth/telegram/widget/callback')
-        .set('Cookie', `ttt_login_state=${loginState}`)
-        .query({ ...data, state: loginState, next: '/#/profile' });
+      const start = await agent.post('/api/auth/telegram/bot/start');
+      expect(start.status).toBe(200);
+      expect(start.body.url).toMatch(/^https:\/\/t\.me\/test_bot\?start=login_[a-f0-9]{32}$/);
+      expect(start.body.expiresAt).toEqual(expect.any(String));
 
-      expect(response.status).toBe(303);
-      expect(response.headers.location).toBe('/#/profile');
-      const setCookies = response.headers['set-cookie'] as unknown as string[] | undefined;
-      expect(setCookies?.some((cookie) => cookie.includes('ttt_session='))).toBe(true);
+      const pendingCookies = start.headers['set-cookie'] as unknown as string[];
+      const pendingCookie = pendingCookies.find((cookie) => cookie.startsWith('ttt_login_pending='));
+      expect(pendingCookie).toContain('HttpOnly');
+      expect(pendingCookie).toContain('Path=/api/auth/telegram/bot');
+
+      const loginId = new URL(start.body.url as string).searchParams.get('start')!.slice('login_'.length);
+      const pending = await agent.get('/api/auth/telegram/bot/status');
+      expect(pending.status).toBe(200);
+      expect(pending.body).toMatchObject({ status: 'pending', url: start.body.url });
+      expect(pending.headers['set-cookie']).toBeUndefined();
+
+      const identity = {
+        telegramId: 5550101n,
+        firstName: 'Browser Alice',
+        lastName: null,
+        username: 'browser_alice',
+        languageCode: 'en',
+      };
+      await telegramApp.repo.upsertTelegramUser({
+        telegramId: identity.telegramId,
+        firstName: 'Browser Alice',
+        photoUrl: 'https://example.com/alice.png',
+      });
+      expect(browserLogins.claim(loginId, identity.telegramId).status).toBe('pending');
+      expect(browserLogins.verify(loginId, identity.telegramId, identity).status).toBe('verified');
+
+      const verified = await agent.get('/api/auth/telegram/bot/status');
+      expect(verified.status).toBe(200);
+      expect(verified.body).toMatchObject({
+        status: 'verified',
+        user: {
+          firstName: 'Browser Alice',
+          username: 'browser_alice',
+          photoUrl: 'https://example.com/alice.png',
+        },
+      });
+      const verifiedCookies = verified.headers['set-cookie'] as unknown as string[];
+      expect(verifiedCookies.some((cookie) => cookie.includes('ttt_session='))).toBe(true);
+      expect(verifiedCookies.some((cookie) => cookie.includes('ttt_login_pending=;'))).toBe(true);
 
       const me = await agent.get('/api/me');
       expect(me.status).toBe(200);
-      expect(me.body.user).toMatchObject({
-        firstName: 'Browser Alice',
-        username: 'browser_alice',
-      });
+      expect(me.body.user).toMatchObject({ firstName: 'Browser Alice', username: 'browser_alice' });
+
+      // The pending request is one-time: the original browser cookie cannot
+      // be replayed after the session has been issued.
+      const replayCookie = pendingCookie!.split(';')[0]!;
+      const replay = await request(telegramApp.app)
+        .get('/api/auth/telegram/bot/status')
+        .set('Cookie', replayCookie);
+      expect(replay.status).toBe(200);
+      expect(replay.body.status).toBe('invalid');
+      const replayCookies = replay.headers['set-cookie'] as unknown as string[];
+      expect(replayCookies.some((cookie) => cookie.includes('ttt_session='))).toBe(false);
     } finally {
       telegramApp.service.shutdown();
     }
   });
 
-  it('rejects invalid widget logins and unsafe return paths', async () => {
-    const telegramApp = buildTestApp({
-      telegramBotToken: TEST_BOT_TOKEN,
-      authMaxAgeSeconds: 300,
-      devAuthEnabled: false,
+  it('rejects tampered and expired browser sign-in requests', async () => {
+    const clock = { current: new Date('2026-10-21T12:00:00.000Z') };
+    const browserLogins = new BrowserLoginStore({
+      ttlMs: 1_000,
+      now: () => new Date(clock.current),
     });
+    const telegramApp = buildTestApp(
+      {
+        telegramBotToken: TEST_BOT_TOKEN,
+        telegramBotUsername: 'test_bot',
+        devAuthEnabled: false,
+      },
+      undefined,
+      true,
+      browserLogins,
+    );
     try {
-      const authDate = Math.floor(Date.now() / 1000) - 10;
-      const loginState = 'a'.repeat(32);
-      const stateCookie = `ttt_login_state=${loginState}`;
-      const data = buildTelegramLoginDataForTest(
-        TEST_BOT_TOKEN,
-        { id: 5550102, first_name: 'Browser Bob', username: 'browser_bob' },
-        authDate,
-      );
+      const start = await request(telegramApp.app).post('/api/auth/telegram/bot/start');
+      expect(start.status).toBe(200);
+      const loginId = new URL(start.body.url as string).searchParams.get('start')!.slice('login_'.length);
 
       const tampered = await request(telegramApp.app)
-        .get('/api/auth/telegram/widget/callback')
-        .set('Cookie', stateCookie)
-        .query({ ...data, state: loginState, first_name: 'Mallory' });
-      expect(tampered.status).toBe(303);
-      expect(tampered.headers.location).toBe('/?telegram_login=invalid');
-      const tamperedCookies = tampered.headers['set-cookie'] as unknown as string[] | undefined;
-      expect(tamperedCookies?.some((cookie) => cookie.includes('ttt_session='))).toBe(false);
+        .get('/api/auth/telegram/bot/status')
+        .set('Cookie', `ttt_login_pending=${loginId}.${'A'.repeat(43)}`);
+      expect(tampered.status).toBe(200);
+      expect(tampered.body.status).toBe('invalid');
+      expect(
+        (tampered.headers['set-cookie'] as unknown as string[]).some((cookie) =>
+          cookie.includes('ttt_session='),
+        ),
+      ).toBe(false);
 
+      clock.current = new Date(clock.current.getTime() + 2_000);
+      const startCookie = (start.headers['set-cookie'] as unknown as string[])[0]!;
       const expired = await request(telegramApp.app)
-        .get('/api/auth/telegram/widget/callback')
-        .set('Cookie', stateCookie)
-        .query({
-          ...buildTelegramLoginDataForTest(
-            TEST_BOT_TOKEN,
-            { id: 5550103, first_name: 'Old Browser Alice' },
-            Math.floor(Date.now() / 1000) - 600,
-          ),
-          state: loginState,
-        });
-      expect(expired.status).toBe(303);
-      expect(expired.headers.location).toBe('/?telegram_login=expired');
-
-      const wrongState = await request(telegramApp.app)
-        .get('/api/auth/telegram/widget/callback')
-        .set('Cookie', `ttt_login_state=${'b'.repeat(32)}`)
-        .query({ ...data, state: loginState });
-      expect(wrongState.status).toBe(303);
-      expect(wrongState.headers.location).toBe('/?telegram_login=invalid');
-
-      const missingState = await request(telegramApp.app)
-        .get('/api/auth/telegram/widget/callback')
-        .query(data);
-      expect(missingState.status).toBe(303);
-      expect(missingState.headers.location).toBe('/?telegram_login=invalid');
-
-      const unsafe = await request(telegramApp.app)
-        .get('/api/auth/telegram/widget/callback')
-        .set('Cookie', stateCookie)
-        .query({ ...data, state: loginState, next: 'https://evil.example/phish' });
-      expect(unsafe.status).toBe(303);
-      expect(unsafe.headers.location).toBe('/');
-
-      const protocolRelative = await request(telegramApp.app)
-        .get('/api/auth/telegram/widget/callback')
-        .set('Cookie', stateCookie)
-        .query({ ...data, state: loginState, next: '//evil.example/phish' });
-      expect(protocolRelative.status).toBe(303);
-      expect(protocolRelative.headers.location).toBe('/');
+        .get('/api/auth/telegram/bot/status')
+        .set('Cookie', startCookie.split(';')[0]!);
+      expect(expired.status).toBe(200);
+      expect(expired.body.status).toBe('expired');
     } finally {
       telegramApp.service.shutdown();
     }
+  });
 
-    const unavailable = await request(current.app)
-      .get('/api/auth/telegram/widget/callback')
-      .query({ id: 1, first_name: 'No Bot', auth_date: 1, hash: 'a'.repeat(64) });
-    expect(unavailable.status).toBe(303);
-    expect(unavailable.headers.location).toBe('/?telegram_login=unavailable');
+  it('reports browser sign-in as unavailable without bot configuration', async () => {
+    const start = await request(current.app).post('/api/auth/telegram/bot/start');
+    expect(start.status).toBe(503);
+    expect(start.body.error.code).toBe('TELEGRAM_AUTH_UNAVAILABLE');
+
+    const status = await request(current.app)
+      .get('/api/auth/telegram/bot/status')
+      .set('Cookie', `ttt_login_pending=${'a'.repeat(32)}.${'A'.repeat(43)}`);
+    expect(status.status).toBe(503);
+    expect(status.body.error.code).toBe('TELEGRAM_AUTH_UNAVAILABLE');
   });
 
   it('rejects cross-origin mutations but allows configured origins', async () => {

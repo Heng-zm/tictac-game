@@ -96,7 +96,7 @@ export class PrismaGameRepository implements GameRepository {
           firstName: profile.firstName,
           lastName: profile.lastName ?? null,
           username: profile.username ?? null,
-          photoUrl: profile.photoUrl ?? null,
+          ...(profile.photoUrl !== undefined ? { photoUrl: profile.photoUrl } : {}),
           ...(profile.languageCode !== undefined ? { languageCode: profile.languageCode } : {}),
           lastSeenAt: now,
         },

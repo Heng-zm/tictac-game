@@ -1,16 +1,34 @@
+import type { UserProfile } from './game-types';
+
 /**
- * Shared constants for the Telegram Login Widget redirect. The state cookie
- * binds a signed widget response to the browser that started the sign-in,
- * which prevents another site from replaying a valid callback into a
- * victim's browser (login CSRF).
+ * Browser sign-in is delegated to the Telegram bot:
+ *
+ * 1. The browser asks the server for a short-lived, one-time sign-in request.
+ * 2. The server redirects the user to `https://t.me/<bot>?start=login_<id>`.
+ * 3. The bot replies with a Verify button. Tapping it binds the Telegram
+ *    account to the pending request.
+ * 4. The browser polls the status endpoint and receives the normal session
+ *    cookie once the request is verified.
+ *
+ * This avoids the Telegram Login Widget, which requires an exact BotFather
+ * `/setdomain` match and is unavailable on many deployments.
  */
-export const TELEGRAM_LOGIN_STATE_COOKIE = 'ttt_login_state';
-export const TELEGRAM_LOGIN_STATE_PATH = '/api/auth/telegram/widget';
-export const TELEGRAM_LOGIN_STATE_MAX_AGE_SECONDS = 600;
+export const TELEGRAM_LOGIN_START_PREFIX = 'login_';
 
-/** A signed Login Widget response is accepted for at most ten minutes. */
-export const TELEGRAM_LOGIN_MAX_AGE_SECONDS = 600;
-
-export function isTelegramLoginState(value: unknown): value is string {
-  return typeof value === 'string' && /^[a-f0-9]{32}$/.test(value);
+export interface TelegramLoginStartResponse {
+  /** Deep link that opens the bot with the pending sign-in payload. */
+  url: string;
+  /** ISO timestamp after which the pending sign-in can no longer be verified. */
+  expiresAt: string;
 }
+
+export type TelegramLoginStatusResponse =
+  | {
+      status: 'pending';
+      /** Reopened by the browser if the user closed the Telegram tab. */
+      url: string;
+      expiresAt: string;
+    }
+  | { status: 'verified'; user: UserProfile }
+  | { status: 'expired' }
+  | { status: 'invalid' };

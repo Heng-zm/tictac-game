@@ -9,17 +9,24 @@ import express, {
 } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
-import { randomUUID, timingSafeEqual } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import pinoHttp from 'pino-http';
 import { ZodError } from 'zod';
 import {
   verifyTelegramInitData,
-  verifyTelegramLoginData,
   TelegramAuthError,
   type VerifiedTelegramUser,
 } from './auth/telegram';
+import {
+  BROWSER_LOGIN_COOKIE,
+  BROWSER_LOGIN_COOKIE_PATH,
+  BROWSER_LOGIN_TTL_SECONDS,
+  BrowserLoginStore,
+  parseBrowserLoginCookie,
+  serializeBrowserLoginCookie,
+} from './auth/browser-login';
 import { deriveDevProfile } from './auth/dev';
 import {
   clearSessionCookie,
@@ -33,10 +40,9 @@ import { getAllowedOrigins } from './config';
 import type { AppConfigPayload, ApiErrorPayload, LeaderboardResponse } from '../shared/game-types';
 import { PROTOCOL_VERSION } from '../shared/game-types';
 import {
-  TELEGRAM_LOGIN_MAX_AGE_SECONDS,
-  TELEGRAM_LOGIN_STATE_COOKIE,
-  TELEGRAM_LOGIN_STATE_PATH,
-  isTelegramLoginState,
+  TELEGRAM_LOGIN_START_PREFIX,
+  type TelegramLoginStartResponse,
+  type TelegramLoginStatusResponse,
 } from '../shared/telegram-login';
 import {
   devAuthSchema,
@@ -59,20 +65,27 @@ export interface BotWebhookMount {
   handler: RequestHandler;
 }
 
+type TelegramLoginProfile = Pick<
+  VerifiedTelegramUser,
+  'telegramId' | 'firstName' | 'lastName' | 'username' | 'languageCode'
+> & { photoUrl?: string | null };
+
 async function completeTelegramLogin(
   repository: GameRepository,
   config: AppConfig,
   res: Response,
-  verified: VerifiedTelegramUser,
+  verified: TelegramLoginProfile,
 ): Promise<UserEntity> {
   const user = await repository.upsertTelegramUser({
     telegramId: verified.telegramId,
     firstName: verified.firstName,
     lastName: verified.lastName,
     username: verified.username,
-    photoUrl: verified.photoUrl,
-    // Some Telegram flows (notably the browser Login Widget) do not provide a
-    // language code. Leave the stored Mini App locale untouched in that case.
+    // Browser sign-in does not receive a profile photo from bot updates, so an
+    // absent value preserves whatever the Mini App already stored.
+    ...(verified.photoUrl !== undefined ? { photoUrl: verified.photoUrl } : {}),
+    // Browser flows may not provide a language code. Leave the stored Mini App
+    // locale untouched in that case.
     ...(verified.languageCode ? { languageCode: verified.languageCode } : {}),
   });
   const token = createSessionToken(user, config.sessionSecret);
@@ -85,6 +98,7 @@ export interface AppDependencies {
   repository: GameRepository;
   logger: Logger;
   matchService: MatchService;
+  browserLogins?: BrowserLoginStore;
   botWebhook?: BotWebhookMount;
   turnNotificationTester?: TurnNotificationTestService;
   beforeMatchAction?: (userId: string) => void;
@@ -93,6 +107,7 @@ export interface AppDependencies {
 
 export function createApp(deps: AppDependencies): express.Express {
   const { config, repository, logger, matchService } = deps;
+  const browserLogins = deps.browserLogins ?? new BrowserLoginStore();
   const app = express();
   if (config.trustProxy > 0) app.set('trust proxy', config.trustProxy);
 
@@ -150,7 +165,7 @@ export function createApp(deps: AppDependencies): express.Express {
           objectSrc: ["'none'"],
           baseUri: ["'self'"],
           formAction: ["'self'"],
-          frameSrc: ["'self'", 'https://oauth.telegram.org', 'https://telegram.org'],
+          frameSrc: ["'self'"],
           frameAncestors: ["'self'", 'https://web.telegram.org', 'https://*.telegram.org'],
           ...(config.isProduction ? { upgradeInsecureRequests: [] } : { upgradeInsecureRequests: null }),
         },
@@ -228,6 +243,30 @@ export function createApp(deps: AppDependencies): express.Express {
         legacyHeaders: false,
         handler: (req, res) => {
           res.status(429).json(errorBody(req, 'AUTH_RATE_LIMITED', 'Too many authentication attempts'));
+        },
+      });
+
+  const browserLoginStartLimiter = deps.disableRateLimits
+    ? passthrough
+    : rateLimit({
+        windowMs: 60_000,
+        limit: 30,
+        standardHeaders: 'draft-7',
+        legacyHeaders: false,
+        handler: (req, res) => {
+          res.status(429).json(errorBody(req, 'AUTH_RATE_LIMITED', 'Too many sign-in attempts'));
+        },
+      });
+
+  const browserLoginStatusLimiter = deps.disableRateLimits
+    ? passthrough
+    : rateLimit({
+        windowMs: 60_000,
+        limit: 600,
+        standardHeaders: 'draft-7',
+        legacyHeaders: false,
+        handler: (req, res) => {
+          res.status(429).json(errorBody(req, 'RATE_LIMITED', 'Too many sign-in status checks'));
         },
       });
 
@@ -316,48 +355,71 @@ export function createApp(deps: AppDependencies): express.Express {
     res.status(200).json({ user: toUserProfile(user) });
   });
 
-  // The Login Widget redirects the browser here with the signed user fields in
-  // the query string. Redirecting back keeps the widget integration free of
-  // eval-based callbacks, so the CSP can stay strict.
-  app.get('/api/auth/telegram/widget/callback', authLimiter, async (req, res) => {
-    const stateCookie = req.cookies?.[TELEGRAM_LOGIN_STATE_COOKIE] as string | undefined;
-    res.clearCookie(TELEGRAM_LOGIN_STATE_COOKIE, {
-      path: TELEGRAM_LOGIN_STATE_PATH,
-      secure: config.isProduction,
-      sameSite: config.isProduction ? 'none' : 'lax',
-    });
+  const browserLoginConfigured = Boolean(config.telegramBotToken && config.telegramBotUsername);
+  const createBrowserLoginUrl = (id: string): string => {
+    const username = (config.telegramBotUsername ?? '').replace(/^@/, '');
+    return `https://t.me/${username}?start=${TELEGRAM_LOGIN_START_PREFIX}${id}`;
+  };
 
-    if (!config.telegramBotToken) {
-      res.redirect(303, '/?telegram_login=unavailable');
+  app.post('/api/auth/telegram/bot/start', browserLoginStartLimiter, (_req, res) => {
+    if (!browserLoginConfigured) {
+      throw new AppError(503, 'TELEGRAM_AUTH_UNAVAILABLE', 'Telegram authentication is not configured');
+    }
+    const pending = browserLogins.create();
+    res.cookie(BROWSER_LOGIN_COOKIE, serializeBrowserLoginCookie(pending), {
+      httpOnly: true,
+      secure: config.isProduction,
+      sameSite: 'lax',
+      path: BROWSER_LOGIN_COOKIE_PATH,
+      maxAge: BROWSER_LOGIN_TTL_SECONDS * 1000,
+    });
+    const payload: TelegramLoginStartResponse = {
+      url: createBrowserLoginUrl(pending.id),
+      expiresAt: new Date(pending.expiresAt).toISOString(),
+    };
+    res.setHeader('cache-control', 'no-store');
+    res.json(payload);
+  });
+
+  // The browser polls this endpoint while the user taps Verify in Telegram.
+  // The HttpOnly pending cookie binds the result to the requesting browser.
+  app.get('/api/auth/telegram/bot/status', browserLoginStatusLimiter, async (req, res) => {
+    res.setHeader('cache-control', 'no-store');
+    if (!browserLoginConfigured) {
+      throw new AppError(503, 'TELEGRAM_AUTH_UNAVAILABLE', 'Telegram authentication is not configured');
+    }
+
+    const cookie = parseBrowserLoginCookie(req.cookies?.[BROWSER_LOGIN_COOKIE]);
+    if (!cookie) {
+      res.json({ status: 'invalid' } satisfies TelegramLoginStatusResponse);
       return;
     }
-    if (!isValidTelegramLoginState(req.query.state, stateCookie)) {
-      logger.warn({ event: 'telegram_widget_state_rejected' }, 'Telegram widget state check failed');
-      res.redirect(303, '/?telegram_login=invalid');
+
+    const result = browserLogins.lookup(cookie.id, cookie.secret);
+    if (result.status === 'pending') {
+      res.json({
+        status: 'pending',
+        url: createBrowserLoginUrl(cookie.id),
+        expiresAt: new Date(result.expiresAt).toISOString(),
+      } satisfies TelegramLoginStatusResponse);
       return;
     }
-    try {
-      // `next` and `state` are our own redirect hints, not Telegram-signed fields.
-      const loginData = { ...req.query };
-      delete loginData.next;
-      delete loginData.state;
-      const verified = verifyTelegramLoginData(loginData, config.telegramBotToken, {
-        maxAgeSeconds: Math.min(config.authMaxAgeSeconds, TELEGRAM_LOGIN_MAX_AGE_SECONDS),
-      });
-      await completeTelegramLogin(repository, config, res, verified);
-      res.redirect(303, safeReturnPath(req.query.next));
-    } catch (error) {
-      if (error instanceof TelegramAuthError) {
-        logger.warn(
-          { event: 'telegram_widget_login_rejected', code: error.code },
-          'Telegram widget login rejected',
-        );
-        const reason = error.code === 'LOGIN_DATA_EXPIRED' ? 'expired' : 'invalid';
-        res.redirect(303, `/?telegram_login=${reason}`);
-        return;
-      }
-      throw error;
+
+    if (result.status === 'verified') {
+      // Only consume the request after the session has been issued, so a
+      // transient database error leaves the pending sign-in retryable.
+      const user = await completeTelegramLogin(repository, config, res, result.identity);
+      browserLogins.remove(cookie.id);
+      clearBrowserLoginCookie(res, config.isProduction);
+      res.json({
+        status: 'verified',
+        user: toUserProfile(user),
+      } satisfies TelegramLoginStatusResponse);
+      return;
     }
+
+    clearBrowserLoginCookie(res, config.isProduction);
+    res.json({ status: result.status } satisfies TelegramLoginStatusResponse);
   });
 
   app.post('/api/auth/dev', authLimiter, async (req, res) => {
@@ -539,26 +601,16 @@ export function createApp(deps: AppDependencies): express.Express {
 function sanitizeUrl(url: string): string {
   return url
     .replace(/invite_[A-Za-z0-9_-]{43}/g, 'invite_[redacted]')
-    .replace(/\/api\/invites\/[^/?#]+/g, '/api/invites/[redacted]')
-    .replace(/\/api\/auth\/telegram\/widget\/callback\/?\?[^#]*/gi, '/api/auth/telegram/widget/callback?[redacted]');
+    .replace(/\/api\/invites\/[^/?#]+/g, '/api/invites/[redacted]');
 }
 
-function safeReturnPath(value: unknown): string {
-  if (typeof value !== 'string' || value.length === 0 || value.length > 1024) return '/';
-  if (!value.startsWith('/') || value.startsWith('//')) return '/';
-  if (value.includes('\\')) return '/';
-  const hasControlCharacter = [...value].some((character) => {
-    const code = character.codePointAt(0) ?? 0;
-    return code < 0x20 || code === 0x7f;
+function clearBrowserLoginCookie(res: Response, secure: boolean): void {
+  res.clearCookie(BROWSER_LOGIN_COOKIE, {
+    httpOnly: true,
+    secure,
+    sameSite: 'lax',
+    path: BROWSER_LOGIN_COOKIE_PATH,
   });
-  return hasControlCharacter ? '/' : value;
-}
-
-function isValidTelegramLoginState(queryState: unknown, cookieState: unknown): boolean {
-  if (!isTelegramLoginState(queryState) || !isTelegramLoginState(cookieState)) return false;
-  const queryBuffer = Buffer.from(queryState, 'hex');
-  const cookieBuffer = Buffer.from(cookieState, 'hex');
-  return queryBuffer.length === cookieBuffer.length && timingSafeEqual(queryBuffer, cookieBuffer);
 }
 
 function errorBody(req: Request, code: string, message: string) {

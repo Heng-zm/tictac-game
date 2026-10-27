@@ -129,6 +129,28 @@ describe('MemoryGameRepository', () => {
     expect(cleared.languageCode).toBeNull();
   });
 
+  it('preserves the profile photo when an update omits it and clears it when null', async () => {
+    const withPhoto = await repo.upsertTelegramUser({
+      telegramId: 1001n,
+      firstName: 'Alice',
+      photoUrl: 'https://example.com/a.png',
+    });
+    expect(withPhoto.photoUrl).toBe('https://example.com/a.png');
+
+    const withoutPhoto = await repo.upsertTelegramUser({
+      telegramId: 1001n,
+      firstName: 'Alice Updated',
+    });
+    expect(withoutPhoto.photoUrl).toBe('https://example.com/a.png');
+
+    const cleared = await repo.upsertTelegramUser({
+      telegramId: 1001n,
+      firstName: 'Alice Updated',
+      photoUrl: null,
+    });
+    expect(cleared.photoUrl).toBeNull();
+  });
+
   it('reserves both players and rejects duplicate reservations', async () => {
     const matchId = await createRandomMatch();
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBe(matchId);

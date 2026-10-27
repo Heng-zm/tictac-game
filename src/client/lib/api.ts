@@ -6,6 +6,10 @@ import type {
   LeaderboardResponse,
   UserProfile,
 } from '../../shared/game-types';
+import type {
+  TelegramLoginStartResponse,
+  TelegramLoginStatusResponse,
+} from '../../shared/telegram-login';
 
 export class ApiRequestError extends Error {
   constructor(
@@ -77,6 +81,16 @@ export function authenticateDev(deviceKey: string, displayName?: string): Promis
     method: 'POST',
     body: JSON.stringify({ deviceKey, ...(displayName ? { displayName } : {}) }),
   });
+}
+
+/** Creates a one-time browser sign-in request and returns the bot deep link. */
+export function startTelegramBotLogin(): Promise<TelegramLoginStartResponse> {
+  return request<TelegramLoginStartResponse>('/api/auth/telegram/bot/start', { method: 'POST' });
+}
+
+/** Polls until the bot's Verify button has been tapped. */
+export function fetchTelegramBotLoginStatus(): Promise<TelegramLoginStatusResponse> {
+  return request<TelegramLoginStatusResponse>('/api/auth/telegram/bot/status', { method: 'GET' });
 }
 
 export interface PreferencesPatch {
