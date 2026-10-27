@@ -6,22 +6,20 @@ export function useCountdown(target: string | null | undefined, nowMs?: number):
     const time = new Date(target).getTime();
     return Number.isFinite(time) ? time : null;
   }, [target]);
-  const [remaining, setRemaining] = useState<number | null>(() =>
-    targetMs === null ? null : Math.max(0, targetMs - (nowMs ?? Date.now())),
-  );
+  const [tick, setTick] = useState(() => nowMs ?? Date.now());
 
   useEffect(() => {
-    if (targetMs === null) {
-      setRemaining(null);
-      return;
-    }
-    const update = () => setRemaining(Math.max(0, targetMs - Date.now()));
-    update();
-    const timer = window.setInterval(update, 500);
+    if (targetMs === null) return;
+    setTick(nowMs ?? Date.now());
+    const timer = window.setInterval(() => setTick(Date.now()), 500);
     return () => window.clearInterval(timer);
-  }, [targetMs]);
+  }, [nowMs, targetMs]);
 
-  return remaining;
+  if (targetMs === null) return null;
+  // Derive the value from the current target instead of keeping a separate
+  // remaining state. That way replacing an expired target with a fresh one
+  // never reports zero for a render.
+  return Math.max(0, targetMs - (nowMs ?? tick));
 }
 
 export function formatDuration(ms: number | null): string {

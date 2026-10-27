@@ -131,6 +131,15 @@ export function inviteLinkStorageKey(invitationId: string): string {
   return `${INVITE_LINK_PREFIX}${invitationId}`;
 }
 
+function removeStoredInviteLink(invitationId: string | null | undefined): void {
+  if (!invitationId) return;
+  try {
+    window.localStorage.removeItem(inviteLinkStorageKey(invitationId));
+  } catch {
+    // Private browsing may reject local storage.
+  }
+}
+
 export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClient {
   const [phase, setPhase] = useState<BootPhase>('booting');
   const [bootError, setBootError] = useState<string | null>(null);
@@ -161,6 +170,33 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   profileRef.current = profile;
   const matchRef = useRef(match);
   matchRef.current = match;
+  const createdInviteRef = useRef<CreatedInvitation | null>(null);
+  const pendingInviteRef = useRef<PendingInvitation | null>(null);
+
+  const applyCreatedInvite = useCallback((invite: CreatedInvitation | null) => {
+    createdInviteRef.current = invite;
+    setCreatedInvite(invite);
+  }, []);
+
+  const applyPendingInvite = useCallback((invite: PendingInvitation | null) => {
+    pendingInviteRef.current = invite;
+    setPendingInvite(invite);
+  }, []);
+
+  const clearCreatedInvite = useCallback(() => {
+    removeStoredInviteLink(createdInviteRef.current?.id);
+    applyCreatedInvite(null);
+  }, [applyCreatedInvite]);
+
+  const clearPendingInvite = useCallback(() => {
+    removeStoredInviteLink(pendingInviteRef.current?.id);
+    applyPendingInvite(null);
+  }, [applyPendingInvite]);
+
+  const clearInviteState = useCallback(() => {
+    clearCreatedInvite();
+    clearPendingInvite();
+  }, [clearCreatedInvite, clearPendingInvite]);
 
   const dismissToast = useCallback((id: string) => {
     const timer = toastTimers.current.get(id);
@@ -356,7 +392,10 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       if (!active) return;
       setMatch(found);
       setQueue(null);
-      setPendingInvite(null);
+      // A found match means the invitation has been accepted. Forget the old
+      // one-time link and expiry so they cannot reappear on the next invite.
+      clearPendingInvite();
+      clearCreatedInvite();
       setLastMove(null);
       setLastRejection(null);
       setOpponentGraceEndsAt(null);
@@ -445,12 +484,12 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     socket.on('invite:waiting', ({ invitation }) => {
       if (!active) return;
-      setPendingInvite(invitation);
+      applyPendingInvite(invitation);
     });
 
     socket.on('invite:pending', ({ invitation }) => {
       if (!active) return;
-      setPendingInvite(invitation);
+      applyPendingInvite(invitation);
     });
 
     socket.on('rematch:status', (event) => {
@@ -525,7 +564,18 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       socketRef.current = null;
       setConnection('idle');
     };
-  }, [phase, profile?.id, pushToast]);
+  }, [applyPendingInvite, clearCreatedInvite, clearPendingInvite, phase, profile?.id, pushToast]);
+
+  useEffect(() => {
+    if (!match || match.status === 'WAITING') return;
+    const linkedInvite =
+      pendingInvite?.matchId === match.id || createdInvite?.matchId === match.id;
+    if (!linkedInvite) return;
+    // The invite was accepted without a match:found event in this session,
+    // such as when reconnecting into an existing friend game. Once that match
+    // is active or finished, the one-time link and its expiry are spent.
+    clearInviteState();
+  }, [clearInviteState, createdInvite, match, pendingInvite]);
 
   const requireSocket = useCallback((): GameClientSocket => {
     const socket = socketRef.current;
@@ -577,8 +627,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     // The server leaves matchmaking as part of creating an invitation and does
     // not emit a queue status event, so clear the local queue as well.
     setQueue(null);
-    setCreatedInvite(result.invitation);
-    setPendingInvite({
+    applyCreatedInvite(result.invitation);
+    applyPendingInvite({
       id: result.invitation.id,
       matchId: result.invitation.matchId,
       expiresAt: result.invitation.expiresAt,
@@ -590,21 +640,15 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       // Private browsing may reject local storage.
     }
     return result.invitation;
-  }, [requireSocket]);
+  }, [applyCreatedInvite, applyPendingInvite, requireSocket]);
 
   const cancelInvite = useCallback(async (invitationId: string): Promise<void> => {
     const socket = requireSocket();
     await request<{ cancelled: true }>((ack) => {
       socket.emit('invite:cancel', { invitationId }, ack);
     });
-    setPendingInvite(null);
-    setCreatedInvite(null);
-    try {
-      window.localStorage.removeItem(inviteLinkStorageKey(invitationId));
-    } catch {
-      // Ignore storage errors.
-    }
-  }, [requireSocket]);
+    clearInviteState();
+  }, [clearInviteState, requireSocket]);
 
   const acceptInvite = useCallback(
     async (token: string): Promise<{ matchId: string }> => {
@@ -614,10 +658,10 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       });
       // Accepting also removes the player from matchmaking on the server.
       setQueue(null);
-      setPendingInvite(null);
+      clearInviteState();
       return result;
     },
-    [requireSocket],
+    [clearInviteState, requireSocket],
   );
 
   const joinMatch = useCallback(async (matchId: string): Promise<PublicMatchState> => {
@@ -774,9 +818,6 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     }
     retryBoot();
   }, [retryBoot]);
-
-  const clearPendingInvite = useCallback(() => setPendingInvite(null), []);
-  const clearCreatedInvite = useCallback(() => setCreatedInvite(null), []);
 
   return {
     phase,

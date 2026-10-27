@@ -28,12 +28,23 @@ export function InviteWaitingScreen({
   client: GameClient;
   navigate: (path: string) => void;
 }) {
-  const { pendingInvite, createdInvite, profile, connection, match, createInvite } = client;
+  const {
+    pendingInvite,
+    createdInvite,
+    profile,
+    connection,
+    match,
+    createInvite,
+    cancelInvite,
+    clearPendingInvite,
+    clearCreatedInvite,
+  } = client;
   const [creating, setCreating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const attempted = useRef(false);
+  const staleInviteId = useRef<string | null>(null);
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
   const activeFriendMatch = activeMatch?.mode === 'FRIEND';
 
@@ -41,14 +52,29 @@ export function InviteWaitingScreen({
     ? readStoredLink(pendingInvite.id)
     : null;
   const rawDeepLink = createdInvite?.deepLink ?? storedLink;
-  const deepLink = rawDeepLink
-    ? alignInviteLinkToCurrentOrigin(rawDeepLink, client.config, window.location.origin)
-    : null;
   const expiresAt = pendingInvite?.expiresAt ?? createdInvite?.expiresAt ?? null;
   const remaining = useCountdown(expiresAt);
   const expired = remaining !== null && remaining <= 0;
+  // An invitation is spent as soon as its match is no longer waiting. That can
+  // happen without a match:found event in this session, for example when the
+  // app reconnects into a game the friend already accepted.
+  const inviteMatch =
+    match &&
+    ((pendingInvite !== null && pendingInvite.matchId === match.id) ||
+      (createdInvite !== null && createdInvite.matchId === match.id))
+      ? match
+      : null;
+  const inviteUsed = inviteMatch !== null && inviteMatch.status !== 'WAITING';
+  const hasInvite = Boolean(pendingInvite || createdInvite);
+  const inviteId = pendingInvite?.id ?? createdInvite?.id ?? null;
+  const staleInvite = hasInvite && (expired || inviteUsed);
+  const deepLink =
+    rawDeepLink && !staleInvite
+      ? alignInviteLinkToCurrentOrigin(rawDeepLink, client.config, window.location.origin)
+      : null;
 
   const create = useCallback(async () => {
+    attempted.current = true;
     setCreating(true);
     setError(null);
     try {
@@ -61,15 +87,45 @@ export function InviteWaitingScreen({
   }, [createInvite]);
 
   useEffect(() => {
+    if (!staleInvite) return;
+    // Drop the old one-time link before requesting a new one so neither its
+    // URL nor its expiry can appear on the next invitation. Keep the id so a
+    // clock-skewed, still-pending invitation can be cancelled first.
+    staleInviteId.current = inviteUsed ? null : inviteId;
+    attempted.current = false;
+    clearPendingInvite();
+    clearCreatedInvite();
+    setError(null);
+  }, [clearCreatedInvite, clearPendingInvite, inviteId, inviteUsed, staleInvite]);
+
+  useEffect(() => {
     if (attempted.current) return;
-    if (activeMatch || pendingInvite || createdInvite) {
+    if (staleInvite) return;
+    if (pendingInvite || createdInvite) {
+      // An invitation is already on screen. Do not replace it if the player
+      // cancels; only the stale-invite cleanup schedules a renewal.
       attempted.current = true;
       return;
     }
+    if (activeMatch) return;
     if (connection !== 'online') return;
     attempted.current = true;
-    void create();
-  }, [activeMatch, connection, create, createdInvite, pendingInvite]);
+    setCreating(true);
+    const previousInviteId = staleInviteId.current;
+    staleInviteId.current = null;
+    void (async () => {
+      if (previousInviteId) {
+        // The client may consider an invitation expired slightly before the
+        // server does. Close it so it cannot block the replacement.
+        try {
+          await cancelInvite(previousInviteId);
+        } catch {
+          // The server already expired, consumed, or removed it.
+        }
+      }
+      await create();
+    })();
+  }, [activeMatch, cancelInvite, connection, create, createdInvite, pendingInvite, staleInvite]);
 
   async function copyLink(): Promise<void> {
     if (!deepLink) return;
@@ -100,7 +156,9 @@ export function InviteWaitingScreen({
   }
 
   async function cancel(): Promise<void> {
-    if (!pendingInvite) {
+    if (!pendingInvite || expired || inviteUsed) {
+      clearPendingInvite();
+      clearCreatedInvite();
       navigate('/');
       return;
     }
@@ -116,17 +174,26 @@ export function InviteWaitingScreen({
   }
 
   async function regenerate(): Promise<void> {
+    attempted.current = true;
     setCreating(true);
     setError(null);
     try {
-      if (pendingInvite) {
+      if (pendingInvite && !expired && !inviteUsed) {
         try {
           await client.cancelInvite(pendingInvite.id);
-        } catch {
-          // An expired invitation may already be closed on the server.
+        } catch (caught) {
+          const code =
+            caught instanceof ApiRequestError || caught instanceof SocketRequestError ? caught.code : null;
+          // These mean the invitation was already closed on the server, so a
+          // fresh one is safe. Anything else should not silently drop a link
+          // that could still be waiting for a friend.
+          if (code !== 'INVITATION_USED' && code !== 'INVITATION_INVALID') throw caught;
         }
       }
-      await client.createInvite();
+      // Never let the replacement inherit the previous link or expiry date.
+      clearPendingInvite();
+      clearCreatedInvite();
+      await createInvite();
     } catch (caught) {
       setError(errorMessage(caught));
     } finally {
@@ -169,15 +236,21 @@ export function InviteWaitingScreen({
               </span>
             </div>
             <h2 className="mt-4 text-xl font-bold tracking-tight text-ink">
-              {creating ? 'Creating your link…' : expired ? 'This invitation expired' : 'Your board is waiting'}
+              {staleInvite
+                ? 'Refreshing your invitation…'
+                : creating
+                  ? 'Creating your link…'
+                  : 'Your board is waiting'}
             </h2>
             <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">
-              {expired
-                ? 'Generate a fresh link and send it to your friend.'
-                : 'Send the link below. As soon as your friend opens it, the game starts automatically.'}
+              {staleInvite || creating
+                ? 'The previous link is closed. Preparing a new private invitation for your friend.'
+                : expired
+                  ? 'Generate a fresh link and send it to your friend.'
+                  : 'Send the link below. As soon as your friend opens it, the game starts automatically.'}
             </p>
 
-            {pendingInvite ? (
+            {pendingInvite && !staleInvite ? (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 <Pill tone={expired ? 'danger' : 'accent'}>
                   <Clock3 className="h-3 w-3" aria-hidden />
@@ -191,7 +264,7 @@ export function InviteWaitingScreen({
             ) : null}
           </div>
 
-          {creating && !deepLink ? (
+          {(creating || staleInvite) && !deepLink ? (
             <div className="mt-6 flex flex-col items-center gap-2">
               <Spinner />
               <p className="text-xs text-muted">Preparing a secure invitation token…</p>
@@ -220,7 +293,7 @@ export function InviteWaitingScreen({
                 </Button>
               </div>
             </div>
-          ) : !expired && !creating ? (
+          ) : !expired && !staleInvite && !creating ? (
             <div className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-left">
               <p className="text-xs font-semibold text-ink">Link unavailable on this device</p>
               <p className="mt-1 text-[11px] leading-relaxed text-muted">
@@ -255,18 +328,13 @@ export function InviteWaitingScreen({
               loading={cancelling}
               onClick={() => void cancel()}
             >
-              {pendingInvite ? 'Cancel invitation' : 'Back home'}
+              {pendingInvite && !staleInvite ? 'Cancel invitation' : 'Back home'}
             </Button>
           </div>
         </Card>
       )}
 
       <div className="mt-3 space-y-2">
-        {expired ? (
-          <Button variant="secondary" icon={RefreshCw} loading={creating} className="w-full" onClick={() => void regenerate()}>
-            Generate a new link
-          </Button>
-        ) : null}
         <Card className="flex items-start gap-2.5 p-3.5">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
           <p className="text-[11px] leading-relaxed text-muted">

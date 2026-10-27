@@ -1,8 +1,10 @@
 // @vitest-environment jsdom
+import { useState } from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameClient } from '../src/client/hooks/use-game-client';
 import type {
+  CreatedInvitation,
   MatchMode,
   PublicMatchState,
   PublicPlayer,
@@ -35,12 +37,12 @@ function player(side: 'X' | 'O', displayName: string, isAi = false): PublicPlaye
   };
 }
 
-function matchFor(mode: MatchMode): PublicMatchState {
+function matchFor(mode: MatchMode, status: PublicMatchState['status'] = 'ACTIVE'): PublicMatchState {
   return {
     protocol: 1,
     id: '123e4567-e89b-42d3-a456-426614174000',
     mode,
-    status: 'ACTIVE',
+    status,
     board: {},
     currentTurn: 'X',
     turnNumber: 1,
@@ -141,6 +143,70 @@ function makeClient(overrides: Partial<GameClient> = {}): GameClient {
 
 afterEach(cleanup);
 
+const freshInvitation: CreatedInvitation = {
+  id: 'fresh-invite',
+  deepLink: 'https://t.me/test_bot?start=invite_fresh',
+  expiresAt: '2099-01-01T00:00:00.000Z',
+  matchId: 'fresh-match',
+};
+
+/**
+ * Mirrors how useGameClient owns invite state: clearing a stale invite causes
+ * a render without it, which lets the screen request a replacement link.
+ */
+function renderInviteScenario(overrides: Partial<GameClient> = {}) {
+  const navigate = vi.fn();
+  const clearPendingInvite = vi.fn();
+  const clearCreatedInvite = vi.fn();
+  const createInvite = vi.fn(async () => freshInvitation);
+  const base = makeClient({
+    ...overrides,
+    clearPendingInvite,
+    clearCreatedInvite,
+    createInvite,
+  });
+
+  function Harness() {
+    const [pendingInvite, setPendingInvite] = useState(base.pendingInvite);
+    const [createdInvite, setCreatedInvite] = useState(base.createdInvite);
+
+    const client: GameClient = {
+      ...base,
+      pendingInvite,
+      createdInvite,
+      clearPendingInvite: () => {
+        clearPendingInvite();
+        setPendingInvite(null);
+      },
+      clearCreatedInvite: () => {
+        clearCreatedInvite();
+        setCreatedInvite(null);
+      },
+      cancelInvite: async (invitationId) => {
+        await base.cancelInvite(invitationId);
+        setPendingInvite(null);
+        setCreatedInvite(null);
+      },
+      createInvite: async () => {
+        const invitation = await createInvite();
+        setCreatedInvite(invitation);
+        setPendingInvite({
+          id: invitation.id,
+          matchId: invitation.matchId,
+          expiresAt: invitation.expiresAt,
+          status: 'PENDING',
+        });
+        return invitation;
+      },
+    };
+
+    return <InviteWaitingScreen client={client} navigate={navigate} />;
+  }
+
+  render(<Harness />);
+  return { clearPendingInvite, clearCreatedInvite, createInvite, navigate };
+}
+
 describe('invite flow UI', () => {
   it('leaves matchmaking before opening the invite screen', () => {
     const cancelQueue = vi.fn(async () => undefined);
@@ -174,6 +240,73 @@ describe('invite flow UI', () => {
 
     expect(screen.getByText('Your friend already joined')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Open game' })).toBeTruthy();
+  });
+
+  it('creates a fresh invitation when the old link has expired', async () => {
+    const staleLink = 'https://t.me/test_bot?start=invite_stale';
+    const expiry = '2020-01-01T00:00:00.000Z';
+    const { clearPendingInvite, clearCreatedInvite, createInvite } = renderInviteScenario({
+      pendingInvite: { id: 'stale-invite', matchId: 'stale-match', expiresAt: expiry, status: 'PENDING' },
+      createdInvite: { id: 'stale-invite', deepLink: staleLink, expiresAt: expiry, matchId: 'stale-match' },
+    });
+
+    await waitFor(() => expect(createInvite).toHaveBeenCalledOnce());
+    expect(clearPendingInvite).toHaveBeenCalled();
+    expect(clearCreatedInvite).toHaveBeenCalled();
+    expect(await screen.findByText(freshInvitation.deepLink)).toBeTruthy();
+    expect(screen.queryByText(staleLink)).toBeNull();
+  });
+
+  it('creates a fresh invitation after a friend game has finished', async () => {
+    const finished = matchFor('FRIEND', 'FINISHED');
+    const staleLink = 'https://t.me/test_bot?start=invite_used';
+    const expiresAt = '2099-01-01T00:00:00.000Z';
+    const { clearPendingInvite, clearCreatedInvite, createInvite } = renderInviteScenario({
+      match: finished,
+      pendingInvite: { id: 'used-invite', matchId: finished.id, expiresAt, status: 'PENDING' },
+      createdInvite: { id: 'used-invite', deepLink: staleLink, expiresAt, matchId: finished.id },
+    });
+
+    await waitFor(() => expect(createInvite).toHaveBeenCalledOnce());
+    expect(clearPendingInvite).toHaveBeenCalled();
+    expect(clearCreatedInvite).toHaveBeenCalled();
+    expect(await screen.findByText(freshInvitation.deepLink)).toBeTruthy();
+    expect(screen.queryByText(staleLink)).toBeNull();
+  });
+
+  it('drops a used link without creating another while the friend game is active', async () => {
+    const active = matchFor('FRIEND');
+    const { clearPendingInvite, clearCreatedInvite, createInvite } = renderInviteScenario({
+      match: active,
+      pendingInvite: {
+        id: 'used-invite',
+        matchId: active.id,
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        status: 'PENDING',
+      },
+    });
+
+    await waitFor(() => expect(clearPendingInvite).toHaveBeenCalled());
+    expect(clearCreatedInvite).toHaveBeenCalled();
+    expect(createInvite).not.toHaveBeenCalled();
+    expect(screen.getByText('Your friend already joined')).toBeTruthy();
+  });
+
+  it('does not replace an invitation the player cancels', async () => {
+    const expiresAt = '2099-01-01T00:00:00.000Z';
+    const { createInvite, navigate } = renderInviteScenario({
+      pendingInvite: { id: 'pending-invite', matchId: 'pending-match', expiresAt, status: 'PENDING' },
+      createdInvite: {
+        id: 'pending-invite',
+        deepLink: 'https://t.me/test_bot?start=invite_pending',
+        expiresAt,
+        matchId: 'pending-match',
+      },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel invitation' }));
+    await waitFor(() => expect(navigate).toHaveBeenCalledWith('/'));
+    expect(createInvite).not.toHaveBeenCalled();
   });
 });
 
