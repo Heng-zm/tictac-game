@@ -6,6 +6,7 @@ import {
   Clock3,
   Info,
   Link2,
+  Loader2,
   Play,
   ShieldCheck,
   Sparkles,
@@ -17,12 +18,12 @@ import type { AiDifficulty, Side } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
 import { modeLabel, opponentFor } from '../lib/game';
-import { cn } from '../lib/cn';
-import { Avatar, Button, Card, Logo, Pill, SegmentedControl } from '../components/ui';
+import { Avatar } from '../components/ui';
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { formatDuration } from '../hooks/use-time';
 import { HowToPlayModal, HOW_TO_PLAY_STORAGE_KEY } from '../components/HowToPlayModal';
+import './HomeScreen.css';
 
 const DIFFICULTIES: Array<{ value: AiDifficulty; label: string }> = [
   { value: 'EASY', label: 'Easy' },
@@ -65,6 +66,7 @@ export function HomeScreen({
   const activeOpponent = activeMatch ? opponentFor(activeMatch) : null;
   const yourTurn = activeMatch ? activeMatch.currentTurn === activeMatch.youSide : false;
   const busy = Boolean(activeMatch || pendingInvite);
+  const busyLabel = pendingInvite && !activeMatch ? 'invitation' : 'game';
 
   async function startBot(): Promise<void> {
     setStartingBot(true);
@@ -79,31 +81,34 @@ export function HomeScreen({
   }
 
   return (
-    <Page withNav width="wide">
-      <header className="flex items-center justify-between gap-4 pb-5 pt-1 sm:pb-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <Logo />
-          <div className="min-w-0">
-            <h1 className="truncate text-lg font-bold leading-tight tracking-tight text-ink">Tic Tac Toe</h1>
-            <p className="truncate text-xs text-muted">Hey, {profile.firstName}</p>
+    <Page withNav width="wide" className="home-screen">
+      <header className="home-header">
+        <div className="home-brand">
+          <span className="home-brand-mark" aria-hidden="true">
+            <img src="/icons/icon-192.png" alt="" width={44} height={44} />
+          </span>
+          <div className="home-brand-copy">
+            <h1 className="home-brand-title">Tic Tac Toe</h1>
+            <p className="home-brand-subtitle">Hey, {profile.firstName}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="home-header-actions">
           <button
             type="button"
+            className="home-guide-button"
             onClick={() => setGuideOpen(true)}
-            className="flex items-center gap-1.5 rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink shadow-2xs transition hover:bg-elevated hover:border-accent/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             aria-label={isKhmer ? 'របៀបលេង (How to play)' : 'How to play'}
             title={isKhmer ? 'របៀបលេង (How to play)' : 'How to play'}
           >
-            <BookOpen className="h-3.5 w-3.5 text-accent" aria-hidden />
+            <BookOpen aria-hidden="true" />
             <span>{isKhmer ? 'របៀបលេង' : 'How to play'}</span>
           </button>
           <button
             type="button"
+            className="home-profile-button"
             onClick={() => navigate('/profile')}
-            className="shrink-0 rounded-full ring-1 ring-line transition hover:ring-accent/40 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             aria-label="Open profile"
+            title="Open profile"
           >
             <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="md" />
           </button>
@@ -111,244 +116,238 @@ export function HomeScreen({
       </header>
 
       {config?.demoMode ? (
-        <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-300">
-          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden />
+        <div className="home-demo" role="note">
+          <Info aria-hidden="true" />
           <p>
-            <span className="font-semibold">Demo mode.</span> Guest login is on. Data resets when the server restarts.
+            <strong>Demo mode.</strong> Guest login is on. Data resets when the server restarts.
           </p>
         </div>
       ) : null}
 
       {activeMatch || pendingInvite ? (
-        <div className="mb-3 space-y-2.5">
+        <div className="home-current">
           {activeMatch ? (
             <button
               type="button"
+              className="home-current-card home-current-card--live"
               onClick={() => navigate(`/game/${activeMatch.id}`)}
-              className="group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl border border-accent/30 bg-gradient-to-r from-accent/15 via-accent/5 to-surface p-3.5 text-left transition-all duration-200 hover:border-accent/50 hover:shadow-glow active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              <div className="pointer-events-none absolute -right-6 -top-6 h-20 w-20 rounded-full bg-accent/10 blur-xl" aria-hidden />
-              <span className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm">
-                <Play className="h-4 w-4" fill="currentColor" aria-hidden />
-                {yourTurn ? (
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-success ring-2 ring-surface" />
-                  </span>
-                ) : null}
+              <span className="home-current-icon">
+                <Play aria-hidden="true" fill="currentColor" />
+                {yourTurn ? <span className="home-live-dot" aria-hidden="true" /> : null}
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
-                  <span className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+              <span className="home-current-copy">
+                <span className="home-current-kicker">
+                  <span className="home-pulse-dot" aria-hidden="true" />
                   Game in progress
                 </span>
-                <span className="mt-0.5 flex min-w-0 items-baseline gap-1.5">
-                  <span className="shrink-0 text-sm font-semibold text-ink">{modeLabel(activeMatch.mode)}</span>
-                  <span className="truncate text-[11px] text-muted">
-                    vs {activeOpponent?.displayName ?? 'Opponent'}
-                  </span>
+                <span className="home-current-title">
+                  {modeLabel(activeMatch.mode)}{' '}
+                  <span className="home-current-versus">vs {activeOpponent?.displayName ?? 'Opponent'}</span>
                 </span>
               </span>
-              <span
-                className={cn(
-                  'shrink-0 rounded-full px-2.5 py-1 text-xs font-semibold shadow-xs',
-                  yourTurn
-                    ? 'border border-success/30 bg-success/15 text-success'
-                    : 'border border-accent/30 bg-accent/10 text-accent',
-                )}
-              >
+              <span className="home-current-badge" data-tone={yourTurn ? 'turn' : 'resume'}>
                 {yourTurn ? 'Your turn' : 'Resume'}
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
+              <ChevronRight className="home-current-arrow" aria-hidden="true" />
             </button>
           ) : null}
 
           {pendingInvite ? (
             <button
               type="button"
+              className="home-current-card"
               onClick={() => navigate('/invite/waiting')}
-              className="group flex w-full items-center gap-3 rounded-2xl border border-line bg-surface p-3.5 text-left transition-all duration-200 hover:bg-elevated hover:border-accent/30 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
             >
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted">
-                <Clock3 className="h-4 w-4" aria-hidden />
+              <span className="home-current-icon">
+                <Clock3 aria-hidden="true" />
               </span>
-              <span className="min-w-0 flex-1">
-                <span className="block text-[10px] font-semibold uppercase tracking-[0.1em] text-muted">
-                  Invitation pending
-                </span>
-                <span className="mt-0.5 block truncate text-sm font-semibold text-ink">Waiting for a friend</span>
+              <span className="home-current-copy">
+                <span className="home-current-kicker">Invitation pending</span>
+                <span className="home-current-title">Waiting for a friend</span>
               </span>
-              <ChevronRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5" aria-hidden />
+              <ChevronRight className="home-current-arrow" aria-hidden="true" />
             </button>
           ) : null}
         </div>
       ) : null}
 
-      {stats.gamesPlayed === 0 ? (
-        <button
-          type="button"
-          onClick={() => setGuideOpen(true)}
-          className="group relative mb-3.5 flex w-full items-center justify-between gap-3 overflow-hidden rounded-2xl border border-accent/25 bg-gradient-to-r from-accent/10 via-accent/5 to-surface p-3.5 text-left transition-all duration-200 hover:border-accent/45 hover:shadow-glow/30 active:scale-[0.99] shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
-        >
-          <span className="flex items-center gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-accent text-accent-ink shadow-sm group-hover:scale-105 transition-transform duration-200">
-              <BookOpen className="h-5 w-5" aria-hidden />
-            </span>
-            <span className="min-w-0">
-              <span className="flex items-center gap-2">
-                <span className="text-xs font-bold text-ink">
-                  {isKhmer ? 'របៀបលេងសម្រាប់អ្នកថ្មី' : 'New here? Learn how to play'}
-                </span>
-                <span className="rounded-full bg-accent/20 px-1.5 py-0.5 text-[9px] font-bold text-accent uppercase tracking-wide">
-                  {isKhmer ? 'ជំហានៗ' : 'Step by step'}
-                </span>
-              </span>
-              <span className="mt-0.5 block text-[11px] text-muted">
-                {isKhmer
-                  ? 'ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី'
-                  : 'Learn the five-in-a-row rules and winning tactics in one minute.'}
-              </span>
-            </span>
-          </span>
-          <ChevronRight className="h-4 w-4 shrink-0 text-accent transition group-hover:translate-x-0.5" aria-hidden />
-        </button>
-      ) : null}
-
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:items-start lg:gap-5">
-        <Card className="relative overflow-hidden p-4 order-3 lg:order-none lg:col-start-2 lg:row-start-1">
-          <div className="pointer-events-none absolute -right-12 -top-12 h-32 w-32 rounded-full bg-accent/5 blur-2xl" aria-hidden />
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Ladder rating</p>
-              <p className="mt-1 text-3xl font-bold tabular-nums tracking-tight text-ink">{stats.rating}</p>
-            </div>
-            <div className="flex flex-col items-end gap-1.5">
+      <section className="home-scoreboard" aria-labelledby="home-rating-label">
+        <div className="home-scoreboard-top">
+          <div className="home-score-main">
+            <p className="home-kicker" id="home-rating-label">
+              Ladder rating
+            </p>
+            <div className="home-score-value-row">
+              <strong className="home-score-value">{stats.rating}</strong>
               <RankBadge rating={stats.rating} />
-              <span className="text-[10px] font-medium text-muted">{stats.ratingGames} rated</span>
             </div>
+            <p className="home-score-footnote">{stats.ratingGames} rated</p>
           </div>
-          <RankProgress rating={stats.rating} className="mt-3" />
-          <div className="mt-4 grid grid-cols-3 divide-x divide-line border-t border-line/70 pt-3 text-center">
-            <div>
-              <p className="text-sm font-bold tabular-nums text-ink">{stats.gamesPlayed}</p>
-              <p className="mt-0.5 text-[10px] font-medium text-muted">Games</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold tabular-nums text-ink">{stats.wins}</p>
-              <p className="mt-0.5 text-[10px] font-medium text-muted">Wins</p>
-            </div>
-            <div>
-              <p className="text-sm font-bold tabular-nums text-ink">{stats.winRate}%</p>
-              <p className="mt-0.5 text-[10px] font-medium text-muted">Win rate</p>
-            </div>
+          <div className="home-score-progress">
+            <RankProgress rating={stats.rating} />
           </div>
-        </Card>
-
-      <section className="order-1 lg:order-none lg:col-start-1 lg:row-start-1">
-        <h2 className="mb-2.5 text-sm font-semibold text-ink">Play</h2>
-        <div className="grid grid-cols-2 gap-2.5">
-          <ModeTile
-            icon={Swords}
-            title="Quick match"
-            description="Random player · rated"
-            tone="accent"
-            onClick={() => navigate('/search')}
-            disabled={busy}
-          />
-          <ModeTile
-            icon={Link2}
-            title="Invite a friend"
-            description="Private link · rated"
-            tone="emerald"
-            onClick={() => navigate('/invite/waiting')}
-            disabled={busy}
-          />
         </div>
-        {busy ? (
-          <p className="mt-2.5 px-1 text-[11px] leading-relaxed text-muted">
-            Finish or leave your current {pendingInvite && !activeMatch ? 'invitation' : 'game'} to start another.
-          </p>
-        ) : null}
+        <div className="home-score-stats">
+          <div className="home-score-stat">
+            <span className="home-score-stat-value">{stats.gamesPlayed}</span>
+            <span className="home-score-stat-label">Games</span>
+          </div>
+          <div className="home-score-stat">
+            <span className="home-score-stat-value">{stats.wins}</span>
+            <span className="home-score-stat-label">Wins</span>
+          </div>
+          <div className="home-score-stat">
+            <span className="home-score-stat-value">{stats.winRate}%</span>
+            <span className="home-score-stat-label">Win rate</span>
+          </div>
+        </div>
       </section>
 
-      <Card className="relative overflow-hidden p-4 order-2 lg:order-none lg:col-start-1 lg:row-start-2">
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-elevated text-ink">
-            <Bot className="h-5 w-5" aria-hidden />
-          </span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2">
-              <h2 className="text-sm font-semibold text-ink">Practice vs bot</h2>
-              <Pill>Unrated</Pill>
-            </div>
-            <p className="mt-0.5 text-[11px] text-muted">Choose a difficulty and take the first move.</p>
+      <div className="home-grid">
+        <section className="home-play" aria-labelledby="home-play-title">
+          <div className="home-section-heading">
+            <h2 id="home-play-title">Play</h2>
+            <span>Choose a board</span>
           </div>
-        </div>
-
-        <div className="mt-4">
-          <p className="mb-1.5 text-[11px] font-medium text-muted">Difficulty</p>
-          <SegmentedControl
-            value={difficulty}
-            options={DIFFICULTIES}
-            onChange={setDifficulty}
-            ariaLabel="Bot difficulty"
-          />
-        </div>
-
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2.5">
-          <div>
-            <p className="mb-1.5 text-[11px] font-medium text-muted">Play as</p>
-            <SegmentedControl
-              value={side}
-              options={[
-                { value: 'X', label: 'X' },
-                { value: 'O', label: 'O' },
-              ]}
-              onChange={setSide}
-              ariaLabel="Your side against the bot"
-              className="grid-cols-2"
+          <div className="home-modes">
+            <ModeTile
+              icon={Swords}
+              index="01"
+              title="Quick match"
+              description="Random player · rated"
+              tone="accent"
+              onClick={() => navigate('/search')}
+              disabled={busy}
+            />
+            <ModeTile
+              icon={Link2}
+              index="02"
+              title="Invite a friend"
+              description="Private link · rated"
+              tone="emerald"
+              onClick={() => navigate('/invite/waiting')}
+              disabled={busy}
             />
           </div>
-          <Button
-            icon={Play}
-            loading={startingBot}
-            disabled={busy}
-            onClick={() => void startBot()}
-          >
-            Start
-          </Button>
-        </div>
-      </Card>
+          {busy ? (
+            <p className="home-hint">
+              Finish or leave your current {busyLabel} to start another.
+            </p>
+          ) : null}
+        </section>
 
-      <Card className="p-4 order-4 lg:order-none lg:col-start-2 lg:row-start-2">
-        <div className="flex items-center gap-2.5">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-success/25 bg-success/10 text-success">
-            <ShieldCheck className="h-4 w-4" aria-hidden />
-          </span>
-          <div>
-            <h2 className="text-sm font-semibold text-ink">Fair play</h2>
-            <p className="text-[11px] text-muted">Every move is checked by the server.</p>
-          </div>
-        </div>
-        <div className="mt-3 space-y-2.5 border-t border-line/70 pt-3 text-[11px] leading-relaxed text-muted">
-          <p className="flex items-start gap-2">
-            <Timer className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-            <span>
-              {(config?.turnTimeoutMs ?? 0) > 0
-                ? `Each turn gets ${formatDuration(config?.turnTimeoutMs ?? 0)} on the clock.`
-                : 'Turn timers are off, so take your time.'}
+        <section className="home-card home-practice" aria-labelledby="home-practice-title">
+          <header className="home-card-head">
+            <span className="home-card-icon">
+              <Bot aria-hidden="true" />
             </span>
-          </p>
-          <p className="flex items-start gap-2">
-            <Clock3 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-            <span>Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)}.</span>
-          </p>
-          <p className="flex items-start gap-2">
-            <Sparkles className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
-            <span>Line up five in a row to win. Four hundred moves without a winner is a draw.</span>
-          </p>
-        </div>
-      </Card>
+            <div className="home-card-copy">
+              <div className="home-card-title-row">
+                <h2 id="home-practice-title">Practice vs bot</h2>
+                <span className="home-chip">Unrated</span>
+              </div>
+              <p>Choose a difficulty and take the first move.</p>
+            </div>
+          </header>
+
+          <div className="home-field">
+            <span className="home-field-label">Difficulty</span>
+            <ChoiceGroup
+              value={difficulty}
+              options={DIFFICULTIES}
+              onChange={setDifficulty}
+              ariaLabel="Bot difficulty"
+            />
+          </div>
+
+          <div className="home-practice-footer">
+            <div className="home-field home-field--side">
+              <span className="home-field-label">Play as</span>
+              <ChoiceGroup
+                value={side}
+                options={[
+                  { value: 'X', label: 'X', mark: 'x' },
+                  { value: 'O', label: 'O', mark: 'o' },
+                ]}
+                onChange={setSide}
+                ariaLabel="Your side against the bot"
+              />
+            </div>
+            <button
+              type="button"
+              className="home-start"
+              disabled={busy || startingBot}
+              aria-busy={startingBot || undefined}
+              onClick={() => void startBot()}
+            >
+              {startingBot ? (
+                <Loader2 className="home-spin" aria-hidden="true" />
+              ) : (
+                <Play aria-hidden="true" fill="currentColor" />
+              )}
+              {startingBot ? 'Starting…' : 'Start game'}
+            </button>
+          </div>
+        </section>
+
+        <aside className="home-aside">
+          {stats.gamesPlayed === 0 ? (
+            <button
+              type="button"
+              className="home-first-game"
+              onClick={() => setGuideOpen(true)}
+            >
+              <span className="home-first-game-icon">
+                <BookOpen aria-hidden="true" />
+              </span>
+              <span className="home-first-game-copy">
+                <span className="home-first-game-kicker">
+                  {isKhmer ? 'ជំហានៗ' : 'Step by step'}
+                </span>
+                <span className="home-first-game-title">
+                  {isKhmer ? 'របៀបលេងសម្រាប់អ្នកថ្មី' : 'New here? Learn how to play'}
+                </span>
+                <span className="home-first-game-desc">
+                  {isKhmer
+                    ? 'ស្វែងយល់ពីច្បាប់ ៥ គ្រាប់ឈ្នះ និងតិចនិកលេងក្នុង ១ នាទី'
+                    : 'Learn the five-in-a-row rules and winning tactics in one minute.'}
+                </span>
+              </span>
+              <ChevronRight className="home-first-game-arrow" aria-hidden="true" />
+            </button>
+          ) : null}
+
+          <section className="home-card home-fairplay" aria-labelledby="home-fairplay-title">
+            <header className="home-card-head">
+              <span className="home-card-icon home-card-icon--success">
+                <ShieldCheck aria-hidden="true" />
+              </span>
+              <div className="home-card-copy">
+                <h2 id="home-fairplay-title">Fair play</h2>
+                <p>Every move is checked by the server.</p>
+              </div>
+            </header>
+            <ul className="home-fairplay-list">
+              <li>
+                <Timer aria-hidden="true" />
+                <span>
+                  {(config?.turnTimeoutMs ?? 0) > 0
+                    ? `Each turn gets ${formatDuration(config?.turnTimeoutMs ?? 0)} on the clock.`
+                    : 'Turn timers are off, so take your time.'}
+                </span>
+              </li>
+              <li>
+                <Clock3 aria-hidden="true" />
+                <span>Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)}.</span>
+              </li>
+              <li>
+                <Sparkles aria-hidden="true" />
+                <span>Line up five in a row to win. Four hundred moves without a winner is a draw.</span>
+              </li>
+            </ul>
+          </section>
+        </aside>
       </div>
 
       <HowToPlayModal
@@ -362,6 +361,7 @@ export function HomeScreen({
 
 function ModeTile({
   icon: Icon,
+  index,
   title,
   description,
   tone = 'neutral',
@@ -369,6 +369,7 @@ function ModeTile({
   disabled,
 }: {
   icon: LucideIcon;
+  index: string;
   title: string;
   description: string;
   tone?: 'accent' | 'emerald' | 'neutral';
@@ -380,37 +381,60 @@ function ModeTile({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className={cn(
-        'group relative flex min-h-[136px] flex-col items-start overflow-hidden rounded-2xl border p-4 text-left transition-all duration-200 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-45 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
-        tone === 'accent'
-          ? 'border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-surface hover:border-accent/50 hover:shadow-glow'
-          : tone === 'emerald'
-            ? 'border-emerald-500/25 bg-gradient-to-br from-emerald-500/12 via-emerald-500/5 to-surface hover:border-emerald-500/40 hover:shadow-sm'
-            : 'border-line bg-surface hover:border-accent/20 hover:bg-elevated/60',
-      )}
+      className={`home-mode home-mode--${tone}`}
     >
-      <div className="flex w-full items-center justify-between">
-        <span
-          className={cn(
-            'flex h-10 w-10 items-center justify-center rounded-xl transition-transform duration-200 group-hover:scale-105',
-            tone === 'accent'
-              ? 'bg-accent text-accent-ink shadow-sm shadow-accent/25'
-              : tone === 'emerald'
-                ? 'border border-emerald-500/25 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
-                : 'bg-elevated text-ink',
-          )}
-        >
-          <Icon className="h-5 w-5" aria-hidden />
+      <span className="home-mode-top">
+        <span className="home-mode-icon">
+          <Icon aria-hidden="true" />
         </span>
-        <ChevronRight
-          className="h-4 w-4 text-muted/40 transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-ink/70"
-          aria-hidden
-        />
-      </div>
-      <span className="mt-auto pt-4">
-        <span className="block text-sm font-semibold text-ink">{title}</span>
-        <span className="mt-0.5 block text-[11px] leading-relaxed text-muted">{description}</span>
+        <span className="home-mode-index" aria-hidden="true">
+          {index}
+        </span>
       </span>
+      <span className="home-mode-copy">
+        <span className="home-mode-title">{title}</span>
+        <span className="home-mode-desc">{description}</span>
+      </span>
+      <ChevronRight className="home-mode-arrow" aria-hidden="true" />
     </button>
+  );
+}
+
+function ChoiceGroup<T extends string>({
+  value,
+  options,
+  onChange,
+  ariaLabel,
+}: {
+  value: T;
+  options: Array<{ value: T; label: string; mark?: 'x' | 'o' }>;
+  onChange: (value: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div
+      role="radiogroup"
+      aria-label={ariaLabel}
+      className="home-choices"
+      style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
+    >
+      {options.map((option) => (
+        <button
+          key={option.value}
+          type="button"
+          role="radio"
+          aria-checked={value === option.value}
+          data-active={value === option.value ? 'true' : undefined}
+          className="home-choice"
+          onClick={() => onChange(option.value)}
+        >
+          {option.mark ? (
+            <span className={`home-choice-mark home-choice-mark--${option.mark}`}>{option.label}</span>
+          ) : (
+            option.label
+          )}
+        </button>
+      ))}
+    </div>
   );
 }
