@@ -83,6 +83,11 @@ const config: Config = {
           '0%': { opacity: '0', transform: 'translateY(24px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
+        'countdown-tick': {
+          '0%': { opacity: '0.15', transform: 'scale(1.35)' },
+          '55%': { opacity: '1', transform: 'scale(0.96)' },
+          '100%': { opacity: '1', transform: 'scale(1)' },
+        },
       },
       animation: {
         'fade-in': 'fade-in 160ms ease-out both',
@@ -94,6 +99,7 @@ const config: Config = {
         'thinking-dot': 'thinking-dot 1.2s ease-in-out infinite',
         'reaction-pop': 'reaction-pop 240ms cubic-bezier(0.2, 0.8, 0.3, 1) both',
         'sheet-up': 'sheet-up 220ms cubic-bezier(0.2, 0.8, 0.3, 1) both',
+        'countdown-tick': 'countdown-tick 450ms cubic-bezier(0.2, 0.8, 0.3, 1) both',
       },
     },
   },

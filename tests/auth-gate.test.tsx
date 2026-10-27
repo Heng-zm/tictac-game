@@ -24,6 +24,7 @@ const CONFIG: AppConfigPayload = {
   environment: 'test',
   queueAiTimeoutMs: 10_000,
   queueMaxWaitMs: 30_000,
+  matchStartCountdownMs: 5_000,
   turnTimeoutMs: 0,
   disconnectGraceMs: 30_000,
   inviteTtlMinutes: 60,

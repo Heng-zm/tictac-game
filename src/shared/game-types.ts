@@ -1,5 +1,8 @@
 export const PROTOCOL_VERSION = 1 as const;
 
+/** Brief ready phase before the first move is accepted in an online match. */
+export const MATCH_START_COUNTDOWN_MS = 5_000;
+
 export const SIDES = ['X', 'O'] as const;
 export type Side = (typeof SIDES)[number];
 export type Cell = Side | null;
@@ -237,6 +240,7 @@ export interface AppConfigPayload {
   environment: 'development' | 'test' | 'production';
   queueAiTimeoutMs: number;
   queueMaxWaitMs: number;
+  matchStartCountdownMs: number;
   turnTimeoutMs: number;
   disconnectGraceMs: number;
   inviteTtlMinutes: number;

@@ -349,6 +349,7 @@ export function createApp(deps: AppDependencies): express.Express {
       environment: config.nodeEnv,
       queueAiTimeoutMs: config.queueAiTimeoutMs,
       queueMaxWaitMs: config.queueMaxWaitMs,
+      matchStartCountdownMs: config.matchStartCountdownMs,
       turnTimeoutMs: config.turnTimeoutMs,
       disconnectGraceMs: config.disconnectGraceMs,
       inviteTtlMinutes: config.inviteTtlMinutes,

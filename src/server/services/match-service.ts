@@ -235,7 +235,7 @@ export class MatchService {
       participantFromUser(second, secondSide),
     ];
     const now = this.now();
-    const turnDeadline = this.deadlineForTurn('RANDOM', participants, 'X', now);
+    const turnDeadline = this.initialDeadlineForTurn('RANDOM', participants, 'X', now);
     const match = await this.deps.repository.createMatch({
       mode: 'RANDOM',
       status: 'ACTIVE',
@@ -373,6 +373,10 @@ export class MatchService {
         return this.stateFor(match, userId);
       }
       throw new AppError(409, 'GAME_FINISHED', 'This game has ended');
+    }
+    const startsAt = this.matchStartsAt(match);
+    if (startsAt !== null && this.now().getTime() < startsAt) {
+      throw new AppError(409, 'MATCH_STARTING', 'The match is starting. Try again in a moment.');
     }
     if (match.currentTurn !== player.side) {
       // The in-memory processed-action set is lost on restart. If this cell is
@@ -542,7 +546,7 @@ export class MatchService {
         status: 'ACTIVE',
         participants,
         currentTurn: 'X',
-        turnDeadline: this.deadlineForTurn(match.mode, participants, 'X', now),
+        turnDeadline: this.initialDeadlineForTurn(match.mode, participants, 'X', now),
         rematchOfId: match.id,
       });
       this.launchNewMatch(newMatch);
@@ -1164,7 +1168,12 @@ export class MatchService {
     }
     const now = this.now();
     if (!game.match.turnDeadline) {
-      game.match.turnDeadline = new Date(now.getTime() + this.deps.config.turnTimeoutMs);
+      // Invite matches get their first deadline here rather than at creation.
+      // Keep the full turn time after the ready countdown instead of silently
+      // shaving five seconds off the first move.
+      const startsAt = this.matchStartsAt(game.match);
+      const base = startsAt !== null && startsAt > now.getTime() ? new Date(startsAt) : now;
+      game.match.turnDeadline = new Date(base.getTime() + this.deps.config.turnTimeoutMs);
     }
     const remaining = game.match.turnDeadline.getTime() - now.getTime();
     if (remaining <= 0) {
@@ -1347,6 +1356,28 @@ export class MatchService {
     const current = match.participants.find((participant) => participant.side === match.currentTurn);
     if (!current || current.isAi || !current.userId) return false;
     return !this.online.has(current.userId);
+  }
+
+  /**
+   * Unix milliseconds at which online matches begin accepting moves. Bot
+   * practice has no ready phase because the player explicitly starts it.
+   */
+  private matchStartsAt(match: Pick<MatchEntity, 'mode' | 'startedAt'>): number | null {
+    if (match.mode === 'AI' || this.deps.config.matchStartCountdownMs <= 0) return null;
+    return match.startedAt.getTime() + this.deps.config.matchStartCountdownMs;
+  }
+
+  private initialDeadlineForTurn(
+    mode: MatchEntity['mode'],
+    participants: Array<Pick<ParticipantEntity, 'side' | 'isAi' | 'userId'>>,
+    turn: Side | null,
+    now: Date,
+  ): Date | null {
+    const base =
+      mode !== 'AI' && this.deps.config.matchStartCountdownMs > 0
+        ? new Date(now.getTime() + this.deps.config.matchStartCountdownMs)
+        : now;
+    return this.deadlineForTurn(mode, participants, turn, base);
   }
 
   private deadlineForTurn(

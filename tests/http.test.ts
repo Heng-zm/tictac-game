@@ -161,6 +161,7 @@ describe('HTTP API', () => {
       devAuthEnabled: true,
       environment: 'test',
       queueAiTimeoutMs: 10_000,
+      matchStartCountdownMs: 0,
       turnTimeoutMs: 0,
     });
     expect(config.headers['cache-control']).toBe('no-store');

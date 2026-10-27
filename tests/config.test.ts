@@ -50,6 +50,7 @@ describe('configuration', () => {
     expect(config.telegramWebhookUrl).toBeNull();
     expect(config.telegramWebhookSecret).toBeNull();
     expect(config.maxSocketsPerUser).toBe(5);
+    expect(config.matchStartCountdownMs).toBe(5_000);
     expect(config.logLevel).toBe('info');
     expect(config.turnTimeoutMs).toBe(90_000);
     expect(loadConfig({ NODE_ENV: 'development', TURN_TIMEOUT_MS: '0' }).turnTimeoutMs).toBe(0);
@@ -193,6 +194,19 @@ describe('configuration', () => {
     expect(loadConfig({ NODE_ENV: 'test', MAX_SOCKETS_PER_USER: '2' }).maxSocketsPerUser).toBe(2);
     expect(() => loadConfig({ NODE_ENV: 'test', MAX_SOCKETS_PER_USER: '0' })).toThrow(
       /MAX_SOCKETS_PER_USER/,
+    );
+  });
+
+  it('parses and bounds the match-start countdown', () => {
+    expect(loadConfig({ NODE_ENV: 'test' }).matchStartCountdownMs).toBe(5_000);
+    expect(
+      loadConfig({ NODE_ENV: 'test', MATCH_START_COUNTDOWN_MS: '0' }).matchStartCountdownMs,
+    ).toBe(0);
+    expect(
+      loadConfig({ NODE_ENV: 'test', MATCH_START_COUNTDOWN_MS: '8000' }).matchStartCountdownMs,
+    ).toBe(8_000);
+    expect(() => loadConfig({ NODE_ENV: 'test', MATCH_START_COUNTDOWN_MS: '30001' })).toThrow(
+      /MATCH_START_COUNTDOWN_MS/,
     );
   });
 

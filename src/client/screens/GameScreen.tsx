@@ -12,7 +12,7 @@ import {
   WifiOff,
   X,
 } from 'lucide-react';
-import type { Side } from '../../shared/game-types';
+import { MATCH_START_COUNTDOWN_MS, type Side } from '../../shared/game-types';
 import type { StickerId } from '../../shared/stickers';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
@@ -128,6 +128,27 @@ export function GameScreen({
   const turnRemaining = useCountdown(match?.turnDeadline ?? null);
   const turnTimerTotal = config?.turnTimeoutMs ?? 0;
   const graceRemaining = useCountdown(client.opponentGraceEndsAt);
+  const matchStartCountdownMs = config?.matchStartCountdownMs ?? MATCH_START_COUNTDOWN_MS;
+  const matchStartTarget = useMemo(() => {
+    if (!match || match.mode === 'AI' || matchStartCountdownMs <= 0) return null;
+    const startedAt = Date.parse(match.startedAt);
+    return Number.isFinite(startedAt)
+      ? new Date(startedAt + matchStartCountdownMs).toISOString()
+      : null;
+  }, [match, matchStartCountdownMs]);
+  const matchStartRemaining = useCountdown(matchStartTarget);
+  const matchStarting = Boolean(
+    match &&
+      match.status === 'ACTIVE' &&
+      matchStartRemaining !== null &&
+      matchStartRemaining > 0,
+  );
+  const countdownSeconds =
+    matchStartRemaining === null ? 0 : Math.max(1, Math.ceil(matchStartRemaining / 1000));
+  const countdownProgress =
+    matchStartRemaining === null || matchStartCountdownMs <= 0
+      ? 0
+      : Math.min(1, Math.max(0, matchStartRemaining / matchStartCountdownMs));
   const youSide = match?.youSide ?? null;
   const yourTurn = Boolean(
     match &&
@@ -419,6 +440,7 @@ export function GameScreen({
         yourTurn={yourTurn}
         disabled={
           pendingCell !== null ||
+          matchStarting ||
           match.status !== 'ACTIVE' ||
           match.currentTurn !== match.youSide ||
           connection !== 'online'
@@ -541,6 +563,47 @@ export function GameScreen({
           disabled={match.status !== 'ACTIVE' && match.status !== 'FINISHED'}
         />
       </div>
+
+      {matchStarting ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm animate-fade-in">
+          <div
+            className="w-full max-w-xs rounded-3xl border border-accent/25 bg-surface/95 p-6 text-center shadow-soft animate-pop-in"
+            role="status"
+            aria-live="polite"
+          >
+            <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-accent">
+              Match found
+            </p>
+            <div className="mt-4 flex items-center justify-center gap-4">
+              <Avatar name={you?.displayName ?? 'You'} photoUrl={you?.photoUrl} size="lg" ring />
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted">vs</span>
+              <Avatar
+                name={opponent?.displayName ?? 'Opponent'}
+                photoUrl={opponent?.photoUrl}
+                size="lg"
+                ring
+              />
+            </div>
+            <div
+              key={countdownSeconds}
+              className="mt-4 text-7xl font-black leading-none tabular-nums text-ink animate-countdown-tick"
+              aria-hidden="true"
+            >
+              {countdownSeconds}
+            </div>
+            <span className="sr-only">Match starts in {countdownSeconds} seconds</span>
+            <p className="mt-2 text-sm font-medium text-muted">
+              Get ready — you play {match.youSide}
+            </p>
+            <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-elevated" aria-hidden="true">
+              <div
+                className="h-full rounded-full bg-accent transition-[width] duration-500 ease-linear"
+                style={{ width: `${Math.round(countdownProgress * 100)}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <GameResult
         match={match}

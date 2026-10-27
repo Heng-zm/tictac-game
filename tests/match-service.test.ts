@@ -154,6 +154,36 @@ describe('MatchService', () => {
     });
   });
 
+  it('enforces the 5-second ready countdown before the first move', async () => {
+    service = await startService({ matchStartCountdownMs: 5_000, turnTimeoutMs: 60_000 });
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const cell = encodeCell(0, 0);
+
+    // The first turn keeps its full clock after the ready phase.
+    expect(match.turnDeadline?.getTime()).toBe(clock.now().getTime() + 65_000);
+
+    await expect(service.submitMove(aliceId, match.id, cell, randomUUID())).rejects.toMatchObject({
+      code: 'MATCH_STARTING',
+    });
+
+    await advance(4_999);
+    await expect(service.submitMove(aliceId, match.id, cell, randomUUID())).rejects.toMatchObject({
+      code: 'MATCH_STARTING',
+    });
+
+    await advance(1);
+    const state = await service.submitMove(aliceId, match.id, cell, randomUUID());
+    expect(state.board[cell]).toBe('X');
+  });
+
+  it('does not delay bot practice with a ready countdown', async () => {
+    service = await startService({ matchStartCountdownMs: 5_000 });
+    const match = await service.startAi(alice.id, 'MEDIUM', 'X');
+    const state = await service.submitMove(alice.id, match.id, encodeCell(0, 0), randomUUID());
+    expect(state.board[encodeCell(0, 0)]).toBe('X');
+  });
+
   it('rejects self-matches', async () => {
     await expect(service.createRandomMatch(alice.id, alice.id)).rejects.toMatchObject({
       code: 'PLAYER_BUSY',

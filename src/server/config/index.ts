@@ -75,6 +75,7 @@ const envSchema = z
     CORS_ORIGINS: z.string().default('http://localhost:5173'),
     QUEUE_AI_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120_000).default(10_000),
     QUEUE_MAX_WAIT_MS: z.coerce.number().int().min(10_000).max(3_600_000).default(600_000),
+    MATCH_START_COUNTDOWN_MS: z.coerce.number().int().min(0).max(30_000).default(5_000),
     MAX_SOCKETS_PER_USER: z.coerce.number().int().min(1).max(50).default(5),
     DISCONNECT_GRACE_MS: z.coerce.number().int().min(1_000).max(300_000).default(30_000),
     TURN_TIMEOUT_MS: z.coerce.number().int().min(0).max(600_000).default(90_000),
@@ -246,6 +247,7 @@ export interface AppConfig {
   allowedOrigins: string[];
   queueAiTimeoutMs: number;
   queueMaxWaitMs: number;
+  matchStartCountdownMs: number;
   maxSocketsPerUser: number;
   disconnectGraceMs: number;
   turnTimeoutMs: number;
@@ -324,6 +326,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     allowedOrigins: origins,
     queueAiTimeoutMs: parsed.QUEUE_AI_TIMEOUT_MS,
     queueMaxWaitMs: parsed.QUEUE_MAX_WAIT_MS,
+    matchStartCountdownMs: parsed.MATCH_START_COUNTDOWN_MS,
     maxSocketsPerUser: parsed.MAX_SOCKETS_PER_USER,
     disconnectGraceMs: parsed.DISCONNECT_GRACE_MS,
     turnTimeoutMs: parsed.TURN_TIMEOUT_MS,
