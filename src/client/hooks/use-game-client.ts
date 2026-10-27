@@ -26,7 +26,7 @@ export interface DisplayReaction {
   stickerId: StickerId;
   timestamp: string;
 }
-import { playVoiceAudio } from '../lib/audio-radio';
+import { getAudioContext, playVoiceAudio } from '../lib/audio-radio';
 import {
   ApiRequestError,
   authenticateDev,
@@ -172,6 +172,45 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   matchRef.current = match;
   const createdInviteRef = useRef<CreatedInvitation | null>(null);
   const pendingInviteRef = useRef<PendingInvitation | null>(null);
+
+  // iOS WebViews create the AudioContext in a suspended state and only allow
+  // `resume()` inside a trusted gesture. Without this unlock, an incoming voice
+  // note has nothing to play through and the transmission appears silent.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    let removed = false;
+
+    const removeListeners = () => {
+      if (removed) return;
+      removed = true;
+      window.removeEventListener('pointerdown', unlock);
+      window.removeEventListener('keydown', unlock);
+      window.removeEventListener('touchstart', unlock);
+    };
+
+    const unlock = () => {
+      const ctx = getAudioContext();
+      if (!ctx) {
+        removeListeners();
+        return;
+      }
+      if (ctx.state === 'running') {
+        removeListeners();
+        return;
+      }
+      void ctx
+        .resume()
+        .then(() => {
+          if (ctx.state === 'running') removeListeners();
+        })
+        .catch(() => undefined);
+    };
+
+    window.addEventListener('pointerdown', unlock, { passive: true });
+    window.addEventListener('keydown', unlock);
+    window.addEventListener('touchstart', unlock, { passive: true });
+    return removeListeners;
+  }, []);
 
   const applyCreatedInvite = useCallback((invite: CreatedInvitation | null) => {
     createdInviteRef.current = invite;

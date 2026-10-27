@@ -3,7 +3,9 @@
  *
  * Browsers record with different containers (WebM/Opus on Chromium, MP4/AAC on
  * Safari, Ogg/Opus on Firefox). The server must not trust the MIME label in the
- * data URL alone, so the first bytes are checked against the declared container
+ * data URL alone: several WebViews mislabel their output (Safari has emitted
+ * MP4 bytes labelled as WebM). The first bytes are therefore treated as the
+ * source of truth and the data URL is rewrapped with the detected MIME type
  * before a recording is relayed to the other player.
  */
 
@@ -12,17 +14,38 @@ export const VOICE_MAX_AUDIO_BYTES = 512 * 1024;
 /** Base64 expands by 4/3; leave room for the data-URL header and codec params. */
 export const VOICE_MAX_DATA_URL_LENGTH = Math.ceil(VOICE_MAX_AUDIO_BYTES / 3) * 4 + 256;
 
-const SUPPORTED_MIME_TYPES = new Set([
+export type VoiceContainer = 'webm' | 'ogg' | 'mp4' | 'wav' | 'mpeg';
+
+/**
+ * Labels we are willing to read from a recording data URL. The declared label
+ * is only used to shape the URL; the actual bytes decide whether the payload is
+ * a supported audio container. The aliases cover real-world WebView output.
+ */
+const DECLARED_MIME_TYPES = new Set([
   'audio/webm',
   'audio/ogg',
   'audio/mp4',
   'audio/m4a',
   'audio/x-m4a',
+  'audio/aac',
+  'audio/x-aac',
   'audio/wav',
   'audio/wave',
   'audio/x-wav',
   'audio/mpeg',
+  'audio/mp3',
+  'video/webm',
+  'video/mp4',
+  'application/octet-stream',
 ]);
+
+const CANONICAL_MIME: Record<VoiceContainer, string> = {
+  webm: 'audio/webm',
+  ogg: 'audio/ogg',
+  mp4: 'audio/mp4',
+  wav: 'audio/wav',
+  mpeg: 'audio/mpeg',
+};
 
 const BASE64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
 
@@ -45,20 +68,12 @@ export function parseVoiceDataUrl(audioData: string): VoiceDataInfo | null {
   if (comma <= 'data:'.length) return null;
 
   const header = audioData.slice('data:'.length, comma);
-  const parts = header.split(';');
+  const parts = header.split(';').map((part) => part.trim()).filter(Boolean);
   if (parts.length < 2) return null;
   if (parts[parts.length - 1]?.toLowerCase() !== 'base64') return null;
 
-  const mimeType = parts[0]?.trim().toLowerCase() ?? '';
-  if (!SUPPORTED_MIME_TYPES.has(mimeType)) return null;
-
-  // Only allow parameter segments in `key=value` form (for example
-  // `codecs=opus`). This keeps the header predictable without rejecting real
-  // MediaRecorder output.
-  for (let index = 1; index < parts.length - 1; index += 1) {
-    const parameter = parts[index] ?? '';
-    if (!/^[a-z0-9.+-]+=[a-z0-9.+-]+$/i.test(parameter)) return null;
-  }
+  const mimeType = parts[0]?.toLowerCase() ?? '';
+  if (!DECLARED_MIME_TYPES.has(mimeType)) return null;
 
   const base64 = audioData.slice(comma + 1);
   if (!isValidBase64(base64)) return null;
@@ -71,40 +86,84 @@ export function parseVoiceDataUrl(audioData: string): VoiceDataInfo | null {
 }
 
 /**
+ * Detects the audio container from its leading bytes. Returns the canonical
+ * MIME type, or `null` when the bytes are not a supported voice container.
+ */
+export function detectVoiceMimeType(bytes: Uint8Array): string | null {
+  if (bytes.length === 0) return null;
+
+  if (startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3])) return CANONICAL_MIME.webm;
+  if (startsWith(bytes, [0x4f, 0x67, 0x67, 0x53])) return CANONICAL_MIME.ogg; // "OggS"
+
+  // MP4/M4A: a 4-byte box size followed by "ftyp". A few muxers emit "ftyp"
+  // at offset zero instead, so accept both layouts.
+  if (asciiAt(bytes, 4, 4) === 'ftyp' || asciiAt(bytes, 0, 4) === 'ftyp') {
+    return CANONICAL_MIME.mp4;
+  }
+
+  if (asciiAt(bytes, 0, 4) === 'RIFF' && asciiAt(bytes, 8, 4) === 'WAVE') {
+    return CANONICAL_MIME.wav;
+  }
+
+  // ID3-tagged or a raw MPEG audio frame sync (0xFFE0 mask).
+  if (
+    startsWith(bytes, [0x49, 0x44, 0x33]) ||
+    (bytes.length >= 2 && bytes[0] === 0xff && ((bytes[1] ?? 0) & 0xe0) === 0xe0)
+  ) {
+    return CANONICAL_MIME.mpeg;
+  }
+
+  return null;
+}
+
+/**
  * Validates the data URL shape, declared MIME type, decoded size, and the
- * container signature. Returns parsed metadata when the payload is safe to
- * relay, otherwise `null`.
+ * container signature. The returned `mimeType` is always the canonical type
+ * detected from the bytes, which may differ from the label in the URL.
  */
 export function validateVoiceDataUrl(audioData: string): VoiceDataInfo | null {
   const parsed = parseVoiceDataUrl(audioData);
   if (!parsed) return null;
   const prefix = decodeBase64Prefix(parsed.base64, 16);
-  return hasSupportedVoiceSignature(prefix, parsed.mimeType) ? parsed : null;
+  const detected = detectVoiceMimeType(prefix);
+  return detected ? { ...parsed, mimeType: detected } : null;
+}
+
+/**
+ * Rewraps a valid recording with the MIME type detected from its bytes. This
+ * repairs recordings from WebViews that label MP4 output as WebM (or omit the
+ * type entirely) so every receiving browser can play them.
+ */
+export function normalizeVoiceDataUrl(audioData: string): string | null {
+  const info = validateVoiceDataUrl(audioData);
+  return info ? `data:${info.mimeType};base64,${info.base64}` : null;
 }
 
 export function hasSupportedVoiceSignature(bytes: Uint8Array, mimeType: string): boolean {
-  if (bytes.length === 0) return false;
+  const detected = detectVoiceMimeType(bytes);
+  if (!detected) return false;
+  const declared = mimeType.trim().toLowerCase();
+  const declaredContainer = containerForMime(declared);
+  return declaredContainer === null || CANONICAL_MIME[declaredContainer] === detected;
+}
 
-  if (mimeType === 'audio/webm') {
-    return startsWith(bytes, [0x1a, 0x45, 0xdf, 0xa3]);
+export function containerForMime(mimeType: string): VoiceContainer | null {
+  const type = mimeType.split(';')[0]?.trim().toLowerCase() ?? '';
+  if (type === 'audio/webm' || type === 'video/webm') return 'webm';
+  if (type === 'audio/ogg') return 'ogg';
+  if (
+    type === 'audio/mp4' ||
+    type === 'audio/m4a' ||
+    type === 'audio/x-m4a' ||
+    type === 'audio/aac' ||
+    type === 'audio/x-aac' ||
+    type === 'video/mp4'
+  ) {
+    return 'mp4';
   }
-  if (mimeType === 'audio/ogg') {
-    return startsWith(bytes, [0x4f, 0x67, 0x67, 0x53]); // "OggS"
-  }
-  if (mimeType === 'audio/mp4' || mimeType === 'audio/m4a' || mimeType === 'audio/x-m4a') {
-    return bytes.length >= 8 && asciiAt(bytes, 4, 4) === 'ftyp';
-  }
-  if (mimeType === 'audio/wav' || mimeType === 'audio/wave' || mimeType === 'audio/x-wav') {
-    return bytes.length >= 12 && asciiAt(bytes, 0, 4) === 'RIFF' && asciiAt(bytes, 8, 4) === 'WAVE';
-  }
-  if (mimeType === 'audio/mpeg') {
-    // ID3-tagged or a raw MPEG audio frame sync (0xFFE0 mask).
-    return (
-      startsWith(bytes, [0x49, 0x44, 0x33]) ||
-      (bytes.length >= 2 && bytes[0] === 0xff && ((bytes[1] ?? 0) & 0xe0) === 0xe0)
-    );
-  }
-  return false;
+  if (type === 'audio/wav' || type === 'audio/wave' || type === 'audio/x-wav') return 'wav';
+  if (type === 'audio/mpeg' || type === 'audio/mp3') return 'mpeg';
+  return null;
 }
 
 function isValidBase64(value: string): boolean {

@@ -117,6 +117,31 @@ describe('MatchService — Walkie-Talkie Voice Transmission', () => {
     expect(event.timestamp).toBeDefined();
   });
 
+  it('repairs mislabeled WebView recordings before broadcasting', async () => {
+    const match = await service.startAi(alice.id, 'EASY', 'X');
+    // Safari WebViews have emitted MP4 bytes under an audio/webm label.
+    const mp4Bytes = Buffer.from([
+      0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70, 0x4d, 0x34, 0x41, 0x20,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+    const mislabeled = `data:audio/webm;base64,${mp4Bytes.toString('base64')}`;
+
+    expect(
+      matchVoiceSchema.safeParse({
+        matchId: match.id,
+        audioData: mislabeled,
+        durationMs: 1_200,
+      }).success,
+    ).toBe(true);
+
+    await service.sendVoice(alice.id, match.id, mislabeled, 1_200);
+
+    const event = io.emitted.find(
+      (item) => item.room === `match:${match.id}` && item.event === 'match:voice',
+    )?.payload as MatchVoiceEvent;
+    expect(event.audioData).toBe(`data:audio/mp4;base64,${mp4Bytes.toString('base64')}`);
+  });
+
   it('rejects voice message from a non-participant with MATCH_FORBIDDEN', async () => {
     const match = await service.startAi(alice.id, 'EASY', 'X');
     await expect(

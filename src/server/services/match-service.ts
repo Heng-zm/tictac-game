@@ -30,7 +30,7 @@ import { buildMatchView } from '../services/match-view';
 import type { TurnNotificationService } from '../services/turn-notifier';
 import type { GameServer } from '../sockets/types';
 import { matchRoom, userRoom } from '../sockets/types';
-import { VOICE_MAX_DURATION_MS, validateVoiceDataUrl } from '../../shared/audio';
+import { VOICE_MAX_DURATION_MS, normalizeVoiceDataUrl } from '../../shared/audio';
 
 const REMATCH_WINDOW_MS = 2 * 60 * 1000;
 const FINISHED_GAME_TTL_MS = 10 * 60 * 1000;
@@ -668,11 +668,14 @@ export class MatchService {
     if (match.status !== 'ACTIVE' && match.status !== 'FINISHED') {
       throw new AppError(409, 'GAME_NOT_ACTIVE', 'Voice messages are only available during or after a game');
     }
+    // Trust the recorded bytes over the browser's MIME label. Some WebViews
+    // (notably iOS Safari) have emitted MP4 bytes labelled as WebM; rewrapping
+    // the payload keeps the transmission playable for the opponent.
+    const normalizedAudio = Number.isInteger(durationMs) ? normalizeVoiceDataUrl(audioData) : null;
     if (
-      !Number.isInteger(durationMs) ||
+      !normalizedAudio ||
       durationMs < 400 ||
-      durationMs > VOICE_MAX_DURATION_MS ||
-      !validateVoiceDataUrl(audioData)
+      durationMs > VOICE_MAX_DURATION_MS
     ) {
       throw new AppError(400, 'INVALID_AUDIO', 'Voice messages must be a supported audio recording');
     }
@@ -683,7 +686,7 @@ export class MatchService {
     const event: MatchVoiceEvent = {
       matchId: match.id,
       senderSide: player.side,
-      audioData,
+      audioData: normalizedAudio,
       durationMs,
       waveform: safeWaveform,
       timestamp: this.now().toISOString(),

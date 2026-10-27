@@ -8,9 +8,30 @@
  * 4. Audio playback with auto-play handling for opponent ("auto play auto waw").
  */
 
-import { validateVoiceDataUrl } from '../../shared/audio';
+import {
+  normalizeVoiceDataUrl,
+  validateVoiceDataUrl,
+} from '../../shared/audio';
 
 let sharedAudioContext: AudioContext | null = null;
+
+/** Voice notes are re-encoded as 16 kHz mono PCM so every client can play them. */
+const VOICE_WAV_SAMPLE_RATE = 16_000;
+/** Mirrors the walkie-talkie's maximum hold time. */
+const VOICE_MAX_CAPTURE_MS = 10_000;
+const VOICE_MIN_CAPTURE_MS = 400;
+
+function clampVoiceDuration(durationMs: number): number {
+  return Math.min(VOICE_MAX_CAPTURE_MS, Math.max(VOICE_MIN_CAPTURE_MS, Math.round(durationMs)));
+}
+
+function isIosDevice(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  return (
+    /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
+  );
+}
 
 export function getAudioContext(): AudioContext | null {
   if (typeof window === 'undefined') return null;
@@ -237,6 +258,7 @@ export class WalkieTalkieRecorder {
   private chunks: Blob[] = [];
   private startTime = 0;
   private analyser: AnalyserNode | null = null;
+  private destination: MediaStreamAudioDestinationNode | null = null;
   private animFrameId: number | null = null;
   private recordedWaveformSamples: number[][] = [];
   private isCancelled = false;
@@ -265,21 +287,37 @@ export class WalkieTalkieRecorder {
     }
 
     this.stream = perm.stream;
+    let recordStream = this.stream;
 
     // Play walkie-talkie start chirp
     playPttStartChirp();
 
-    // Hook up Analyser for live frequency visualization ("auto waw")
+    // Hook up Analyser for live frequency visualization ("auto waw").
+    //
+    // iOS Safari has historically "stolen" the microphone track from
+    // MediaRecorder as soon as it is attached to a Web Audio graph. Recording
+    // from a MediaStreamAudioDestinationNode keeps the graph and the recorder
+    // on the same stream, and skipping the graph while the AudioContext is
+    // suspended prevents a silent recording.
     const ctx = getAudioContext();
-    if (ctx) {
+    if (ctx && (!isIosDevice() || ctx.state === 'running')) {
       try {
         const source = ctx.createMediaStreamSource(this.stream);
         this.analyser = ctx.createAnalyser();
         this.analyser.fftSize = 64;
         this.analyser.smoothingTimeConstant = 0.65;
         source.connect(this.analyser);
+
+        if (isIosDevice()) {
+          this.destination = ctx.createMediaStreamDestination();
+          this.analyser.connect(this.destination);
+          recordStream = this.destination.stream;
+        }
       } catch {
-        // Continue if analyser fails
+        // Continue with the raw microphone stream if the analyser fails.
+        this.analyser = null;
+        this.destination = null;
+        recordStream = this.stream;
       }
     }
 
@@ -303,13 +341,13 @@ export class WalkieTalkieRecorder {
 
     try {
       this.recorder = selectedMime
-        ? new MediaRecorder(this.stream, { mimeType: selectedMime, audioBitsPerSecond: 32_000 })
-        : new MediaRecorder(this.stream, { audioBitsPerSecond: 32_000 });
+        ? new MediaRecorder(recordStream, { mimeType: selectedMime, audioBitsPerSecond: 32_000 })
+        : new MediaRecorder(recordStream, { audioBitsPerSecond: 32_000 });
     } catch {
       try {
         this.recorder = selectedMime
-          ? new MediaRecorder(this.stream, { mimeType: selectedMime })
-          : new MediaRecorder(this.stream);
+          ? new MediaRecorder(recordStream, { mimeType: selectedMime })
+          : new MediaRecorder(recordStream);
       } catch {
         this.cleanup();
         return { success: false, error: 'Could not create audio recorder.' };
@@ -400,6 +438,7 @@ export class WalkieTalkieRecorder {
       this.recorder.onstop = () => {
         const mimeType = this.recorder?.mimeType || this.selectedMime || 'audio/webm';
         const blob = new Blob(this.chunks, { type: mimeType });
+        const finalWaveform = this.computeFinalWaveform();
         this.cleanup();
 
         if (blob.size === 0) {
@@ -410,21 +449,11 @@ export class WalkieTalkieRecorder {
         // Play authentic roger beep on successful transmission
         playRogerBeep();
 
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64Audio = reader.result as string;
-
-          // Compute final waveform signature
-          const finalWaveform = this.computeFinalWaveform();
-
-          resolve({
-            audioData: base64Audio,
-            durationMs,
-            waveform: finalWaveform,
-          });
-        };
-        reader.onerror = () => resolve(null);
-        reader.readAsDataURL(blob);
+        void prepareVoiceRecording(blob, durationMs)
+          .then((prepared) => {
+            resolve(prepared ? { ...prepared, waveform: finalWaveform } : null);
+          })
+          .catch(() => resolve(null));
       };
 
       try {
@@ -459,10 +488,199 @@ export class WalkieTalkieRecorder {
       this.stream.getTracks().forEach((track) => track.stop());
       this.stream = null;
     }
+    if (this.destination) {
+      this.destination.stream.getTracks().forEach((track) => track.stop());
+      this.destination = null;
+    }
     this.recorder = null;
     this.analyser = null;
     this.chunks = [];
   }
+}
+
+interface PreparedVoiceRecording {
+  audioData: string;
+  durationMs: number;
+}
+
+/**
+ * Converts a browser recording into a 16 kHz mono WAV data URL. WAV is
+ * universally supported for playback, so a WebM/Opus note recorded on Android
+ * also plays in Safari, and an iOS MP4/AAC note plays everywhere else.
+ *
+ * If the browser cannot decode its own recording, the original data URL is
+ * used instead after its MIME label has been repaired from the magic bytes.
+ */
+export async function prepareVoiceRecording(
+  blob: Blob,
+  measuredDurationMs: number,
+): Promise<PreparedVoiceRecording | null> {
+  const wav = await transcodeBlobToWav(blob).catch(() => null);
+  if (wav) {
+    return {
+      audioData: wav.dataUrl,
+      durationMs: clampVoiceDuration(Math.min(measuredDurationMs, wav.durationMs)),
+    };
+  }
+
+  const dataUrl = await readBlobAsDataUrl(blob);
+  const normalized = dataUrl ? normalizeVoiceDataUrl(dataUrl) : null;
+  if (!normalized) return null;
+  return { audioData: normalized, durationMs: clampVoiceDuration(measuredDurationMs) };
+}
+
+async function transcodeBlobToWav(
+  blob: Blob,
+): Promise<{ dataUrl: string; durationMs: number } | null> {
+  const ctx = getAudioContext();
+  if (!ctx) return null;
+
+  const encoded = await blob.arrayBuffer();
+  if (encoded.byteLength === 0) return null;
+
+  const decoded = await decodeAudioBuffer(ctx, encoded);
+  if (!decoded || decoded.duration <= 0) return null;
+
+  const maxFrames = Math.round((VOICE_MAX_CAPTURE_MS / 1000) * VOICE_WAV_SAMPLE_RATE);
+  const frames = Math.max(1, Math.min(Math.round(decoded.duration * VOICE_WAV_SAMPLE_RATE), maxFrames));
+  const samples = await renderMonoSamples(decoded, frames);
+  if (!samples) return null;
+
+  const wav = encodePcmWav(samples, VOICE_WAV_SAMPLE_RATE);
+  const dataUrl = `data:audio/wav;base64,${arrayBufferToBase64(wav)}`;
+  if (!validateVoiceDataUrl(dataUrl)) return null;
+
+  return {
+    dataUrl,
+    durationMs: Math.round((samples.length / VOICE_WAV_SAMPLE_RATE) * 1000),
+  };
+}
+
+function decodeAudioBuffer(ctx: AudioContext, encoded: ArrayBuffer): Promise<AudioBuffer | null> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = (buffer: AudioBuffer | null) => {
+      if (settled) return;
+      settled = true;
+      resolve(buffer);
+    };
+
+    try {
+      const maybePromise = ctx.decodeAudioData(
+        encoded.slice(0),
+        (buffer) => finish(buffer),
+        () => finish(null),
+      ) as unknown;
+      if (maybePromise && typeof (maybePromise as Promise<AudioBuffer>).then === 'function') {
+        (maybePromise as Promise<AudioBuffer>)
+          .then((buffer) => finish(buffer))
+          .catch(() => finish(null));
+      }
+    } catch {
+      finish(null);
+    }
+  });
+}
+
+async function renderMonoSamples(buffer: AudioBuffer, frames: number): Promise<Float32Array | null> {
+  if (typeof OfflineAudioContext !== 'undefined') {
+    try {
+      const offline = new OfflineAudioContext(1, frames, VOICE_WAV_SAMPLE_RATE);
+      const source = offline.createBufferSource();
+      source.buffer = buffer;
+      source.connect(offline.destination);
+      source.start(0);
+      const rendered = await offline.startRendering();
+      return rendered.getChannelData(0).slice(0, frames);
+    } catch {
+      // Fall through to the manual downmix/resample path.
+    }
+  }
+
+  try {
+    const channelCount = Math.max(1, buffer.numberOfChannels);
+    const mono = new Float32Array(buffer.length);
+    for (let channel = 0; channel < channelCount; channel += 1) {
+      const data = buffer.getChannelData(channel);
+      for (let index = 0; index < mono.length; index += 1) {
+        mono[index] = (mono[index] ?? 0) + (data[index] ?? 0);
+      }
+    }
+    for (let index = 0; index < mono.length; index += 1) {
+      mono[index] = (mono[index] ?? 0) / channelCount;
+    }
+
+    const output = new Float32Array(frames);
+    const ratio = buffer.sampleRate / VOICE_WAV_SAMPLE_RATE;
+    for (let index = 0; index < frames; index += 1) {
+      const position = Math.min(buffer.length - 1, index * ratio);
+      const left = Math.floor(position);
+      const fraction = position - left;
+      output[index] = (mono[left] ?? 0) * (1 - fraction) + (mono[left + 1] ?? 0) * fraction;
+    }
+    return output;
+  } catch {
+    return null;
+  }
+}
+
+/** Encodes mono float samples as a 16-bit PCM WAV file. */
+export function encodePcmWav(samples: Float32Array, sampleRate: number): ArrayBuffer {
+  const dataSize = samples.length * 2;
+  const buffer = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(buffer);
+
+  writeAscii(view, 0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeAscii(view, 8, 'WAVE');
+  writeAscii(view, 12, 'fmt ');
+  view.setUint32(16, 16, true); // Subchunk1Size
+  view.setUint16(20, 1, true); // PCM
+  view.setUint16(22, 1, true); // Mono
+  view.setUint32(24, sampleRate, true);
+  view.setUint32(28, sampleRate * 2, true); // ByteRate
+  view.setUint16(32, 2, true); // BlockAlign
+  view.setUint16(34, 16, true); // BitsPerSample
+  writeAscii(view, 36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  let offset = 44;
+  for (let index = 0; index < samples.length; index += 1) {
+    const sample = Math.max(-1, Math.min(1, samples[index] ?? 0));
+    view.setInt16(offset, sample < 0 ? sample * 0x8000 : sample * 0x7fff, true);
+    offset += 2;
+  }
+
+  return buffer;
+}
+
+export function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let index = 0; index < bytes.length; index += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(index, index + chunkSize));
+  }
+  return btoa(binary);
+}
+
+function writeAscii(view: DataView, offset: number, value: string): void {
+  for (let index = 0; index < value.length; index += 1) {
+    view.setUint8(offset + index, value.charCodeAt(index));
+  }
+}
+
+function readBlobAsDataUrl(blob: Blob): Promise<string | null> {
+  return new Promise((resolve) => {
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(typeof reader.result === 'string' ? reader.result : null);
+      reader.onerror = () => resolve(null);
+      reader.readAsDataURL(blob);
+    } catch {
+      resolve(null);
+    }
+  });
 }
 
 /**
@@ -574,61 +792,88 @@ export function playVoiceAudio(
   const ctx = getAudioContext();
   const arrayBuf = dataUrlToArrayBuffer(audioData);
 
-  if (ctx && arrayBuf) {
+  if (!ctx || !arrayBuf) {
+    playViaHtml5();
+    return { stop: stopAll };
+  }
+
+  // A suspended AudioContext schedules sources but never plays them, which is
+  // the classic "voice received but silent" symptom in iOS WebViews. Only use
+  // Web Audio when the context is (or can become) running; otherwise route the
+  // note through an HTML5 element so the platform gets its own chance to play.
+  void (async () => {
+    const running = await ensureAudioContextRunning(ctx);
+    if (isStopped) return;
+    if (!running) {
+      playViaHtml5();
+      return;
+    }
+
+    const audioBuffer = await decodeAudioBuffer(ctx, arrayBuf);
+    if (isStopped) return;
+    if (!audioBuffer || ctx.state !== 'running') {
+      playViaHtml5();
+      return;
+    }
+
     try {
-      if (ctx.state === 'suspended') {
-        void ctx.resume().catch(() => undefined);
-      }
-      ctx.decodeAudioData(
-        arrayBuf.slice(0),
-        (audioBuffer) => {
-          if (isStopped) return;
-          try {
-            const source = ctx.createBufferSource();
-            source.buffer = audioBuffer;
-            const gain = ctx.createGain();
-            gain.gain.setValueAtTime(1.15, ctx.currentTime);
-            source.connect(gain);
-            gain.connect(ctx.destination);
-            activeSource = source;
+      const source = ctx.createBufferSource();
+      source.buffer = audioBuffer;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(1.15, ctx.currentTime);
+      source.connect(gain);
+      gain.connect(ctx.destination);
 
-            const duration = audioBuffer.duration;
-            const startCtxTime = ctx.currentTime;
+      const duration = audioBuffer.duration;
+      const startCtxTime = ctx.currentTime;
 
-            const tickProgress = () => {
-              if (isStopped || !activeSource) return;
-              const elapsed = ctx.currentTime - startCtxTime;
-              const progress = Math.min(1.0, elapsed / duration);
-              onStateChange?.({ isPlaying: true, progress });
-              if (progress < 1.0) {
-                animFrameId = requestAnimationFrame(tickProgress);
-              }
-            };
-            animFrameId = requestAnimationFrame(tickProgress);
+      source.onended = () => {
+        if (isStopped) return;
+        activeSource = null;
+        if (animFrameId) cancelAnimationFrame(animFrameId);
+        onStateChange?.({ isPlaying: false, progress: 1.0 });
+        playRogerBeep();
+      };
 
-            source.onended = () => {
-              if (isStopped) return;
-              activeSource = null;
-              if (animFrameId) cancelAnimationFrame(animFrameId);
-              onStateChange?.({ isPlaying: false, progress: 1.0 });
-              playRogerBeep();
-            };
+      source.start(0);
+      activeSource = source;
 
-            source.start(0);
-          } catch {
-            playViaHtml5();
-          }
-        },
-        () => {
-          playViaHtml5();
-        },
-      );
+      const tickProgress = () => {
+        if (isStopped || !activeSource) return;
+        const elapsed = ctx.currentTime - startCtxTime;
+        const progress = Math.min(1.0, elapsed / duration);
+        onStateChange?.({ isPlaying: true, progress });
+        if (progress < 1.0) {
+          animFrameId = requestAnimationFrame(tickProgress);
+        }
+      };
+      animFrameId = requestAnimationFrame(tickProgress);
     } catch {
       playViaHtml5();
     }
-  } else {
-    playViaHtml5();
-  }
+  })();
 
   return { stop: stopAll };
+}
+
+/**
+ * Resumes a suspended AudioContext and reports whether it is really running.
+ * `resume()` can resolve while the context stays suspended when the call was
+ * made outside a user gesture, so the state is checked instead of assumed.
+ */
+async function ensureAudioContextRunning(ctx: AudioContext): Promise<boolean> {
+  if (ctx.state === 'running') return true;
+  if (ctx.state !== 'suspended') return false;
+  try {
+    await ctx.resume();
+  } catch {
+    return false;
+  }
+  // `resume()` can resolve while the context remains suspended when it was
+  // called outside a user gesture, so re-read the state before trusting it.
+  return currentAudioContextState(ctx) === 'running';
+}
+
+function currentAudioContextState(ctx: AudioContext): AudioContextState {
+  return ctx.state;
 }
