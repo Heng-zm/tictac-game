@@ -1,8 +1,9 @@
 import { AlertTriangle, ExternalLink, RefreshCw, ShieldCheck } from 'lucide-react';
 import type { AppConfigPayload } from '../../shared/game-types';
 import type { BootPhase } from '../hooks/use-game-client';
-import { openTelegramBot } from '../lib/telegram';
+import { getWebApp, openTelegramBot } from '../lib/telegram';
 import { Button, Logo, Spinner } from '../components/ui';
+import { TelegramLoginButton } from '../components/TelegramLoginButton';
 
 export function AuthGate({
   phase,
@@ -19,6 +20,11 @@ export function AuthGate({
 }) {
   const booting = phase === 'booting';
   const authRequired = phase === 'auth-required';
+  // `initData` only exists when Telegram launched the page as a Mini App.
+  // A regular browser tab must use the Login Widget instead.
+  const insideTelegram = Boolean(getWebApp()?.initData);
+  const botUsername = config?.botUsername ?? null;
+  const showLoginWidget = authRequired && !insideTelegram && Boolean(botUsername);
 
   return (
     <div className="flex min-h-[var(--app-vh)] flex-col items-center justify-center px-6 py-10 text-center">
@@ -34,28 +40,49 @@ export function AuthGate({
       ) : (
         <>
           <h1 className="max-w-sm text-2xl font-bold leading-tight tracking-tight text-ink">
-            {authRequired ? 'Play inside Telegram' : 'The board is out of reach'}
+            {authRequired
+              ? insideTelegram
+                ? 'Play inside Telegram'
+                : 'Sign in with Telegram'
+              : 'The board is out of reach'}
           </h1>
           <p className="mt-3 max-w-sm text-sm leading-relaxed text-muted">
             {authRequired
-              ? 'This Mini App verifies every player with Telegram. Open it from the bot to sign in securely — there are no passwords and no fake accounts.'
+              ? error ??
+                (insideTelegram
+                  ? 'This Mini App verifies every player with Telegram. Reopen it from the bot to sign in securely — there are no passwords and no fake accounts.'
+                  : 'Sign in with your Telegram account to play. We verify the login on our server — there are no passwords and no fake accounts.')
               : error ?? 'The game server could not be reached. Please try again.'}
           </p>
 
-          {authRequired && code ? <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted">{code.replaceAll('_', ' ')}</p> : null}
+          {authRequired && code ? (
+            <p className="mt-3 text-[11px] font-semibold uppercase tracking-wide text-muted">
+              {code.replaceAll('_', ' ')}
+            </p>
+          ) : null}
 
-          <div className="mt-7 flex w-full max-w-xs flex-col gap-2">
-            {authRequired && config?.botUsername ? (
+          {showLoginWidget && botUsername ? (
+            <div className="mt-6 flex w-full max-w-xs flex-col items-center rounded-2xl border border-line bg-elevated/60 px-4 py-5">
+              <TelegramLoginButton botUsername={botUsername} />
+              <p className="mt-2 text-[11px] leading-relaxed text-muted">
+                A secure Telegram window will confirm your account.
+              </p>
+            </div>
+          ) : null}
+
+          <div className="mt-6 flex w-full max-w-xs flex-col gap-2">
+            {botUsername ? (
               <Button
                 size="lg"
+                variant={showLoginWidget ? 'secondary' : 'primary'}
                 icon={ExternalLink}
-                onClick={() => openTelegramBot(config.botUsername as string)}
+                onClick={() => openTelegramBot(botUsername)}
               >
                 Open in Telegram
               </Button>
             ) : null}
             <Button
-              variant={authRequired && config?.botUsername ? 'secondary' : 'primary'}
+              variant={botUsername ? 'secondary' : 'primary'}
               size="lg"
               icon={RefreshCw}
               onClick={onRetry}

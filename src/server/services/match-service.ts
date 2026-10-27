@@ -90,7 +90,7 @@ export class MatchService {
   async assertAvailable(userId: string, freshUser?: UserEntity): Promise<void> {
     // Callers that just loaded the user can pass it in to avoid a duplicate query.
     const user = freshUser ?? (await this.deps.repository.getUserById(userId));
-    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
 
     const knownMatchId = this.userMatchIds.get(userId);
     if (knownMatchId) {
@@ -242,14 +242,14 @@ export class MatchService {
 
   async startAi(userId: string, difficulty: AiDifficulty, side: Side): Promise<MatchEntity> {
     const user = await this.deps.repository.getUserById(userId);
-    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
     await this.assertAvailable(userId, user);
     return this.createAiMatch(user, difficulty, side);
   }
 
   async startAiFallback(userId: string): Promise<MatchEntity> {
     const user = await this.deps.repository.getUserById(userId);
-    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+    if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
     await this.assertAvailable(userId, user);
     return this.createAiMatch(user, this.deps.config.aiFallbackDifficulty, 'X');
   }
@@ -314,7 +314,7 @@ export class MatchService {
   async acceptInvitation(user: UserEntity, token: string): Promise<{ match: MatchEntity }> {
     const tokenHash = hashInvitationToken(token);
     const freshUser = await this.deps.repository.getUserById(user.id);
-    if (!freshUser) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+    if (!freshUser) throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
     const result = await this.deps.repository.acceptInvitation(tokenHash, freshUser, null);
     switch (result.status) {
       case 'accepted':
@@ -477,7 +477,7 @@ export class MatchService {
       const ai = match.participants.find((participant) => participant.isAi);
       const difficulty = ai?.aiDifficulty ?? 'MEDIUM';
       const user = await this.deps.repository.getUserById(userId);
-      if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+      if (!user) throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
       await this.assertAvailable(userId, user);
       const newMatch = await this.createAiMatch(user, difficulty, player.side);
       return {

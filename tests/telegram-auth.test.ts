@@ -3,7 +3,9 @@ import { describe, expect, it } from 'vitest';
 import {
   TelegramAuthError,
   buildTelegramInitDataForTest,
+  buildTelegramLoginDataForTest,
   verifyTelegramInitData,
+  verifyTelegramLoginData,
 } from '../src/server/auth/telegram';
 import { TEST_BOT_TOKEN } from './helpers';
 
@@ -245,5 +247,147 @@ describe('Telegram initData verification', () => {
     expect(verified.username).toBeNull();
     expect(verified.photoUrl).toBeNull();
     expect(verified.languageCode).toBeNull();
+  });
+});
+
+describe('Telegram Login Widget verification', () => {
+  const LOGIN_USER = {
+    id: 123456789,
+    first_name: 'Alice',
+    last_name: 'Example',
+    username: 'alice_example',
+    photo_url: 'https://example.com/alice.png',
+  };
+
+  function widgetData() {
+    return buildTelegramLoginDataForTest(
+      TEST_BOT_TOKEN,
+      LOGIN_USER,
+      NOW_SECONDS - 10,
+    );
+  }
+
+  function asQuery(data: Record<string, string | number>): Record<string, string> {
+    return Object.fromEntries(Object.entries(data).map(([key, value]) => [key, String(value)]));
+  }
+
+  it('verifies a correctly signed widget payload and normalizes the profile', () => {
+    const verified = verifyTelegramLoginData(widgetData(), TEST_BOT_TOKEN, {
+      maxAgeSeconds: 86_400,
+      now: NOW,
+    });
+    expect(verified).toEqual({
+      telegramId: 123456789n,
+      firstName: 'Alice',
+      lastName: 'Example',
+      username: 'alice_example',
+      photoUrl: 'https://example.com/alice.png',
+      languageCode: null,
+      authDate: new Date((NOW_SECONDS - 10) * 1000),
+    });
+  });
+
+  it('accepts the all-string payload produced by a widget redirect', () => {
+    const verified = verifyTelegramLoginData(asQuery(widgetData()), TEST_BOT_TOKEN, {
+      maxAgeSeconds: 86_400,
+      now: NOW,
+    });
+    expect(verified.telegramId).toBe(123456789n);
+    expect(verified.firstName).toBe('Alice');
+  });
+
+  it('rejects tampered fields and signatures made with another token', () => {
+    expectCode(
+      () =>
+        verifyTelegramLoginData(
+          { ...widgetData(), first_name: 'Mallory' },
+          TEST_BOT_TOKEN,
+          { maxAgeSeconds: 86_400, now: NOW },
+        ),
+      'LOGIN_DATA_INVALID',
+    );
+
+    const otherToken = buildTelegramLoginDataForTest(
+      '999999999:AAothertokenwithlongenoughbody1234567',
+      LOGIN_USER,
+      NOW_SECONDS - 10,
+    );
+    expectCode(
+      () => verifyTelegramLoginData(otherToken, TEST_BOT_TOKEN, { maxAgeSeconds: 86_400, now: NOW }),
+      'LOGIN_DATA_INVALID',
+    );
+  });
+
+  it('rejects expired, future-dated, and missing auth data', () => {
+    expectCode(
+      () =>
+        verifyTelegramLoginData(
+          buildTelegramLoginDataForTest(TEST_BOT_TOKEN, LOGIN_USER, NOW_SECONDS - 101),
+          TEST_BOT_TOKEN,
+          { maxAgeSeconds: 100, now: NOW },
+        ),
+      'LOGIN_DATA_EXPIRED',
+    );
+    expectCode(
+      () =>
+        verifyTelegramLoginData(
+          buildTelegramLoginDataForTest(TEST_BOT_TOKEN, LOGIN_USER, NOW_SECONDS + 300),
+          TEST_BOT_TOKEN,
+          { maxAgeSeconds: 86_400, now: NOW },
+        ),
+      'LOGIN_DATA_INVALID',
+    );
+    expectCode(
+      () => verifyTelegramLoginData(null, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_MISSING',
+    );
+  });
+
+  it('rejects malformed hashes, timestamps, and field values', () => {
+    const data = widgetData();
+    expectCode(
+      () => verifyTelegramLoginData({ ...data, hash: 'abc' }, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_MALFORMED',
+    );
+    expectCode(
+      () => verifyTelegramLoginData({ ...data, auth_date: 'soon' }, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_MALFORMED',
+    );
+    expectCode(
+      () => verifyTelegramLoginData({ ...data, first_name: ['Alice'] }, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_MALFORMED',
+    );
+    expectCode(
+      () => verifyTelegramLoginData({ ...data, 'bad-key': 'value' }, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_MALFORMED',
+    );
+  });
+
+  it('rejects payloads without a user id or with bot accounts', () => {
+    const badId = buildTelegramLoginDataForTest(
+      TEST_BOT_TOKEN,
+      { id: 'not-a-number', first_name: 'Alice' },
+      NOW_SECONDS - 10,
+    );
+    expectCode(
+      () => verifyTelegramLoginData(badId, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_USER_INVALID',
+    );
+    const bot = buildTelegramLoginDataForTest(
+      TEST_BOT_TOKEN,
+      { id: 42, first_name: 'Bot', is_bot: 'true' },
+      NOW_SECONDS - 10,
+    );
+    expectCode(
+      () => verifyTelegramLoginData(bot, TEST_BOT_TOKEN, { maxAgeSeconds: 100, now: NOW }),
+      'LOGIN_DATA_USER_INVALID',
+    );
+  });
+
+  it('rejects missing bot configuration', () => {
+    expectCode(
+      () => verifyTelegramLoginData(widgetData(), null, { maxAgeSeconds: 100, now: NOW }),
+      'BOT_CONFIG_MISSING',
+    );
   });
 });

@@ -1,6 +1,6 @@
 # Tic Tac Toe — Telegram Mini App
 
-A production-oriented, real-time 5-in-a-row Tic Tac Toe game that runs as a Telegram Mini App. One Node.js server serves the React client, the HTTP API, Socket.IO, and the Telegram bot webhook from a single origin.
+A production-oriented, real-time 5-in-a-row Tic Tac Toe game that runs as a Telegram Mini App and as a browser app with Telegram sign-in. One Node.js server serves the React client, the HTTP API, Socket.IO, and the Telegram bot webhook from a single origin.
 
 ![Stack](https://img.shields.io/badge/React%2019-TypeScript-3178C6) ![Server](https://img.shields.io/badge/Node.js-Express%205%20%2B%20Socket.IO%204-339933) ![Database](https://img.shields.io/badge/PostgreSQL-Prisma%206-4169E1)
 
@@ -13,7 +13,7 @@ A production-oriented, real-time 5-in-a-row Tic Tac Toe game that runs as a Tele
   - Private friend invitations via `https://t.me/<BOT_USERNAME>?startapp=invite_<TOKEN>`.
   - AI opponent with Easy, Medium, and Hard difficulties (heuristic bot).
 - **Server-authoritative play** — moves, turns, results, ratings, and AI decisions are validated and computed on the server. The client cannot set a board state.
-- **Telegram-native authentication** — `initData` is verified with Telegram's documented HMAC-SHA256 scheme, then exchanged for a signed, HttpOnly session cookie. Bot tokens never reach the browser.
+- **Telegram-native authentication** — Mini App `initData` is verified with Telegram's documented HMAC-SHA256 scheme, then exchanged for a signed, HttpOnly session cookie. Regular browsers use the official Telegram Login Widget with the same server-side verification and session. Bot tokens never reach the browser.
 - **Resilient real-time sessions** — Socket.IO rooms, participant authorization, reconnect grace, turn timers (optional), and idempotent move action IDs.
 - **Optional turn reminders** — opt in from Settings to receive one Telegram message when it becomes your turn while you are away, with a button that deep-links back to the board. A test message confirms delivery, and reminders disable themselves if Telegram can no longer reach you.
 - **Persistence** — PostgreSQL through Prisma, with transactional matchmaking reservations, invitation acceptance, move recording, and rating updates.
@@ -231,6 +231,7 @@ Production startup fails fast if required secrets, the HTTPS Mini App URL, or Te
 2. Set `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME`.
 3. Deploy the app behind HTTPS and set `MINI_APP_URL` to that public origin.
 4. In **@BotFather**:
+   - `/setdomain` → choose the bot → enter the exact public origin used to open the app in a browser (for example `your-domain.example`, without `https://` or a path). This is required for the browser Login Widget; without it Telegram reports that the bot domain is invalid.
    - `/setmenubutton` → choose the bot → set the Mini App URL.
    - `/newapp` (or Mini App settings) → configure the Web App URL and short name.
    - `/setuserpic` (and the Mini App icon field, if shown) → upload `public/icons/icon-512.png`.
@@ -252,6 +253,24 @@ Production startup fails fast if required secrets, the HTTPS Mini App URL, or Te
    `HMAC_SHA256(HMAC_SHA256("WebAppData", botToken), dataCheckString)`.
 3. It compares the signature in constant time, checks `auth_date` freshness, validates the user payload, and upserts the user.
 4. The server returns an HttpOnly `ttt_session` cookie signed with `SESSION_SECRET`. HTTP and Socket.IO authentication use this cookie; the bot token is never sent to the client.
+
+### Browser sign-in
+
+Opening the app in a normal browser shows a **Sign in with Telegram** screen. The official Telegram Login Widget sends the browser to `GET /api/auth/telegram/widget/callback`, where the server:
+
+1. Builds a data-check string from every received field except `hash`, sorted by key.
+2. Verifies `HMAC_SHA256(SHA256(botToken), dataCheckString)` in constant time.
+3. Checks that `auth_date` is fresh (within ten minutes) and validates the user payload.
+4. Confirms the short-lived `state` value matches its cookie, which binds the callback to the browser that started sign-in.
+5. Issues the same HttpOnly `ttt_session` cookie used by the Mini App, then redirects back to the current screen.
+
+Browser sign-in requires:
+
+- `TELEGRAM_BOT_TOKEN` and `TELEGRAM_BOT_USERNAME` to be set.
+- The public HTTPS domain to be linked to the bot with BotFather `/setdomain`.
+- The address bar host to match that configured domain (`www` and the apex count as different hosts).
+
+Opening the game from the bot inside Telegram uses `initData` instead and does not need the widget. If browser sign-in is unavailable, users can still tap **Open in Telegram**.
 
 ## Production build and run
 

@@ -215,11 +215,11 @@ describe('Socket.IO end-to-end', () => {
 
   it('rejects unauthenticated and tampered socket sessions', async () => {
     const error = await connectExpectFailure();
-    expect(error.message).toMatch(/Please open the game from Telegram|Socket authentication failed/);
+    expect(error.message).toMatch(/Please sign in with Telegram|Socket authentication failed/);
 
     const session = await authenticate('e2e-auth-socket', 'Auth User');
     const tampered = await connectExpectFailure(`${session.cookie.slice(0, -2)}AA`);
-    expect(tampered.message).toMatch(/Please open the game from Telegram|Socket authentication failed/);
+    expect(tampered.message).toMatch(/Please sign in with Telegram|Socket authentication failed/);
 
     const socket = await connect(session.cookie);
     const ready = readyPayloads.get(socket);

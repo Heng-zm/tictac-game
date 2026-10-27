@@ -20,7 +20,7 @@ export function createRequireAuth(repository: GameRepository, config: AppConfig)
       const token = req.cookies?.[SESSION_COOKIE_NAME] as string | undefined;
       const payload = verifySessionToken(token, config.sessionSecret);
       if (!payload) {
-        throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+        throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
       }
       const user = await repository.getUserById(payload.uid);
       if (!user || user.telegramId.toString() !== payload.tid) {

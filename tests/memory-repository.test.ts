@@ -107,6 +107,28 @@ describe('MemoryGameRepository', () => {
     expect(alice.stats).toMatchObject({ gamesPlayed: 0, rating: 1000, ratingGames: 0 });
   });
 
+  it('preserves the language code when an update omits it', async () => {
+    const withLocale = await repo.upsertTelegramUser({
+      telegramId: 1001n,
+      firstName: 'Alice',
+      languageCode: 'km',
+    });
+    expect(withLocale.languageCode).toBe('km');
+
+    const withoutLocale = await repo.upsertTelegramUser({
+      telegramId: 1001n,
+      firstName: 'Alice Updated',
+    });
+    expect(withoutLocale.languageCode).toBe('km');
+
+    const cleared = await repo.upsertTelegramUser({
+      telegramId: 1001n,
+      firstName: 'Alice Updated',
+      languageCode: null,
+    });
+    expect(cleared.languageCode).toBeNull();
+  });
+
   it('reserves both players and rejects duplicate reservations', async () => {
     const matchId = await createRandomMatch();
     expect((await repo.getUserById(alice.id))?.activeMatchId).toBe(matchId);

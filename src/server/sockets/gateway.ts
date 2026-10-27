@@ -77,7 +77,7 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
       const cookies = parseCookieHeader(socket.handshake.headers.cookie);
       const token = cookies[SESSION_COOKIE_NAME];
       const payload = verifySessionToken(token, config.sessionSecret);
-      if (!payload) throw new AppError(401, 'AUTH_REQUIRED', 'Please open the game from Telegram');
+      if (!payload) throw new AppError(401, 'AUTH_REQUIRED', 'Please sign in with Telegram');
       const user = await repository.getUserById(payload.uid);
       if (!user || user.telegramId.toString() !== payload.tid) {
         throw new AppError(401, 'AUTH_REQUIRED', 'Your session is no longer valid');

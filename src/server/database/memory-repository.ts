@@ -63,7 +63,9 @@ export class MemoryGameRepository implements GameRepository {
       existing.lastName = profile.lastName ?? null;
       existing.username = profile.username ?? null;
       existing.photoUrl = profile.photoUrl ?? null;
-      existing.languageCode = profile.languageCode ?? null;
+      if (profile.languageCode !== undefined) {
+        existing.languageCode = profile.languageCode;
+      }
       existing.lastSeenAt = now;
       return cloneUser(existing);
     }
