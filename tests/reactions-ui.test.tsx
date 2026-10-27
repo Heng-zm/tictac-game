@@ -2,9 +2,11 @@
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { STICKER_IDS } from '../src/shared/stickers';
+import { CHAT_MESSAGE_MAX_LENGTH } from '../src/shared/events';
 import { StickerCharacter } from '../src/client/components/stickers/StickerCharacter';
 import { ReactionPicker } from '../src/client/components/stickers/ReactionPicker';
 import { ReactionOverlay, type DisplayReaction } from '../src/client/components/stickers/ReactionOverlay';
+import { ChatOverlay, type DisplayChatMessage } from '../src/client/components/stickers/ChatOverlay';
 
 describe('Sticker Reactions UI', () => {
   beforeEach(() => {
@@ -117,6 +119,105 @@ describe('Sticker Reactions UI', () => {
         />,
       );
 
+      expect(container.firstChild).toBeNull();
+    });
+
+    it('sends trimmed custom chat text and closes the sheet', () => {
+      const onSendText = vi.fn();
+      const onClose = vi.fn();
+      render(
+        <ReactionPicker
+          isOpen={true}
+          onClose={onClose}
+          onSelect={vi.fn()}
+          onSendText={onSendText}
+          languageCode="en"
+        />,
+      );
+
+      const input = screen.getByRole('textbox', { name: 'Chat message' }) as HTMLInputElement;
+      const send = screen.getByRole('button', { name: 'Send message' }) as HTMLButtonElement;
+      expect(input.maxLength).toBe(CHAT_MESSAGE_MAX_LENGTH);
+      expect(send.disabled).toBe(true);
+
+      fireEvent.change(input, { target: { value: '   ' } });
+      expect(send.disabled).toBe(true);
+
+      fireEvent.change(input, { target: { value: '  Good luck!  ' } });
+      expect(send.disabled).toBe(false);
+      fireEvent.click(send);
+
+      expect(onSendText).toHaveBeenCalledWith('Good luck!');
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it('submits custom chat text through the form (Enter key path)', () => {
+      const onSendText = vi.fn();
+      render(
+        <ReactionPicker
+          isOpen={true}
+          onClose={vi.fn()}
+          onSelect={vi.fn()}
+          onSendText={onSendText}
+        />,
+      );
+
+      const input = screen.getByRole('textbox', { name: 'Chat message' });
+      fireEvent.change(input, { target: { value: 'Well played' } });
+      fireEvent.submit(input.closest('form')!);
+
+      expect(onSendText).toHaveBeenCalledWith('Well played');
+    });
+
+    it('localizes the custom chat composer in Khmer', () => {
+      render(
+        <ReactionPicker
+          isOpen={true}
+          onClose={vi.fn()}
+          onSelect={vi.fn()}
+          onSendText={vi.fn()}
+          languageCode="km"
+        />,
+      );
+
+      expect(screen.getByRole('textbox', { name: 'សារជជែក' })).toBeTruthy();
+      expect(screen.getByRole('button', { name: 'ផ្ញើសារ' })).toBeTruthy();
+    });
+  });
+
+  describe('ChatOverlay', () => {
+    it('renders a transient custom chat bubble', () => {
+      const message: DisplayChatMessage = {
+        messageId: 'msg-1',
+        senderSide: 'O',
+        isYou: false,
+        text: 'Nice move!',
+        timestamp: new Date().toISOString(),
+      };
+
+      render(<ChatOverlay message={message} />);
+
+      expect(screen.getByRole('status')).toBeTruthy();
+      expect(screen.getByText('Nice move!')).toBeTruthy();
+    });
+
+    it('renders user text literally rather than as markup', () => {
+      const message: DisplayChatMessage = {
+        messageId: 'msg-2',
+        senderSide: 'X',
+        isYou: true,
+        text: '<b>hello</b>',
+        timestamp: new Date().toISOString(),
+      };
+
+      const { container } = render(<ChatOverlay message={message} />);
+
+      expect(screen.getByText('<b>hello</b>')).toBeTruthy();
+      expect(container.querySelector('b')).toBeNull();
+    });
+
+    it('returns null when the message is null', () => {
+      const { container } = render(<ChatOverlay message={null} />);
       expect(container.firstChild).toBeNull();
     });
   });

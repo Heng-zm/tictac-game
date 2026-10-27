@@ -14,6 +14,7 @@ import {
   inviteAcceptSchema,
   inviteCancelSchema,
   matchIdOnlySchema,
+  matchChatSchema,
   matchJoinSchema,
   matchReactionSchema,
   matchVoiceSchema,
@@ -35,6 +36,7 @@ const EVENT_LIMITS: Record<string, { max: number; windowMs: number }> = {
   'match:rematch': { max: 12, windowMs: 60_000 },
   'match:leave': { max: 12, windowMs: 60_000 },
   'match:reaction': { max: 10, windowMs: 10_000 },
+  'match:chat': { max: 10, windowMs: 10_000 },
   'match:voice': { max: 8, windowMs: 15_000 },
 };
 
@@ -253,6 +255,20 @@ export function createSocketGateway(deps: SocketGatewayDependencies): SocketGate
         async () => {
           const parsed = matchReactionSchema.parse(payload);
           return matchService.sendReaction(userId, parsed.matchId, parsed.stickerId);
+        },
+        limiter,
+        log,
+        socket,
+      );
+    });
+
+    socket.on('match:chat', (payload, ack) => {
+      void handleEvent(
+        'match:chat',
+        ack,
+        async () => {
+          const parsed = matchChatSchema.parse(payload);
+          return matchService.sendChat(userId, parsed.matchId, parsed.text);
         },
         limiter,
         log,

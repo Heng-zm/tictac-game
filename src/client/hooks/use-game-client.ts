@@ -9,6 +9,7 @@ import type {
   UserProfile,
 } from '../../shared/game-types';
 import type {
+  MatchChatResult,
   MatchJoinResult,
   MatchReactionResult,
   MatchVoiceEvent,
@@ -18,6 +19,7 @@ import type {
   RematchResult,
 } from '../../shared/events';
 import type { StickerId } from '../../shared/stickers';
+import type { DisplayChatMessage } from '../components/stickers/ChatOverlay';
 
 export interface DisplayReaction {
   reactionId: string;
@@ -115,6 +117,8 @@ export interface GameClient {
   sendTestNotification: () => Promise<void>;
   reactions: DisplayReaction[];
   sendReaction: (matchId: string, stickerId: StickerId) => Promise<MatchReactionResult>;
+  chatMessages: DisplayChatMessage[];
+  sendChat: (matchId: string, text: string) => Promise<MatchChatResult>;
   incomingVoice: MatchVoiceEvent | null;
   sendVoice: (matchId: string, audioData: string, durationMs: number, waveform?: number[]) => Promise<MatchVoiceResult>;
   clearIncomingVoice: () => void;
@@ -126,6 +130,7 @@ export interface GameClient {
 }
 
 const INVITE_LINK_PREFIX = 'ttt:invite-link:';
+const CHAT_BUBBLE_TTL_MS = 6_000;
 
 export function inviteLinkStorageKey(invitationId: string): string {
   return `${INVITE_LINK_PREFIX}${invitationId}`;
@@ -158,6 +163,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const [initialGameMatchId, setInitialGameMatchId] = useState<string | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [reactions, setReactions] = useState<DisplayReaction[]>([]);
+  const [chatMessages, setChatMessages] = useState<DisplayChatMessage[]>([]);
   const [incomingVoice, setIncomingVoice] = useState<MatchVoiceEvent | null>(null);
   const [bootAttempt, setBootAttempt] = useState(0);
 
@@ -439,6 +445,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       setLastRejection(null);
       setOpponentGraceEndsAt(null);
       setReactions([]);
+      setChatMessages([]);
       hapticNotify('success');
       onMatchFoundRef.current(found.id);
     });
@@ -559,6 +566,28 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
           setReactions((prev) => prev.filter((r) => r.reactionId !== event.reactionId));
         }
       }, 3200);
+    });
+
+    socket.on('match:chat', (event) => {
+      if (!active) return;
+      const currentMatch = matchRef.current;
+      if (!currentMatch || currentMatch.id !== event.matchId) return;
+      const newMessage: DisplayChatMessage = {
+        messageId: event.messageId,
+        senderSide: event.senderSide,
+        isYou: currentMatch.youSide === event.senderSide,
+        text: event.text,
+        timestamp: event.timestamp,
+      };
+
+      setChatMessages((prev) => [...prev.slice(-5), newMessage]);
+      hapticImpact('light');
+
+      window.setTimeout(() => {
+        if (active) {
+          setChatMessages((prev) => prev.filter((m) => m.messageId !== event.messageId));
+        }
+      }, CHAT_BUBBLE_TTL_MS);
     });
 
     socket.on('match:voice', (event) => {
@@ -756,6 +785,16 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     [requireSocket],
   );
 
+  const sendChat = useCallback(
+    async (matchId: string, text: string): Promise<MatchChatResult> => {
+      const socket = requireSocket();
+      return request<MatchChatResult>((ack) => {
+        socket.emit('match:chat', { matchId, text }, ack);
+      });
+    },
+    [requireSocket],
+  );
+
   const sendVoice = useCallback(
     async (
       matchId: string,
@@ -888,6 +927,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     requestRematch,
     leaveMatch,
     sendReaction,
+    chatMessages,
+    sendChat,
     incomingVoice,
     sendVoice,
     clearIncomingVoice,

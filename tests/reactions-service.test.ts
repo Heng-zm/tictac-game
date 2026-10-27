@@ -3,7 +3,7 @@ import type { AppConfig } from '../src/server/config';
 import type { UserEntity } from '../src/server/database/types';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import { MatchService } from '../src/server/services/match-service';
-import type { MatchReactionEvent } from '../src/shared/events';
+import { CHAT_MESSAGE_MAX_LENGTH, type MatchChatEvent, type MatchReactionEvent } from '../src/shared/events';
 import {
   FakeIo,
   MutableClock,
@@ -139,5 +139,71 @@ describe('MatchService — Sticker Reactions & Quick Chat', () => {
     const botReaction = reactions[reactions.length - 1]!.payload as MatchReactionEvent;
     expect(botReaction.senderSide).toBe('O'); // Bot is on side O
     expect(['greeting', 'respect']).toContain(botReaction.stickerId);
+  });
+
+  it('broadcasts trimmed custom chat text to the match room', async () => {
+    const match = await service.createRandomMatch(alice.id, bob.id);
+    io.emitted.length = 0;
+
+    const res = await service.sendChat(alice.id, match.id, '  Nice move!  ');
+    expect(res).toEqual({ sent: true });
+
+    const chatEvents = io.emitted.filter(
+      (e) => e.room === `match:${match.id}` && e.event === 'match:chat',
+    );
+    expect(chatEvents).toHaveLength(1);
+
+    const payload = chatEvents[0]!.payload as MatchChatEvent;
+    expect(payload.matchId).toBe(match.id);
+    expect(payload.text).toBe('Nice move!');
+    expect(payload.senderSide).toBe('X');
+    expect(typeof payload.messageId).toBe('string');
+    expect(payload.messageId.length).toBeGreaterThan(0);
+    expect(payload.timestamp).toBe(clock.now().toISOString());
+  });
+
+  it('allows both participants to send chat in the same match', async () => {
+    const match = await service.createRandomMatch(alice.id, bob.id);
+    io.emitted.length = 0;
+
+    await service.sendChat(alice.id, match.id, 'Good luck');
+    await service.sendChat(bob.id, match.id, 'You too');
+
+    const messages = io.emitted
+      .filter((e) => e.room === `match:${match.id}` && e.event === 'match:chat')
+      .map((e) => e.payload as MatchChatEvent);
+    expect(messages).toHaveLength(2);
+    expect(messages[0]!.senderSide).toBe('X');
+    expect(messages[1]!.senderSide).toBe('O');
+    expect(messages[1]!.text).toBe('You too');
+  });
+
+  it('rejects empty and oversized custom chat messages', async () => {
+    const match = await service.createRandomMatch(alice.id, bob.id);
+    io.emitted.length = 0;
+
+    await expect(service.sendChat(alice.id, match.id, '   ')).rejects.toMatchObject({
+      code: 'INVALID_CHAT_MESSAGE',
+    });
+    await expect(
+      service.sendChat(alice.id, match.id, 'a'.repeat(CHAT_MESSAGE_MAX_LENGTH + 1)),
+    ).rejects.toMatchObject({ code: 'INVALID_CHAT_MESSAGE' });
+    expect(io.emitted.filter((e) => e.event === 'match:chat')).toHaveLength(0);
+  });
+
+  it('rejects custom chat from users who are not part of the match', async () => {
+    const match = await service.createRandomMatch(alice.id, bob.id);
+
+    await expect(service.sendChat(charlie.id, match.id, 'Hello')).rejects.toMatchObject({
+      code: 'MATCH_FORBIDDEN',
+    });
+  });
+
+  it('rejects custom chat if the match is still WAITING (e.g. unaccepted friend invite)', async () => {
+    const invite = await service.createInvitation(alice);
+
+    await expect(service.sendChat(alice.id, invite.matchId, 'Hello')).rejects.toMatchObject({
+      code: 'GAME_NOT_ACTIVE',
+    });
   });
 });

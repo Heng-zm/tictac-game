@@ -13,6 +13,8 @@ import type {
 } from './game-types';
 import type { StickerId } from './stickers';
 
+export const CHAT_MESSAGE_MAX_LENGTH = 200;
+
 export const SOCKET_EVENTS = {
   // Client -> server
   QUEUE_JOIN: 'queue:join',
@@ -26,6 +28,7 @@ export const SOCKET_EVENTS = {
   MATCH_REMATCH: 'match:rematch',
   MATCH_LEAVE: 'match:leave',
   MATCH_REACTION: 'match:reaction',
+  MATCH_CHAT: 'match:chat',
   MATCH_VOICE: 'match:voice',
   // Server -> client
   SESSION_READY: 'session:ready',
@@ -169,6 +172,23 @@ export interface MatchReactionEvent {
   reactionId: string;
 }
 
+export interface MatchChatPayload {
+  matchId: string;
+  text: string;
+}
+
+export interface MatchChatResult {
+  sent: true;
+}
+
+export interface MatchChatEvent {
+  matchId: string;
+  senderSide: Side;
+  text: string;
+  timestamp: string;
+  messageId: string;
+}
+
 export interface MatchVoicePayload {
   matchId: string;
   audioData: string;
@@ -211,6 +231,10 @@ export interface ClientToServerEvents {
     payload: MatchReactionPayload,
     ack: (result: SocketAck<MatchReactionResult>) => void,
   ) => void;
+  'match:chat': (
+    payload: MatchChatPayload,
+    ack: (result: SocketAck<MatchChatResult>) => void,
+  ) => void;
   'match:voice': (
     payload: MatchVoicePayload,
     ack: (result: SocketAck<MatchVoiceResult>) => void,
@@ -231,6 +255,7 @@ export interface ServerToClientEvents {
   'invite:pending': (payload: { invitation: PendingInvitation }) => void;
   'rematch:status': (payload: RematchStatusEvent) => void;
   'match:reaction': (payload: MatchReactionEvent) => void;
+  'match:chat': (payload: MatchChatEvent) => void;
   'match:voice': (payload: MatchVoiceEvent) => void;
   'server:error': (payload: ServerErrorEvent) => void;
   'server:shutdown': (payload: { message: string }) => void;

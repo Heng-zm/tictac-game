@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameClient } from '../src/client/hooks/use-game-client';
+import type { DisplayChatMessage } from '../src/client/components/stickers/ChatOverlay';
 import { GameScreen } from '../src/client/screens/GameScreen';
 import type { PublicMatchState, PublicPlayer, UserProfile } from '../src/shared/game-types';
 
@@ -97,10 +98,12 @@ function makeClient(overrides: Partial<GameClient> = {}): GameClient {
     lastMove: null,
     opponentGraceEndsAt: null,
     reactions: [],
+    chatMessages: [],
     incomingVoice: null,
     joinMatch: vi.fn().mockResolvedValue(makeMatch()),
     submitMove: vi.fn().mockResolvedValue(makeMatch()),
     sendReaction: vi.fn().mockResolvedValue({ sent: true }),
+    sendChat: vi.fn().mockResolvedValue({ sent: true }),
     sendVoice: vi.fn().mockResolvedValue({ sent: true }),
     pushToast: vi.fn(),
     reconnect: vi.fn(),
@@ -180,5 +183,74 @@ describe('GameScreen sticker reactions and quick chat', () => {
 
     const trigger = screen.getByRole('button', { name: /open sticker reactions and quick chat/i });
     expect((trigger as HTMLButtonElement).disabled).toBe(true);
+  });
+
+  it('sends a typed chat message and closes the tray', async () => {
+    const client = makeClient();
+    renderGame(client);
+
+    fireEvent.click(screen.getByRole('button', { name: /open sticker reactions and quick chat/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: /chat message/i }), {
+      target: { value: '  Well played  ' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(client.sendChat).toHaveBeenCalledWith(MATCH_ID, 'Well played');
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('reports a failed chat message and still closes the tray', async () => {
+    const pushToast = vi.fn();
+    const client = makeClient({
+      sendChat: vi.fn().mockRejectedValue(new Error('Socket closed')),
+      pushToast,
+    });
+    renderGame(client);
+
+    fireEvent.click(screen.getByRole('button', { name: /open sticker reactions and quick chat/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: /chat message/i }), {
+      target: { value: 'Still there?' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /send message/i }));
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(pushToast).toHaveBeenCalledWith({
+      type: 'error',
+      title: 'Message not sent',
+      message: 'Socket closed',
+    });
+    expect(screen.queryByRole('dialog')).toBeNull();
+  });
+
+  it('renders incoming and sent chat bubbles near the matching player', () => {
+    const chatMessages: DisplayChatMessage[] = [
+      {
+        messageId: 'msg-1',
+        senderSide: 'X',
+        isYou: true,
+        text: 'Good luck!',
+        timestamp: '2026-10-27T10:00:01.000Z',
+      },
+      {
+        messageId: 'msg-2',
+        senderSide: 'O',
+        isYou: false,
+        text: 'You too!',
+        timestamp: '2026-10-27T10:00:02.000Z',
+      },
+    ];
+
+    renderGame(makeClient({ chatMessages }));
+
+    expect(screen.getByText('Good luck!')).toBeTruthy();
+    expect(screen.getByText('You too!')).toBeTruthy();
+    expect(screen.getAllByRole('status')).toHaveLength(2);
   });
 });

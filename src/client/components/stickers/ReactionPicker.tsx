@@ -1,5 +1,5 @@
-import { useState, useMemo, useEffect, useRef } from 'react';
-import { X, Sparkles, MessageSquare, Smile, Zap } from 'lucide-react';
+import { useState, useMemo, useEffect, useRef, type FormEvent } from 'react';
+import { X, Sparkles, MessageSquare, Smile, Zap, Send } from 'lucide-react';
 import {
   STICKER_LIST,
   getStickerLabel,
@@ -9,11 +9,13 @@ import {
 } from '../../../shared/stickers';
 import { StickerCharacter } from './StickerCharacter';
 import { hapticImpact } from '../../lib/telegram';
+import { CHAT_MESSAGE_MAX_LENGTH } from '../../../shared/events';
 
 interface ReactionPickerProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (stickerId: StickerId) => void;
+  onSendText?: (text: string) => void;
   languageCode?: string | null;
   disabled?: boolean;
 }
@@ -22,11 +24,13 @@ export function ReactionPicker({
   isOpen,
   onClose,
   onSelect,
+  onSendText,
   languageCode,
   disabled = false,
 }: ReactionPickerProps) {
   const [selectedCategory, setSelectedCategory] = useState<StickerCategory>('all');
   const [sendingId, setSendingId] = useState<StickerId | null>(null);
+  const [draft, setDraft] = useState('');
   const trayRef = useRef<HTMLDivElement>(null);
 
   // Filter stickers by active tab
@@ -36,6 +40,8 @@ export function ReactionPicker({
   }, [selectedCategory]);
 
   const isKm = (languageCode ?? '').toLowerCase().startsWith('km');
+  const trimmedDraft = draft.trim();
+  const canSendText = !disabled && trimmedDraft.length > 0;
 
   const categories: { id: StickerCategory; label: string; icon: typeof Sparkles }[] = [
     { id: 'all', label: isKm ? 'ទាំងអស់' : 'All', icon: Sparkles },
@@ -54,6 +60,11 @@ export function ReactionPicker({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isOpen, onClose]);
 
+  // Start every visit with an empty composer.
+  useEffect(() => {
+    if (!isOpen) setDraft('');
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const handlePick = (sticker: StickerDefinition) => {
@@ -67,6 +78,15 @@ export function ReactionPicker({
       setSendingId(null);
       onClose();
     }, 180);
+  };
+
+  const handleSendText = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!canSendText || !onSendText) return;
+    hapticImpact('light');
+    onSendText(trimmedDraft);
+    setDraft('');
+    onClose();
   };
 
   return (
@@ -110,6 +130,33 @@ export function ReactionPicker({
             <X className="h-4 w-4" />
           </button>
         </div>
+
+        {/* Custom chat composer */}
+        {onSendText ? (
+          <form onSubmit={handleSendText} className="flex items-center gap-2 pt-2.5">
+            <input
+              type="text"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              maxLength={CHAT_MESSAGE_MAX_LENGTH}
+              disabled={disabled}
+              enterKeyHint="send"
+              autoComplete="off"
+              placeholder={isKm ? 'សរសេរសាររហ័ស…' : 'Write a quick message…'}
+              aria-label={isKm ? 'សារជជែក' : 'Chat message'}
+              className="min-w-0 flex-1 rounded-full border border-line bg-elevated/60 px-3.5 py-2 text-sm text-ink placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:opacity-60"
+            />
+            <button
+              type="submit"
+              disabled={!canSendText}
+              aria-label={isKm ? 'ផ្ញើសារ' : 'Send message'}
+              title={isKm ? 'ផ្ញើសារ' : 'Send message'}
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink shadow-sm transition hover:opacity-90 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              <Send className="h-4 w-4" aria-hidden="true" />
+            </button>
+          </form>
+        ) : null}
 
         {/* Category Filter Pills */}
         <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 no-scrollbar">

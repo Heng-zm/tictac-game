@@ -8,7 +8,8 @@ import {
   isValidStickerId,
   type StickerId,
 } from '../src/shared/stickers';
-import { matchReactionSchema } from '../src/shared/schemas/payloads';
+import { matchChatSchema, matchReactionSchema } from '../src/shared/schemas/payloads';
+import { CHAT_MESSAGE_MAX_LENGTH } from '../src/shared/events';
 
 describe('Sticker Registry & Metadata', () => {
   it('contains exactly the 12 requested animated character reactions', () => {
@@ -91,5 +92,33 @@ describe('Sticker Registry & Metadata', () => {
       stickerId: 'greeting',
     });
     expect(invalidUuid.success).toBe(false);
+  });
+
+  it('validates and trims custom chat messages with matchChatSchema', () => {
+    const validUuid = '123e4567-e89b-12d3-a456-426614174000';
+    const parsed = matchChatSchema.safeParse({
+      matchId: validUuid,
+      text: '  Nice move!  ',
+    });
+    expect(parsed.success).toBe(true);
+    expect(parsed.success && parsed.data.text).toBe('Nice move!');
+
+    expect(matchChatSchema.safeParse({ matchId: validUuid, text: '' }).success).toBe(false);
+    expect(matchChatSchema.safeParse({ matchId: validUuid, text: '   ' }).success).toBe(false);
+    expect(
+      matchChatSchema.safeParse({
+        matchId: validUuid,
+        text: 'a'.repeat(CHAT_MESSAGE_MAX_LENGTH),
+      }).success,
+    ).toBe(true);
+    expect(
+      matchChatSchema.safeParse({
+        matchId: validUuid,
+        text: 'a'.repeat(CHAT_MESSAGE_MAX_LENGTH + 1),
+      }).success,
+    ).toBe(false);
+    expect(
+      matchChatSchema.safeParse({ matchId: validUuid, text: 'Hello', extra: true }).success,
+    ).toBe(false);
   });
 });

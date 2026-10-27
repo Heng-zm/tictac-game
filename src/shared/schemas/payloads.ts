@@ -4,6 +4,7 @@ import {
   VOICE_MAX_DURATION_MS,
   validateVoiceDataUrl,
 } from '../audio';
+import { CHAT_MESSAGE_MAX_LENGTH } from '../events';
 import { STICKER_IDS } from '../stickers';
 
 export const SIDE_VALUES = ['X', 'O'] as const;
@@ -58,6 +59,15 @@ export const matchReactionSchema = z
   .strict();
 
 export type MatchReactionInput = z.infer<typeof matchReactionSchema>;
+
+export const matchChatSchema = z
+  .object({
+    matchId: uuidSchema,
+    text: z.string().trim().min(1).max(CHAT_MESSAGE_MAX_LENGTH),
+  })
+  .strict();
+
+export type MatchChatInput = z.infer<typeof matchChatSchema>;
 
 export const matchVoiceSchema = z
   .object({

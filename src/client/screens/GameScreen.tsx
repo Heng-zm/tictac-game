@@ -33,6 +33,7 @@ import { Board } from '../components/Board';
 import { GameResult } from '../components/GameResult';
 import { ReactionPicker } from '../components/stickers/ReactionPicker';
 import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
+import { ChatOverlay } from '../components/stickers/ChatOverlay';
 import { WalkieTalkieButton } from '../components/voice/WalkieTalkieButton';
 
 export function GameScreen({
@@ -226,6 +227,14 @@ export function GameScreen({
     () => client.reactions.filter((r) => !r.isYou).slice(-1)[0] ?? null,
     [client.reactions],
   );
+  const youChat = useMemo(
+    () => client.chatMessages.filter((message) => message.isYou).slice(-1)[0] ?? null,
+    [client.chatMessages],
+  );
+  const opponentChat = useMemo(
+    () => client.chatMessages.filter((message) => !message.isYou).slice(-1)[0] ?? null,
+    [client.chatMessages],
+  );
 
 
   const handleSendReaction = useCallback(
@@ -237,6 +246,22 @@ export function GameScreen({
         client.pushToast({
           type: 'error',
           title: 'Reaction not sent',
+          message: errorMessage(error),
+        });
+      }
+    },
+    [client, match],
+  );
+
+  const handleSendText = useCallback(
+    async (text: string): Promise<void> => {
+      if (!match) return;
+      try {
+        await client.sendChat(match.id, text);
+      } catch (error) {
+        client.pushToast({
+          type: 'error',
+          title: 'Message not sent',
           message: errorMessage(error),
         });
       }
@@ -429,8 +454,9 @@ export function GameScreen({
                   isYou
                   isAi={false}
                 />
-                {youReaction ? (
-                  <div className="absolute top-11 left-1 z-30">
+                {youChat || youReaction ? (
+                  <div className="absolute top-11 left-1 z-30 flex flex-col items-start gap-1">
+                    <ChatOverlay message={youChat} />
                     <ReactionOverlay reaction={youReaction} languageCode={client.profile?.languageCode} />
                   </div>
                 ) : null}
@@ -454,8 +480,9 @@ export function GameScreen({
                   isAi={Boolean(opponent?.isAi)}
                   align="right"
                 />
-                {opponentReaction ? (
-                  <div className="absolute top-11 right-1 z-30">
+                {opponentChat || opponentReaction ? (
+                  <div className="absolute top-11 right-1 z-30 flex flex-col items-end gap-1">
+                    <ChatOverlay message={opponentChat} />
                     <ReactionOverlay reaction={opponentReaction} languageCode={client.profile?.languageCode} />
                   </div>
                 ) : null}
@@ -549,6 +576,7 @@ export function GameScreen({
         isOpen={reactionPickerOpen}
         onClose={() => setReactionPickerOpen(false)}
         onSelect={(stickerId) => void handleSendReaction(stickerId)}
+        onSendText={(text) => void handleSendText(text)}
         languageCode={client.profile?.languageCode}
         disabled={connection !== 'online'}
       />

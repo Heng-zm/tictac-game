@@ -1,6 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import type { Logger } from 'pino';
-import type { MatchReactionEvent, MatchVoiceEvent, MatchVoiceResult } from '../../shared/events';
+import {
+  CHAT_MESSAGE_MAX_LENGTH,
+  type MatchChatEvent,
+  type MatchChatResult,
+  type MatchReactionEvent,
+  type MatchVoiceEvent,
+  type MatchVoiceResult,
+} from '../../shared/events';
 import type {
   AiDifficulty,
   CreatedInvitation,
@@ -614,6 +621,38 @@ export class MatchService {
         this.scheduleAiReaction(match, ai.side, stickerId);
       }
     }
+
+    return { sent: true };
+  }
+
+  async sendChat(userId: string, matchId: string, text: string): Promise<MatchChatResult> {
+    const match = await this.loadMatch(matchId);
+    if (!match) throw new AppError(404, 'MATCH_NOT_FOUND', 'That game could not be found');
+    const player = match.participants.find((participant) => participant.userId === userId);
+    if (!player) throw new AppError(403, 'MATCH_FORBIDDEN', 'You are not part of this game');
+
+    if (match.status !== 'ACTIVE' && match.status !== 'FINISHED') {
+      throw new AppError(409, 'GAME_NOT_ACTIVE', 'Chat is only available during or after a game');
+    }
+
+    const trimmed = text.trim();
+    if (trimmed.length === 0 || trimmed.length > CHAT_MESSAGE_MAX_LENGTH) {
+      throw new AppError(
+        400,
+        'INVALID_CHAT_MESSAGE',
+        `Chat messages must be between 1 and ${CHAT_MESSAGE_MAX_LENGTH} characters`,
+      );
+    }
+
+    const event: MatchChatEvent = {
+      matchId: match.id,
+      senderSide: player.side,
+      text: trimmed,
+      timestamp: this.now().toISOString(),
+      messageId: randomUUID(),
+    };
+
+    this.deps.io.to(matchRoom(match.id)).emit('match:chat', event);
 
     return { sent: true };
   }
