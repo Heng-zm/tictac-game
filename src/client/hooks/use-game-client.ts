@@ -90,6 +90,8 @@ export interface GameClient {
   config: Awaited<ReturnType<typeof fetchConfig>> | null;
   profile: UserProfile | null;
   connection: ConnectionStatus;
+  /** Estimated server time minus device time, in milliseconds. */
+  clockOffsetMs: number;
   match: PublicMatchState | null;
   queue: QueueStatus | null;
   createdInvite: CreatedInvitation | null;
@@ -152,6 +154,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   const [config, setConfig] = useState<GameClient['config']>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [connection, setConnection] = useState<ConnectionStatus>('idle');
+  const [clockOffsetMs, setClockOffsetMs] = useState(0);
   const [match, setMatch] = useState<PublicMatchState | null>(null);
   const [queue, setQueue] = useState<QueueStatus | null>(null);
   const [createdInvite, setCreatedInvite] = useState<CreatedInvitation | null>(null);
@@ -384,6 +387,8 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     socket.on('session:ready', (payload) => {
       if (!active) return;
+      const serverNow = Date.parse(payload.serverTime);
+      if (Number.isFinite(serverNow)) setClockOffsetMs(serverNow - Date.now());
       setProfile(payload.user);
       setConnection('online');
     });
@@ -904,6 +909,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     config,
     profile,
     connection,
+    clockOffsetMs,
     match,
     queue,
     createdInvite,

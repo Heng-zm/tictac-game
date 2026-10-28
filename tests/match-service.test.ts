@@ -184,6 +184,81 @@ describe('MatchService', () => {
     expect(state.board[encodeCell(0, 0)]).toBe('X');
   });
 
+  it('accepts the first move immediately when the ready countdown is disabled', async () => {
+    service = await startService({ matchStartCountdownMs: 0, turnTimeoutMs: 60_000 });
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const cell = encodeCell(0, 0);
+
+    expect(match.turnDeadline?.getTime()).toBe(clock.now().getTime() + 60_000);
+
+    const state = await service.submitMove(aliceId, match.id, cell, randomUUID());
+    expect(state.board[cell]).toBe('X');
+  });
+
+  it('does not bank the ready countdown when a player reconnects during the first turn', async () => {
+    service = await startService({
+      matchStartCountdownMs: 5_000,
+      turnTimeoutMs: 60_000,
+      disconnectGraceMs: 30_000,
+    });
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const aliceUser = aliceId === alice.id ? alice : bob;
+
+    await advance(1_000);
+    await service.handleDisconnected(aliceId);
+    await advance(9_000);
+    await service.handleConnected(aliceUser);
+
+    const state = await service.joinMatch(aliceId, match.id);
+    // The turn was paused before the countdown ended, so the resumed clock is
+    // one full turn rather than a full turn plus the leftover countdown.
+    expect(state.turnDeadline).toBe(new Date(clock.now().getTime() + 60_000).toISOString());
+  });
+
+  it('starts the first turn after the ready phase when the player reconnects mid-countdown', async () => {
+    service = await startService({
+      matchStartCountdownMs: 5_000,
+      turnTimeoutMs: 60_000,
+      disconnectGraceMs: 30_000,
+    });
+    const match = await createRandomMatch();
+    const aliceId = sideUser(match, 'X');
+    const aliceUser = aliceId === alice.id ? alice : bob;
+
+    await advance(1_000);
+    await service.handleDisconnected(aliceId);
+    await advance(2_000);
+    await service.handleConnected(aliceUser);
+
+    const state = await service.joinMatch(aliceId, match.id);
+    // Reconnected at t=3s; the first turn still starts at t=5s.
+    expect(state.turnDeadline).toBe(new Date(clock.now().getTime() + 62_000).toISOString());
+  });
+
+  it('applies the ready countdown to accepted friend invitations', async () => {
+    service = await startService({ matchStartCountdownMs: 5_000, turnTimeoutMs: 60_000 });
+    const invitation = await service.createInvitation(alice);
+    const token = inviteToken(invitation);
+
+    const accepted = await service.acceptInvitation(bob, token);
+    expect(accepted.match.turnDeadline?.getTime()).toBe(clock.now().getTime() + 65_000);
+
+    await expect(
+      service.submitMove(alice.id, invitation.matchId, encodeCell(0, 0), randomUUID()),
+    ).rejects.toMatchObject({ code: 'MATCH_STARTING' });
+
+    await advance(5_000);
+    const state = await service.submitMove(
+      alice.id,
+      invitation.matchId,
+      encodeCell(0, 0),
+      randomUUID(),
+    );
+    expect(state.board[encodeCell(0, 0)]).toBe('X');
+  });
+
   it('rejects self-matches', async () => {
     await expect(service.createRandomMatch(alice.id, alice.id)).rejects.toMatchObject({
       code: 'PLAYER_BUSY',

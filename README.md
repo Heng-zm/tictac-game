@@ -11,7 +11,7 @@ A production-oriented, real-time 5-in-a-row Tic Tac Toe game that runs as a Tele
 - **Three game modes**
   - Random online matchmaking with an optional AI fallback while waiting.
   - Private friend invitations via `https://t.me/<BOT_USERNAME>?startapp=invite_<TOKEN>`.
-  - AI opponent with Easy, Medium, and Hard difficulties (heuristic bot).
+  - AI opponent with Easy, Medium, and Hard difficulties (heuristic bot) plus playful English/Khmer trash talk.
 - **Server-authoritative play** — moves, turns, results, ratings, and AI decisions are validated and computed on the server. The client cannot set a board state.
 - **Telegram-native authentication** — Mini App `initData` is verified with Telegram's documented HMAC-SHA256 scheme, then exchanged for a signed, HttpOnly session cookie. Regular browsers sign in through the bot: the server creates a one-time link, the user taps Verify in Telegram, and the waiting browser receives the same session. Bot tokens never reach the browser.
 - **Resilient real-time sessions** — Socket.IO rooms, participant authorization, reconnect grace, turn timers (optional), and idempotent move action IDs.

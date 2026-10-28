@@ -25,7 +25,7 @@ export function MatchmakingScreen({
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
   const busy = Boolean(activeMatch || pendingInvite);
   const elapsed = useElapsed(startedAt);
-  const fallbackRemaining = useCountdown(queue?.fallbackAt ?? null);
+  const fallbackRemaining = useCountdown(queue?.fallbackAt ?? null, undefined, client.clockOffsetMs);
   const maxWaitMs = config?.queueMaxWaitMs ?? 0;
   const searchProgress = maxWaitMs > 0 ? Math.min(1, elapsed / maxWaitMs) : 0;
   const timeLeftLabel =

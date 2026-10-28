@@ -125,9 +125,12 @@ export function GameScreen({
     }
   }, [client.lastRejection, pendingActionId]);
 
-  const turnRemaining = useCountdown(match?.turnDeadline ?? null);
+  // Server timestamps are compared against an estimated server clock so a
+  // device with a skewed clock cannot lengthen or shorten the ready phase.
+  const clockOffsetMs = client.clockOffsetMs;
+  const turnRemaining = useCountdown(match?.turnDeadline ?? null, undefined, clockOffsetMs);
   const turnTimerTotal = config?.turnTimeoutMs ?? 0;
-  const graceRemaining = useCountdown(client.opponentGraceEndsAt);
+  const graceRemaining = useCountdown(client.opponentGraceEndsAt, undefined, clockOffsetMs);
   const matchStartCountdownMs = config?.matchStartCountdownMs ?? MATCH_START_COUNTDOWN_MS;
   const matchStartTarget = useMemo(() => {
     if (!match || match.mode === 'AI' || matchStartCountdownMs <= 0) return null;
@@ -136,15 +139,27 @@ export function GameScreen({
       ? new Date(startedAt + matchStartCountdownMs).toISOString()
       : null;
   }, [match, matchStartCountdownMs]);
-  const matchStartRemaining = useCountdown(matchStartTarget);
+  const rawMatchStartRemaining = useCountdown(matchStartTarget, undefined, clockOffsetMs);
+  // A stale or wrong clock offset must never hold the board hostage for longer
+  // than the configured ready phase.
+  const matchStartRemaining =
+    rawMatchStartRemaining === null || matchStartCountdownMs <= 0
+      ? rawMatchStartRemaining
+      : Math.min(rawMatchStartRemaining, matchStartCountdownMs);
   const matchStarting = Boolean(
     match &&
       match.status === 'ACTIVE' &&
       matchStartRemaining !== null &&
       matchStartRemaining > 0,
   );
+  const maxCountdownSeconds = Math.max(1, Math.ceil(matchStartCountdownMs / 1000));
   const countdownSeconds =
-    matchStartRemaining === null ? 0 : Math.max(1, Math.ceil(matchStartRemaining / 1000));
+    matchStartRemaining === null
+      ? 0
+      : Math.min(
+          maxCountdownSeconds,
+          Math.max(1, Math.ceil(matchStartRemaining / 1000)),
+        );
   const countdownProgress =
     matchStartRemaining === null || matchStartCountdownMs <= 0
       ? 0
@@ -566,11 +581,7 @@ export function GameScreen({
 
       {matchStarting ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/65 px-5 backdrop-blur-sm animate-fade-in">
-          <div
-            className="w-full max-w-xs rounded-3xl border border-accent/25 bg-surface/95 p-6 text-center shadow-soft animate-pop-in"
-            role="status"
-            aria-live="polite"
-          >
+          <div className="w-full max-w-xs rounded-3xl border border-accent/25 bg-surface/95 p-6 text-center shadow-soft animate-pop-in">
             <p className="text-[11px] font-bold uppercase tracking-[0.24em] text-accent">
               Match found
             </p>
@@ -591,7 +602,9 @@ export function GameScreen({
             >
               {countdownSeconds}
             </div>
-            <span className="sr-only">Match starts in {countdownSeconds} seconds</span>
+            <span className="sr-only" role="status" aria-live="polite">
+              Match starts in {countdownSeconds} seconds
+            </span>
             <p className="mt-2 text-sm font-medium text-muted">
               Get ready — you play {match.youSide}
             </p>
@@ -601,6 +614,13 @@ export function GameScreen({
                 style={{ width: `${Math.round(countdownProgress * 100)}%` }}
               />
             </div>
+            <button
+              type="button"
+              onClick={() => setForfeitOpen(true)}
+              className="mt-4 rounded-lg px-2 py-1 text-xs font-semibold text-muted underline underline-offset-4 transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
+            >
+              Leave match
+            </button>
           </div>
         </div>
       ) : null}
@@ -608,6 +628,7 @@ export function GameScreen({
       <GameResult
         match={match}
         open={match.status === 'FINISHED' || match.status === 'ABANDONED'}
+        taunt={match.mode === 'AI' ? opponentChat?.text ?? null : null}
         rematchBusy={rematchBusy}
         onRematch={() => void rematch()}
         onHome={() => void leaveGame('/')}

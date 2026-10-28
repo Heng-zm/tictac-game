@@ -118,6 +118,8 @@ export interface CreateMatchInput {
   participants: NewParticipant[];
   currentTurn: Side | null;
   turnDeadline: Date | null;
+  /** Service clock at match creation. Defaults to the repository clock. */
+  startedAt?: Date;
   rematchOfId?: string | null;
 }
 

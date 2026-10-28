@@ -3,6 +3,7 @@ import type { AppConfig } from '../src/server/config';
 import type { UserEntity } from '../src/server/database/types';
 import { MemoryGameRepository } from '../src/server/database/memory-repository';
 import { MatchService } from '../src/server/services/match-service';
+import { AI_TAUNTS } from '../src/server/game/ai-taunts';
 import { CHAT_MESSAGE_MAX_LENGTH, type MatchChatEvent, type MatchReactionEvent } from '../src/shared/events';
 import {
   FakeIo,
@@ -31,6 +32,10 @@ describe('MatchService — Sticker Reactions & Quick Chat', () => {
   let charlie: UserEntity;
   let service: MatchService;
   const services: MatchService[] = [];
+
+  async function flushAsyncWork(): Promise<void> {
+    for (let index = 0; index < 5; index += 1) await Promise.resolve();
+  }
 
   beforeEach(async () => {
     vi.useFakeTimers();
@@ -139,6 +144,89 @@ describe('MatchService — Sticker Reactions & Quick Chat', () => {
     const botReaction = reactions[reactions.length - 1]!.payload as MatchReactionEvent;
     expect(botReaction.senderSide).toBe('O'); // Bot is on side O
     expect(['greeting', 'respect']).toContain(botReaction.stickerId);
+  });
+
+  it('sends a greeting taunt when an AI game starts', async () => {
+    await service.startAi(alice.id, 'MEDIUM', 'X');
+    io.emitted.length = 0;
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    await flushAsyncWork();
+
+    const botMessages = io.emitted
+      .filter((entry) => entry.event === 'match:chat')
+      .map((entry) => entry.payload as MatchChatEvent);
+    expect(botMessages).toHaveLength(1);
+    expect(botMessages[0]!.senderSide).toBe('O');
+    expect(AI_TAUNTS.greeting.en).toContain(botMessages[0]!.text);
+  });
+
+  it('answers human chat with a bot taunt in AI games', async () => {
+    const match = await service.startAi(alice.id, 'MEDIUM', 'X');
+    io.emitted.length = 0;
+
+    await service.sendChat(alice.id, match.id, 'You are going down');
+    await vi.advanceTimersByTimeAsync(1_500);
+    await flushAsyncWork();
+
+    const messages = io.emitted
+      .filter((entry) => entry.event === 'match:chat')
+      .map((entry) => entry.payload as MatchChatEvent);
+    expect(messages[0]!.senderSide).toBe('X');
+    expect(messages[0]!.text).toBe('You are going down');
+    const botReplies = messages.filter((message) => message.senderSide === 'O');
+    expect(botReplies.some((message) => AI_TAUNTS.reply.en.includes(message.text))).toBe(true);
+  });
+
+  it('trash-talks Khmer players in Khmer', async () => {
+    await repo.upsertTelegramUser({
+      telegramId: 3001n,
+      firstName: 'Alice',
+      username: null,
+      lastName: null,
+      photoUrl: null,
+      languageCode: 'km',
+    });
+    await service.startAi(alice.id, 'EASY', 'X');
+    io.emitted.length = 0;
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    await flushAsyncWork();
+
+    const botMessages = io.emitted
+      .filter((entry) => entry.event === 'match:chat')
+      .map((entry) => entry.payload as MatchChatEvent);
+    expect(botMessages).toHaveLength(1);
+    expect(AI_TAUNTS.greeting.km).toContain(botMessages[0]!.text);
+  });
+
+  it('gloats after beating the player on the clock', async () => {
+    service.shutdown();
+    service = new MatchService({
+      io: io.asGameServer(),
+      repository: repo,
+      config: makeTestConfig({ ...BASE_CONFIG, turnTimeoutMs: 1_000 }),
+      logger: makeTestLogger(),
+      now: clock.now,
+      random: () => 0.25,
+    });
+    services.push(service);
+    await service.handleConnected(alice);
+
+    const match = await service.startAi(alice.id, 'HARD', 'X');
+    io.emitted.length = 0;
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    await flushAsyncWork();
+    expect((await repo.getMatchById(match.id))?.status).toBe('FINISHED');
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    await flushAsyncWork();
+
+    const botMessages = io.emitted
+      .filter((entry) => entry.event === 'match:chat')
+      .map((entry) => entry.payload as MatchChatEvent);
+    expect(botMessages.some((message) => AI_TAUNTS.win.en.includes(message.text))).toBe(true);
   });
 
   it('broadcasts trimmed custom chat text to the match room', async () => {

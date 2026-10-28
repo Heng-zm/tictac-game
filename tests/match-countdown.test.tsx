@@ -114,9 +114,14 @@ function makeProfile(): UserProfile {
   };
 }
 
-function makeClient(mode: MatchMode, startedAt: string): GameClient {
+function makeClient(
+  mode: MatchMode,
+  startedAt: string,
+  overrides: Partial<GameClient> = {},
+): GameClient {
   return {
     connection: 'online',
+    clockOffsetMs: 0,
     match: makeMatch(startedAt, { mode }),
     config: CONFIG,
     profile: makeProfile(),
@@ -135,6 +140,7 @@ function makeClient(mode: MatchMode, startedAt: string): GameClient {
     reconnect: vi.fn(),
     requestRematch: vi.fn().mockResolvedValue({ matchId: MATCH_ID }),
     leaveMatch: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
   } as unknown as GameClient;
 }
 
@@ -176,5 +182,31 @@ describe('GameScreen match-start countdown', () => {
   it('starts bot practice immediately without a countdown', () => {
     renderGame(makeClient('AI', NOW));
     expect(screen.queryByText('Match found')).toBeNull();
+  });
+
+  it('uses the server clock instead of a skewed device clock', () => {
+    // The device is three seconds behind the server, so only two seconds
+    // should remain even though Date.now() says the match just started.
+    renderGame(makeClient('RANDOM', NOW, { clockOffsetMs: 3_000 }));
+
+    expect(screen.getByText('Match found')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.queryByText('5')).toBeNull();
+  });
+
+  it('does not show a countdown when the server disables it', () => {
+    renderGame(
+      makeClient('RANDOM', NOW, {
+        config: { ...CONFIG, matchStartCountdownMs: 0 },
+      }),
+    );
+    expect(screen.queryByText('Match found')).toBeNull();
+  });
+
+  it('never displays more countdown seconds than the configured duration', () => {
+    // A stale/incorrect offset must not turn a 5-second ready phase into a
+    // 15-second one.
+    renderGame(makeClient('RANDOM', NOW, { clockOffsetMs: -10_000 }));
+    expect(screen.getByText('5')).toBeTruthy();
   });
 });

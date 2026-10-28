@@ -102,6 +102,7 @@ function makeClient(overrides: Partial<GameClient> = {}): GameClient {
     config: null,
     profile: null,
     connection: 'online',
+    clockOffsetMs: 0,
     match: null,
     queue: null,
     createdInvite: null,

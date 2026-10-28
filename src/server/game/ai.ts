@@ -111,6 +111,34 @@ function evaluateDirection(
   return score;
 }
 
+/**
+ * Finds a move that completes five in a row for `side`. The service uses this
+ * to detect blocked threats and unblockable double threats for bot taunts.
+ */
+export function findImmediateWin(board: Board, side: Side): number | null {
+  for (const cell of getAvailableMoves(board)) {
+    const { x, y } = decodeCell(cell);
+    if (evaluateDirection(board, x, y, side) >= 1_000_000) return cell;
+  }
+  return null;
+}
+
+/**
+ * Counts immediate winning moves for `side`, stopping at two. Two or more
+ * winning cells means the opponent cannot block every threat.
+ */
+export function countImmediateWins(board: Board, side: Side): number {
+  let wins = 0;
+  for (const cell of getAvailableMoves(board)) {
+    const { x, y } = decodeCell(cell);
+    if (evaluateDirection(board, x, y, side) >= 1_000_000) {
+      wins += 1;
+      if (wins >= 2) return wins;
+    }
+  }
+  return wins;
+}
+
 function isActive(): boolean {
   // MatchService guarantees ACTIVE state when calling chooseAiMove
   return true;

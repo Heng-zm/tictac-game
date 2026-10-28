@@ -16,6 +16,7 @@ import { Button, Modal, Pill } from './ui';
 export function GameResult({
   match,
   open,
+  taunt,
   rematchBusy,
   onRematch,
   onHome,
@@ -23,6 +24,8 @@ export function GameResult({
 }: {
   match: PublicMatchState;
   open: boolean;
+  /** Last line from the bot, shown as a parting shot in AI games. */
+  taunt?: string | null;
   rematchBusy: boolean;
   onRematch: () => void;
   onHome: () => void;
@@ -101,6 +104,12 @@ export function GameResult({
         ) : null}
 
         <FinalBoard match={match} />
+
+        {taunt ? (
+          <p className="mx-auto mt-3 max-w-[19rem] rounded-2xl border border-line/60 bg-elevated/60 px-3 py-2 text-xs italic leading-relaxed text-muted">
+            “{taunt}”
+          </p>
+        ) : null}
 
         <div className="mt-5 space-y-2">
           {canRematch ? (

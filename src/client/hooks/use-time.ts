@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 
-export function useCountdown(target: string | null | undefined, nowMs?: number): number | null {
+export function useCountdown(
+  target: string | null | undefined,
+  nowMs?: number,
+  offsetMs = 0,
+): number | null {
   const targetMs = useMemo(() => {
     if (!target) return null;
     const time = new Date(target).getTime();
@@ -10,16 +14,24 @@ export function useCountdown(target: string | null | undefined, nowMs?: number):
 
   useEffect(() => {
     if (targetMs === null) return;
-    setTick(nowMs ?? Date.now());
-    const timer = window.setInterval(() => setTick(Date.now()), 500);
+    const current = nowMs ?? Date.now();
+    setTick(current);
+    // Stop ticking once the target is reached. A countdown that stays mounted
+    // after expiry must not keep scheduling renders every 500ms.
+    if (nowMs !== undefined || current + offsetMs >= targetMs) return;
+    const timer = window.setInterval(() => {
+      const now = Date.now();
+      setTick(now);
+      if (now + offsetMs >= targetMs) window.clearInterval(timer);
+    }, 500);
     return () => window.clearInterval(timer);
-  }, [nowMs, targetMs]);
+  }, [nowMs, targetMs, offsetMs]);
 
   if (targetMs === null) return null;
   // Derive the value from the current target instead of keeping a separate
   // remaining state. That way replacing an expired target with a fresh one
   // never reports zero for a render.
-  return Math.max(0, targetMs - (nowMs ?? tick));
+  return Math.max(0, targetMs - ((nowMs ?? tick) + offsetMs));
 }
 
 export function formatDuration(ms: number | null): string {

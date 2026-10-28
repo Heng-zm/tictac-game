@@ -30,7 +30,8 @@ import type {
   UserEntity,
 } from '../database/types';
 import { AppError } from '../errors';
-import { chooseAiMove } from '../game/ai';
+import { chooseAiMove, countImmediateWins, findImmediateWin } from '../game/ai';
+import { pickAiTaunt, type AiTauntMood } from '../game/ai-taunts';
 import { applyMoveWithStatus } from '../game/rules';
 import { buildInviteDeepLink, generateInvitationToken, hashInvitationToken } from '../services/invitations';
 import { buildMatchView } from '../services/match-view';
@@ -185,9 +186,7 @@ export class MatchService {
     game.disconnectedUsers.add(userId);
     if (game.match.currentTurn === userParticipant.side) {
       this.clearTurnTimer(game);
-      game.pausedTurnRemaining = game.match.turnDeadline
-        ? Math.max(0, game.match.turnDeadline.getTime() - this.now().getTime())
-        : null;
+      game.pausedTurnRemaining = this.pausedRemaining(game.match.turnDeadline, this.now());
       game.match.turnDeadline = null;
     }
     this.startDisconnectTimer(game, userId);
@@ -242,6 +241,7 @@ export class MatchService {
       participants,
       currentTurn: 'X',
       turnDeadline,
+      startedAt: now,
     });
     this.launchNewMatch(match);
     return match;
@@ -547,6 +547,7 @@ export class MatchService {
         participants,
         currentTurn: 'X',
         turnDeadline: this.initialDeadlineForTurn(match.mode, participants, 'X', now),
+        startedAt: now,
         rematchOfId: match.id,
       });
       this.launchNewMatch(newMatch);
@@ -658,6 +659,13 @@ export class MatchService {
 
     this.deps.io.to(matchRoom(match.id)).emit('match:chat', event);
 
+    if (match.mode === 'AI') {
+      this.scheduleAiTaunt(
+        match,
+        match.status === 'FINISHED' ? this.aiResultMood(match) : 'reply',
+      );
+    }
+
     return { sent: true };
   }
 
@@ -694,6 +702,58 @@ export class MatchService {
       });
     }, 700 + Math.floor(this.random() * 400));
     timer.unref?.();
+  }
+
+  /** Picks a board-aware taunt after the bot moves. */
+  private scheduleAiBoardTaunt(game: ActiveGame, blockedThreat: boolean): void {
+    if (game.match.mode !== 'AI') return;
+    const ai = game.match.participants.find((participant) => participant.isAi);
+    if (!ai) return;
+
+    if (countImmediateWins(game.match.board, ai.side) >= 2) {
+      // Two winning cells cannot both be blocked, so the bot can gloat early.
+      this.scheduleAiTaunt(game.match, 'threat');
+    } else if (blockedThreat) {
+      this.scheduleAiTaunt(game.match, 'block');
+    }
+  }
+
+  /**
+   * Emits a chat line from the bot after a short delay. The player's language
+   * decides whether the bot speaks English or Khmer.
+   */
+  private scheduleAiTaunt(match: MatchEntity, mood: AiTauntMood, delayMs?: number): void {
+    if (match.mode !== 'AI') return;
+    const ai = match.participants.find((participant) => participant.isAi);
+    const humanId = match.participants.find((participant) => !participant.isAi)?.userId ?? null;
+    if (!ai || !humanId) return;
+
+    const timer = setTimeout(() => {
+      const game = this.games.get(match.id);
+      if (!game || (game.match.status !== 'ACTIVE' && game.match.status !== 'FINISHED')) return;
+      void this.deps.repository
+        .getUserById(humanId)
+        .then((user) => {
+          const text = pickAiTaunt(mood, user?.languageCode, this.random);
+          if (!text) return;
+          this.deps.io.to(matchRoom(match.id)).emit('match:chat', {
+            matchId: match.id,
+            senderSide: ai.side,
+            text,
+            timestamp: this.now().toISOString(),
+            messageId: randomUUID(),
+          } satisfies MatchChatEvent);
+        })
+        .catch(() => undefined);
+    }, delayMs ?? 700 + Math.floor(this.random() * 400));
+    timer.unref?.();
+  }
+
+  private aiResultMood(match: MatchEntity): AiTauntMood {
+    const ai = match.participants.find((participant) => participant.isAi);
+    if (!ai || match.status !== 'FINISHED' || match.result === null) return 'reply';
+    if (match.result === 'DRAW') return 'draw';
+    return match.winnerSide === ai.side ? 'win' : 'lose';
   }
 
   async sendVoice(
@@ -879,11 +939,17 @@ export class MatchService {
       game.disconnectTimers.delete(user.id);
       if (participant && game.match.currentTurn === participant.side) {
         // Resume the turn with the time that was left when the player dropped
-        // instead of restarting the full timer.
+        // instead of restarting the full timer. If the ready countdown has not
+        // finished yet, the first turn still starts when the countdown ends.
+        const startsAt = this.matchStartsAt(game.match);
+        const base = startsAt !== null && startsAt > now.getTime() ? new Date(startsAt) : now;
         game.match.turnDeadline =
           game.pausedTurnRemaining !== null
-            ? new Date(now.getTime() + game.pausedTurnRemaining)
-            : this.deadlineForTurn(game.match.mode, game.match.participants, game.match.currentTurn, now);
+            ? new Date(
+                base.getTime() +
+                  Math.min(game.pausedTurnRemaining, this.deps.config.turnTimeoutMs),
+              )
+            : this.deadlineForTurn(game.match.mode, game.match.participants, game.match.currentTurn, base);
         // Only the player who owned the paused turn consumes the stored time.
         // A reconnect by the other player must not clear it.
         game.pausedTurnRemaining = null;
@@ -922,9 +988,7 @@ export class MatchService {
       if (game.match.currentTurn === participant.side) {
         // Mirror handleDisconnected: preserve the remaining turn time before
         // scheduleTimers clears the deadline for an offline current player.
-        game.pausedTurnRemaining = game.match.turnDeadline
-          ? Math.max(0, game.match.turnDeadline.getTime() - this.now().getTime())
-          : null;
+        game.pausedTurnRemaining = this.pausedRemaining(game.match.turnDeadline, this.now());
         game.match.turnDeadline = null;
       }
       this.startDisconnectTimer(game, participant.userId);
@@ -952,8 +1016,10 @@ export class MatchService {
       participants,
       currentTurn: 'X',
       turnDeadline: this.deadlineForTurn('AI', participants, 'X', now),
+      startedAt: now,
     });
     this.launchNewMatch(match);
+    this.scheduleAiTaunt(match, 'greeting', 900);
     return match;
   }
 
@@ -1208,6 +1274,7 @@ export class MatchService {
 
     const cell = chooseAiMove(game.match.board, ai.side, ai.aiDifficulty ?? 'MEDIUM', this.random);
     if (cell === null) return;
+    const blockedThreat = findImmediateWin(game.match.board, oppositeSide(ai.side)) !== null;
     const actionId = randomUUID();
     const applied = applyMoveWithStatus(game.match.board, ai.side, cell, { assumeActive: true });
     if (!applied.ok) return;
@@ -1256,6 +1323,7 @@ export class MatchService {
       if (repoResult.match.status === 'FINISHED') {
         this.finishUi(game);
       } else {
+        this.scheduleAiBoardTaunt(game, blockedThreat);
         this.scheduleTimers(game);
         this.emitState(game);
       }
@@ -1325,6 +1393,9 @@ export class MatchService {
       },
       'Game finished',
     );
+    if (game.match.mode === 'AI') {
+      this.scheduleAiTaunt(game.match, this.aiResultMood(game.match), 900);
+    }
     game.cleanupTimer = setTimeout(() => {
       if (this.games.get(game.match.id) === game) {
         this.games.delete(game.match.id);
@@ -1356,6 +1427,19 @@ export class MatchService {
     const current = match.participants.find((participant) => participant.side === match.currentTurn);
     if (!current || current.isAi || !current.userId) return false;
     return !this.online.has(current.userId);
+  }
+
+  /**
+   * Time left on a paused turn. The first-turn deadline includes the ready
+   * countdown, so cap the stored remainder at one full turn; otherwise a
+   * reconnect could bank the pre-start seconds as extra thinking time.
+   */
+  private pausedRemaining(deadline: Date | null, now: Date): number | null {
+    if (!deadline || this.deps.config.turnTimeoutMs <= 0) return null;
+    return Math.min(
+      Math.max(0, deadline.getTime() - now.getTime()),
+      this.deps.config.turnTimeoutMs,
+    );
   }
 
   /**

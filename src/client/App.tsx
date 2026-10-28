@@ -145,6 +145,7 @@ export default function App() {
         <ActiveGameBar
           match={activeMatch}
           connection={client.connection}
+          clockOffsetMs={client.clockOffsetMs}
           onResume={() => navigate(`/game/${activeMatch.id}`)}
         />
       ) : null}

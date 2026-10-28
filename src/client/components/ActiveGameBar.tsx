@@ -13,10 +13,13 @@ import { cn } from '../lib/cn';
 export function ActiveGameBar({
   match,
   connection,
+  clockOffsetMs = 0,
   onResume,
 }: {
   match: PublicMatchState;
   connection: ConnectionStatus;
+  /** Estimated server time minus device time, in milliseconds. */
+  clockOffsetMs?: number;
   onResume: () => void;
 }) {
   const opponent = opponentFor(match);
@@ -24,7 +27,7 @@ export function ActiveGameBar({
   const yourTurn = match.currentTurn === match.youSide;
   const reconnecting = connection !== 'online';
   const paused = match.turnTimerPaused;
-  const remaining = useCountdown(match.turnDeadline);
+  const remaining = useCountdown(match.turnDeadline, undefined, clockOffsetMs);
   const showClock = !reconnecting && !paused && yourTurn && remaining !== null;
   const urgent = showClock && remaining <= 10_000;
 

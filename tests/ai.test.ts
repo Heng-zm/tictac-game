@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { chooseAiMove } from '../src/server/game/ai';
+import {
+  chooseAiMove,
+  countImmediateWins,
+  findImmediateWin,
+} from '../src/server/game/ai';
 import {
   COORD_OFFSET,
   createEmptyBoard,
@@ -74,5 +78,32 @@ describe('Caro AI engine', () => {
       expect(move).not.toBeNull();
       expect(board[move!]).toBeUndefined();
     }
+  });
+
+  it('finds immediate winning moves for threat detection', () => {
+    const board: Board = createEmptyBoard();
+    for (let x = 0; x < 4; x++) board[encodeCell(x, 0)] = 'X';
+    for (let x = 0; x < 3; x++) board[encodeCell(x, 2)] = 'O';
+
+    const win = findImmediateWin(board, 'X');
+    expect(win).not.toBeNull();
+    const { x, y } = decodeCell(win!);
+    expect(y).toBe(0);
+    expect([4, -1]).toContain(x);
+
+    expect(findImmediateWin(createEmptyBoard(), 'X')).toBeNull();
+  });
+
+  it('counts two or more immediate wins as an unblockable double threat', () => {
+    const board: Board = createEmptyBoard();
+    // Two open fours on separate rows give the bot four winning cells.
+    for (let x = 0; x < 4; x++) {
+      board[encodeCell(x, 0)] = 'X';
+      board[encodeCell(x, 2)] = 'X';
+    }
+    for (let x = 0; x < 3; x++) board[encodeCell(x, 4)] = 'O';
+
+    expect(countImmediateWins(board, 'X')).toBeGreaterThanOrEqual(2);
+    expect(countImmediateWins(board, 'O')).toBe(0);
   });
 });

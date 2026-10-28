@@ -139,7 +139,7 @@ export class MemoryGameRepository implements GameRepository {
       }
     }
 
-    const now = this.clock();
+    const now = input.startedAt ?? this.clock();
     const id = randomUUID();
     const participants: ParticipantEntity[] = input.participants.map((participant) => ({
       id: randomUUID(),

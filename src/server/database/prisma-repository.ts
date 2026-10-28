@@ -154,7 +154,7 @@ export class PrismaGameRepository implements GameRepository {
 
   async createMatch(input: CreateMatchInput): Promise<MatchEntity> {
     return this.prisma.$transaction(async (tx) => {
-      const now = new Date();
+      const now = input.startedAt ?? new Date();
       const humanIds = [...new Set(input.participants.map((p) => p.userId).filter((id): id is string => Boolean(id)))];
       if (humanIds.length !== input.participants.filter((p) => p.userId).length) {
         throw new RepositoryConflictError('INVALID_PLAYERS', 'A player cannot occupy both sides');

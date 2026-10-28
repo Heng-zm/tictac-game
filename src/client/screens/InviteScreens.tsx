@@ -53,7 +53,7 @@ export function InviteWaitingScreen({
     : null;
   const rawDeepLink = createdInvite?.deepLink ?? storedLink;
   const expiresAt = pendingInvite?.expiresAt ?? createdInvite?.expiresAt ?? null;
-  const remaining = useCountdown(expiresAt);
+  const remaining = useCountdown(expiresAt, undefined, client.clockOffsetMs);
   const expired = remaining !== null && remaining <= 0;
   // An invitation is spent as soon as its match is no longer waiting. That can
   // happen without a match:found event in this session, for example when the
@@ -389,7 +389,7 @@ export function InviteAcceptScreen({
     void load();
   }, [load, token]);
 
-  const remaining = useCountdown(preview?.expiresAt ?? null);
+  const remaining = useCountdown(preview?.expiresAt ?? null, undefined, client.clockOffsetMs);
   const expired = preview?.status === 'EXPIRED' || (remaining !== null && remaining <= 0);
   const shareLink = buildInviteDeepLink(client.config, token);
 
