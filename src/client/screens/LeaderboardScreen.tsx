@@ -11,15 +11,21 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import type { LeaderboardEntry, LeaderboardResponse } from '../../shared/game-types';
+import { computeWinRate, humanRecord, type LeaderboardEntry, type LeaderboardResponse } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage, fetchLeaderboard } from '../lib/api';
 import { cn } from '../lib/cn';
+import { isKhmer } from '../lib/language';
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, ScreenHeader, Skeleton } from '../components/ui';
 import { RankBadge, RankLabel, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 
 type LeaderboardTab = 'all' | 'top10' | 'nearby';
+
+/** Rounded win percentage for a human-only record; 0 when no games were played. */
+function winRateOf(wins: number, losses: number, draws: number): number {
+  return computeWinRate({ wins, gamesPlayed: wins + losses + draws });
+}
 
 export function LeaderboardScreen({
   client,
@@ -29,7 +35,7 @@ export function LeaderboardScreen({
   navigate: (path: string) => void;
 }) {
   const { profile } = client;
-  const isKm = (profile?.languageCode ?? '').toLowerCase().startsWith('km');
+  const isKm = isKhmer(profile?.languageCode);
 
   const [data, setData] = useState<LeaderboardResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -96,10 +102,8 @@ export function LeaderboardScreen({
   }, [allEntries, activeTab, searchQuery, userRating]);
 
   // Top 3 Podium entries (only shown when in 'all' or 'top10' tab with no search filter)
-  const showPodium =
-    (activeTab === 'all' || activeTab === 'top10') &&
-    searchQuery.trim().length === 0 &&
-    allEntries.length >= 3;
+  const hasSearch = searchQuery.trim().length > 0;
+  const showPodium = (activeTab === 'all' || activeTab === 'top10') && !hasSearch && allEntries.length >= 3;
 
   const podiumEntries = showPodium ? allEntries.slice(0, 3) : [];
   const listEntries = showPodium ? filteredEntries.slice(3) : filteredEntries;
@@ -116,9 +120,10 @@ export function LeaderboardScreen({
         ? 'ក្រៅកំពូលទាំង 50'
         : 'Outside top 50';
 
-  // Calculate Win Rate for user
-  const userGames = (profile?.stats.wins ?? 0) + (profile?.stats.losses ?? 0) + (profile?.stats.draws ?? 0);
-  const userWinRate = userGames > 0 ? Math.round(((profile?.stats.wins ?? 0) / userGames) * 100) : 0;
+  // Human-only record keeps bot games out of the ladder win rate.
+  const userRecord = profile ? humanRecord(profile.stats) : { wins: 0, losses: 0, draws: 0 };
+  const userGames = userRecord.wins + userRecord.losses + userRecord.draws;
+  const userWinRate = winRateOf(userRecord.wins, userRecord.losses, userRecord.draws);
 
   return (
     <Page withNav width="medium">
@@ -140,7 +145,7 @@ export function LeaderboardScreen({
       {error && data ? (
         <div
           role="alert"
-          className="mb-3.5 flex items-start gap-2.5 rounded-2xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs text-danger shadow-soft backdrop-blur-xs"
+          className="mb-3.5 flex items-start gap-2.5 rounded-2xl border border-danger/25 bg-danger/10 px-3.5 py-3 text-xs text-danger shadow-soft backdrop-blur-sm"
         >
           <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
           <p className="min-w-0 flex-1 leading-relaxed">
@@ -224,6 +229,7 @@ export function LeaderboardScreen({
                 <button
                   type="button"
                   onClick={() => setActiveTab('all')}
+                  aria-pressed={activeTab === 'all'}
                   className={cn(
                     'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95',
                     activeTab === 'all'
@@ -238,6 +244,7 @@ export function LeaderboardScreen({
                 <button
                   type="button"
                   onClick={() => setActiveTab('top10')}
+                  aria-pressed={activeTab === 'top10'}
                   className={cn(
                     'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95',
                     activeTab === 'top10'
@@ -252,6 +259,7 @@ export function LeaderboardScreen({
                 <button
                   type="button"
                   onClick={() => setActiveTab('nearby')}
+                  aria-pressed={activeTab === 'nearby'}
                   className={cn(
                     'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95',
                     activeTab === 'nearby'
@@ -273,16 +281,16 @@ export function LeaderboardScreen({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={isKm ? 'ស្វែងរកអ្នកលេង…' : 'Search player…'}
                   aria-label={isKm ? 'ស្វែងរកអ្នកលេង' : 'Search player'}
-                  className="h-9 w-full rounded-full border border-line bg-elevated/60 pl-9 pr-8 text-xs text-ink placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="h-9 w-full rounded-full border border-line bg-elevated/60 pl-9 pr-10 text-xs text-ink placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
                 />
                 {searchQuery ? (
                   <button
                     type="button"
                     onClick={() => setSearchQuery('')}
-                    className="absolute right-2.5 flex h-5 w-5 items-center justify-center rounded-full text-muted hover:text-ink"
+                    className="absolute right-1.5 flex h-7 w-7 items-center justify-center rounded-full text-muted transition hover:bg-elevated hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
                     aria-label={isKm ? 'សម្អាតការស្វែងរក' : 'Clear search'}
                   >
-                    <X className="h-3 w-3" />
+                    <X className="h-3.5 w-3.5" aria-hidden />
                   </button>
                 ) : null}
               </div>
@@ -290,17 +298,13 @@ export function LeaderboardScreen({
           ) : null}
 
           {/* Championship Podium for Top 3 */}
-          {showPodium && podiumEntries.length === 3 ? (
+          {showPodium ? (
             <div className="mb-4 pt-2">
               <div className="grid grid-cols-3 items-end gap-2 px-1">
-                {/* 2nd Place (Silver) */}
-                <PodiumCard entry={podiumEntries[1]!} place={2} isKm={isKm} />
-
-                {/* 1st Place (Gold Champion) */}
-                <PodiumCard entry={podiumEntries[0]!} place={1} isKm={isKm} />
-
-                {/* 3rd Place (Bronze) */}
-                <PodiumCard entry={podiumEntries[2]!} place={3} isKm={isKm} />
+                {/* DOM order is 1st, 2nd, 3rd for screen readers; `order-*` keeps the classic 2-1-3 layout. */}
+                <PodiumCard entry={podiumEntries[0]!} place={1} isKm={isKm} className="order-2" />
+                <PodiumCard entry={podiumEntries[1]!} place={2} isKm={isKm} className="order-1" />
+                <PodiumCard entry={podiumEntries[2]!} place={3} isKm={isKm} className="order-3" />
               </div>
             </div>
           ) : null}
@@ -336,13 +340,13 @@ export function LeaderboardScreen({
                 }
               />
             </Card>
-          ) : (
+          ) : listEntries.length > 0 ? (
             <Card className="divide-y divide-line overflow-hidden shadow-soft">
               {listEntries.map((entry) => (
                 <LeaderboardRow key={entry.userId} entry={entry} isKm={isKm} />
               ))}
             </Card>
-          )}
+          ) : null}
 
           {/* Footnote about ranking mechanics */}
           <p className="mt-4 px-4 text-center text-[11px] leading-relaxed text-muted">
@@ -360,16 +364,17 @@ function PodiumCard({
   entry,
   place,
   isKm,
+  className,
 }: {
   entry: LeaderboardEntry;
   place: 1 | 2 | 3;
   isKm: boolean;
+  className?: string;
 }) {
   const isRank1 = place === 1;
   const isRank2 = place === 2;
 
-  const totalGames = entry.wins + entry.losses + entry.draws;
-  const winRate = totalGames > 0 ? Math.round((entry.wins / totalGames) * 100) : 0;
+  const winRate = winRateOf(entry.humanWins, entry.humanLosses, entry.humanDraws);
 
   const cardStyle = isRank1
     ? 'border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-amber-500/5 to-surface shadow-[0_0_24px_rgba(245,158,11,0.15)] ring-1 ring-amber-500/30'
@@ -395,6 +400,7 @@ function PodiumCard({
         'relative flex flex-col items-center rounded-2xl border p-2.5 text-center transition-transform hover:-translate-y-0.5',
         cardStyle,
         isRank1 ? 'pb-3.5 pt-3' : 'pb-2.5 pt-2',
+        className,
       )}
     >
       {/* Crown / Trophy icon for champion */}
@@ -416,7 +422,7 @@ function PodiumCard({
       <div className={cn('relative rounded-full', avatarRing)}>
         <Avatar name={entry.displayName} photoUrl={entry.photoUrl} size={isRank1 ? 'md' : 'sm'} />
         {entry.isYou ? (
-          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-1.5 py-0.2 text-[8px] font-bold text-accent-ink ring-1 ring-surface">
+          <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-accent px-1.5 py-0.5 text-[8px] font-bold text-accent-ink ring-1 ring-surface">
             YOU
           </span>
         ) : null}
@@ -437,9 +443,9 @@ function PodiumCard({
         {winRate}% {isKm ? 'ឈ្នះ' : 'win'}
       </span>
 
-      {/* Place Pedestal Tag */}
+      {/* Place Pedestal Tag — the server's rank, so ties stay consistent with the rows. */}
       <div className={cn('mt-2 flex h-6 w-full items-center justify-center rounded-lg text-[10.5px] font-black', badgeColor)}>
-        #{place}
+        #{entry.rank}
       </div>
     </div>
   );
@@ -456,8 +462,7 @@ function LeaderboardRow({
   const isRank2 = entry.rank === 2;
   const isRank3 = entry.rank === 3;
 
-  const totalGames = entry.wins + entry.losses + entry.draws;
-  const winRate = totalGames > 0 ? Math.round((entry.wins / totalGames) * 100) : 0;
+  const winRate = winRateOf(entry.humanWins, entry.humanLosses, entry.humanDraws);
 
   const rankBadgeStyle = isRank1
     ? 'border-amber-500/50 bg-amber-500/20 text-amber-500 shadow-glow-gold'
@@ -491,7 +496,7 @@ function LeaderboardRow({
           'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-bold tabular-nums',
           rankBadgeStyle,
         )}
-        aria-label={`Rank ${entry.rank}`}
+        aria-label={isKm ? `ចំណាត់ថ្នាក់ ${entry.rank}` : `Rank ${entry.rank}`}
       >
         {isRank1 ? (
           <Crown className="h-4 w-4" aria-hidden />
@@ -515,9 +520,9 @@ function LeaderboardRow({
           </span>
           <span>·</span>
           <span className="tabular-nums">
-            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{entry.wins}W</span>{' '}
-            <span className="text-muted">{entry.draws}D</span>{' '}
-            <span className="text-rose-500 dark:text-rose-400">{entry.losses}L</span>
+            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{entry.humanWins}W</span>{' '}
+            <span className="text-muted">{entry.humanDraws}D</span>{' '}
+            <span className="text-rose-500 dark:text-rose-400">{entry.humanLosses}L</span>
           </span>
           <span>·</span>
           <span className="font-medium text-accent">

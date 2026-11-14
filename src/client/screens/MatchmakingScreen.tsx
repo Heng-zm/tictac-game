@@ -226,7 +226,7 @@ export function MatchmakingScreen({
                 className="absolute inset-0 rounded-full border border-accent/10 bg-accent/5 animate-pulse-ring"
                 style={{ animationDelay: '1.4s' }}
               />
-              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-accent shadow-glow/30 backdrop-blur-xs">
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-accent shadow-glow backdrop-blur-sm">
                 <Search className="h-7 w-7" aria-hidden />
               </span>
             </div>

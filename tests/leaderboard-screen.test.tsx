@@ -72,10 +72,9 @@ function makeEntry(rank: number, name: string, isYou = false, rating = 1200 + (1
     photoUrl: null,
     rating,
     ratedGames: 15,
-    wins: 10,
-    losses: 3,
-    draws: 2,
-    gamesPlayed: 15,
+    humanWins: 10,
+    humanLosses: 3,
+    humanDraws: 2,
     isYou,
   };
 }
@@ -93,6 +92,12 @@ const mockResponse: LeaderboardResponse = {
   entries: mockEntries,
   currentUserRank: 6,
 };
+
+// Enough rows to prove the Top 10 and Nearby tabs actually filter.
+const manyEntries: LeaderboardEntry[] = Array.from({ length: 14 }, (_, index) => {
+  const rank = index + 1;
+  return makeEntry(rank, `Player ${rank}`, rank === 8, 1600 - index * 20);
+});
 
 describe('LeaderboardScreen', () => {
   beforeEach(() => {
@@ -141,22 +146,44 @@ describe('LeaderboardScreen', () => {
     expect(screen.getByText(/Outside top 50/i)).toBeTruthy();
   });
 
-  it('switches between Top 50, Top 10, and Nearby You tabs', async () => {
-    mockFetchLeaderboard.mockResolvedValue(mockResponse);
+  it('limits the Top 10 tab and shows the nearby window', async () => {
+    mockFetchLeaderboard.mockResolvedValue({ entries: manyEntries, currentUserRank: 8 });
 
     render(<LeaderboardScreen client={makeClient()} navigate={vi.fn()} />);
 
-    await screen.findByText('Champion Alex');
+    await screen.findByText('Player 1');
 
     // Click Top 10 tab
     const top10Btn = screen.getByRole('button', { name: /Top 10/i });
     fireEvent.click(top10Btn);
-    expect(screen.getByText('Champion Alex')).toBeTruthy();
+    expect(top10Btn.getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByText('Player 10')).toBeTruthy();
+    expect(screen.queryByText('Player 11')).toBeNull();
 
-    // Click Nearby You tab
-    const nearbyBtn = screen.getByRole('button', { name: /Nearby You/i });
-    fireEvent.click(nearbyBtn);
-    expect(screen.getByText('Gold Frank')).toBeTruthy();
+    // Click Nearby You tab; the user is rank 8, so ranks 4-12 belong to the window.
+    fireEvent.click(screen.getByRole('button', { name: /Nearby You/i }));
+    expect(screen.getByText('Player 4')).toBeTruthy();
+    expect(screen.getByText('Player 12')).toBeTruthy();
+    expect(screen.queryByText('Player 3')).toBeNull();
+    expect(screen.queryByText('Player 13')).toBeNull();
+  });
+
+  it('shows the server rank on podium badges when players tie', async () => {
+    mockFetchLeaderboard.mockResolvedValue({
+      entries: [
+        makeEntry(1, 'Tie One', false, 1600),
+        makeEntry(1, 'Tie Two', false, 1600),
+        makeEntry(3, 'Third Place', false, 1550),
+      ],
+      currentUserRank: null,
+    });
+
+    render(<LeaderboardScreen client={makeClient()} navigate={vi.fn()} />);
+
+    expect(await screen.findByText('Tie One')).toBeTruthy();
+    expect(screen.getAllByText('#1')).toHaveLength(2);
+    expect(screen.queryByText('#2')).toBeNull();
+    expect(screen.getByText('#3')).toBeTruthy();
   });
 
   it('filters leaderboard rows with search query input', async () => {

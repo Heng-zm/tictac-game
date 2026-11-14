@@ -19,6 +19,7 @@ import {
   startTelegramBotLogin,
 } from '../lib/api';
 import { getWebApp, openTelegramBot } from '../lib/telegram';
+import { isKhmer } from '../lib/language';
 import { Button, Logo, Spinner } from '../components/ui';
 
 type BrowserLoginPhase = 'idle' | 'starting' | 'waiting' | 'expired' | 'failed';
@@ -44,7 +45,9 @@ export function AuthGate({
   const insideTelegram = Boolean(webApp?.initData);
   const botUsername = config?.botUsername ?? null;
   const browserLoginAvailable = authRequired && !insideTelegram && Boolean(botUsername);
-  const guestAuthAvailable = authRequired && Boolean(config?.devAuthEnabled || config?.demoMode);
+  // The server rejects `/api/auth/dev` unless dev auth is enabled; `demoMode`
+  // alone is not enough, so offer the button on the same condition.
+  const guestAuthAvailable = authRequired && Boolean(config?.devAuthEnabled);
 
   const [loginPhase, setLoginPhase] = useState<BrowserLoginPhase>('idle');
   const [loginUrl, setLoginUrl] = useState<string | null>(null);
@@ -53,9 +56,9 @@ export function AuthGate({
   const loginBusy = loginPhase === 'starting' || loginPhase === 'waiting';
 
   // Determine user language (English default, Khmer if telegram/browser language starts with km)
-  const userLang = (webApp?.initDataUnsafe?.user?.language_code ?? (typeof navigator !== 'undefined' ? navigator.language : ''))
-    .toLowerCase();
-  const isKm = userLang.startsWith('km');
+  const isKm = isKhmer(
+    webApp?.initDataUnsafe?.user?.language_code ?? (typeof navigator !== 'undefined' ? navigator.language : ''),
+  );
 
   // Resuming after a page refresh: a pending cookie may already be waiting for
   // the user to tap Verify in Telegram.
@@ -166,7 +169,9 @@ export function AuthGate({
     setGuestBusy(true);
     setLoginError(null);
     try {
-      await authenticateDev(getDeviceKey(), 'Demo Player');
+      // No display name: the server derives a unique "Guest XXXX" per device,
+      // so demo accounts stay distinguishable on the leaderboard.
+      await authenticateDev(getDeviceKey());
       onRetry();
     } catch (err) {
       setLoginError(errorMessage(err));
@@ -247,7 +252,7 @@ export function AuthGate({
 
           {/* Browser Login Card */}
           {browserLoginAvailable ? (
-            <div className="mb-4 rounded-3xl border border-line bg-surface/90 p-4.5 text-left shadow-soft backdrop-blur-md">
+            <div className="mb-4 rounded-3xl border border-line bg-surface/90 p-4 text-left shadow-soft backdrop-blur-md">
               {loginBusy ? (
                 <>
                   <div className="flex items-start gap-3">
@@ -310,7 +315,7 @@ export function AuthGate({
                         <p className="text-sm font-bold text-ink">
                           {isKm ? 'ចុចមួយប៉ះក្នុង Telegram' : 'One tap in Telegram'}
                         </p>
-                        <span className="rounded-full bg-accent/10 px-1.5 py-0.2 text-[9.5px] font-bold text-accent">
+                        <span className="rounded-full bg-accent/10 px-1.5 py-0.5 text-[9.5px] font-bold text-accent">
                           FAST
                         </span>
                       </div>
@@ -386,8 +391,9 @@ export function AuthGate({
               <Button
                 variant="secondary"
                 size="md"
-                icon={guestBusy ? Loader2 : Sparkles}
-                disabled={guestBusy}
+                icon={Sparkles}
+                loading={guestBusy}
+                disabled={loginBusy}
                 onClick={() => void handleGuestLogin()}
                 className="w-full border-dashed border-accent/40 bg-accent/5 hover:bg-accent/10"
               >
@@ -401,6 +407,7 @@ export function AuthGate({
               variant={browserLoginAvailable ? 'secondary' : 'primary'}
               size="lg"
               icon={RefreshCw}
+              disabled={loginBusy || guestBusy}
               onClick={retry}
             >
               {isKm ? 'ព្យាយាមម្តងទៀត' : 'Try again'}
@@ -409,12 +416,16 @@ export function AuthGate({
 
           {/* Trust and Security Footnote */}
           {authRequired ? (
-            <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-line/80 bg-surface/60 p-3.5 text-left backdrop-blur-xs">
+            <div className="mt-6 flex items-start gap-2.5 rounded-2xl border border-line/80 bg-surface/60 p-3.5 text-left backdrop-blur-sm">
               <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
               <p className="text-[11px] leading-relaxed text-muted">
-                {isKm
-                  ? 'ការចូល Telegram របស់អ្នកត្រូវបានផ្ទៀងផ្ទាត់ដោយម៉ាស៊ីនបម្រើហ្គេមតាមរយៈ Bot។ Bot token មិនដែលត្រូវបានផ្ញើមកឧបករណ៍នេះទេ ហើយការចូលរបស់អ្នកមានសុវត្ថិភាពខ្ពស់។'
-                  : 'Your Telegram login is verified by the game server through the bot. The bot token never reaches this device, and development sign-in is disabled in production.'}
+                {config?.demoMode
+                  ? isKm
+                    ? 'ការដាក់ពង្រាយនេះដំណើរការក្នុងរបៀបសាកល្បង។ ការចូលជាភ្ញៀវត្រូវបានបើក ហើយទិន្នន័យអាចត្រូវបានកំណត់ឡើងវិញគ្រប់ពេល។'
+                    : 'This deployment runs in demo mode. Guest sign-in is enabled and data may be reset at any time.'
+                  : isKm
+                    ? 'ការចូល Telegram របស់អ្នកត្រូវបានផ្ទៀងផ្ទាត់ដោយម៉ាស៊ីនបម្រើហ្គេមតាមរយៈ Bot។ Bot token មិនដែលត្រូវបានផ្ញើមកឧបករណ៍នេះទេ ហើយការចូលរបស់អ្នកមានសុវត្ថិភាពខ្ពស់។'
+                    : 'Your Telegram login is verified by the game server through the bot. The bot token never reaches this device, and development sign-in is disabled in production.'}
               </p>
             </div>
           ) : (

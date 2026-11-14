@@ -9,6 +9,7 @@ import {
 } from '../../../shared/stickers';
 import { StickerCharacter } from './StickerCharacter';
 import { hapticImpact } from '../../lib/telegram';
+import { isKhmer } from '../../lib/language';
 import { CHAT_MESSAGE_MAX_LENGTH } from '../../../shared/events';
 
 interface ReactionPickerProps {
@@ -39,7 +40,7 @@ export function ReactionPicker({
     return STICKER_LIST.filter((s) => s.category === selectedCategory);
   }, [selectedCategory]);
 
-  const isKm = (languageCode ?? '').toLowerCase().startsWith('km');
+  const isKm = isKhmer(languageCode);
   const trimmedDraft = draft.trim();
   const canSendText = !disabled && trimmedDraft.length > 0;
 

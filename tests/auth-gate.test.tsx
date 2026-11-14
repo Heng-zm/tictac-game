@@ -4,7 +4,9 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { AuthGate } from '../src/client/screens/AuthGate';
 import type { AppConfigPayload, UserProfile } from '../src/shared/game-types';
 import {
+  authenticateDev,
   fetchTelegramBotLoginStatus,
+  getDeviceKey,
   startTelegramBotLogin,
 } from '../src/client/lib/api';
 
@@ -12,6 +14,8 @@ vi.mock('../src/client/lib/api', () => ({
   errorMessage: (error: unknown) => (error instanceof Error ? error.message : 'Sign-in failed'),
   fetchTelegramBotLoginStatus: vi.fn(),
   startTelegramBotLogin: vi.fn(),
+  authenticateDev: vi.fn(),
+  getDeviceKey: vi.fn(),
 }));
 
 const CONFIG: AppConfigPayload = {
@@ -61,14 +65,16 @@ const USER: UserProfile = {
 
 const fetchStatus = vi.mocked(fetchTelegramBotLoginStatus);
 const startLogin = vi.mocked(startTelegramBotLogin);
+const authenticateDevMock = vi.mocked(authenticateDev);
+const getDeviceKeyMock = vi.mocked(getDeviceKey);
 
-function renderGate(onRetry: () => void = () => undefined) {
+function renderGate(onRetry: () => void = () => undefined, config: AppConfigPayload = CONFIG) {
   return render(
     <AuthGate
       phase="auth-required"
       error={null}
       code="AUTH_REQUIRED"
-      config={CONFIG}
+      config={config}
       onRetry={onRetry}
     />,
   );
@@ -77,6 +83,7 @@ function renderGate(onRetry: () => void = () => undefined) {
 beforeEach(() => {
   vi.clearAllMocks();
   fetchStatus.mockResolvedValue({ status: 'invalid' });
+  getDeviceKeyMock.mockReturnValue('device-key-abc');
 });
 
 afterEach(() => {
@@ -142,5 +149,24 @@ describe('AuthGate browser sign-in', () => {
     expect(screen.getByRole('button', { name: 'Open in Telegram' })).toBeTruthy();
     expect(screen.queryByRole('button', { name: 'Continue with Telegram' })).toBeNull();
     expect(fetchStatus).not.toHaveBeenCalled();
+  });
+
+  it('signs in as a derived guest so demo accounts stay distinct', async () => {
+    const onRetry = vi.fn();
+    authenticateDevMock.mockResolvedValue({ user: USER });
+
+    renderGate(onRetry, { ...CONFIG, devAuthEnabled: true, demoMode: true });
+    fireEvent.click(await screen.findByRole('button', { name: 'Continue as Guest (Demo)' }));
+
+    // No display name: the server derives a unique "Guest XXXX" per device.
+    await waitFor(() => expect(authenticateDevMock).toHaveBeenCalledWith('device-key-abc'));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides guest sign-in when the server would reject it', () => {
+    // DEMO_MODE alone does not enable /api/auth/dev, so no dead button.
+    renderGate(undefined, { ...CONFIG, devAuthEnabled: false, demoMode: true });
+
+    expect(screen.queryByRole('button', { name: /Continue as Guest/i })).toBeNull();
   });
 });

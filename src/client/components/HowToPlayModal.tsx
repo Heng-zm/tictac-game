@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Modal } from './ui';
 import { cn } from '../lib/cn';
+import { isKhmer } from '../lib/language';
 import { useTelegramBackHandler } from '../hooks/use-hash-route';
 
 export interface HowToPlayModalProps {
@@ -198,7 +199,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
-  const isKm = (languageCode ?? '').toLowerCase().startsWith('km');
+  const isKm = isKhmer(languageCode);
 
   const step = (STEPS[currentStep] ?? STEPS[0]) as StepData;
   const isFirst = currentStep === 0;

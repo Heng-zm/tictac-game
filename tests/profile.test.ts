@@ -46,4 +46,29 @@ describe('leaderboard response', () => {
     expect(response.entries[1]?.isYou).toBe(true);
     expect(response.currentUserRank).toBe(1);
   });
+
+  it('reports human-only records so bot games cannot pad the ladder', () => {
+    const rows = [
+      row('a', {
+        rating: 1020,
+        ratingGames: 9,
+        wins: 9,
+        losses: 4,
+        draws: 2,
+        aiWins: 4,
+        aiLosses: 1,
+        aiDraws: 1,
+        humanGames: 9,
+      }),
+    ];
+
+    const entry = toLeaderboardResponse(rows, 'a', 1).entries[0]!;
+
+    expect(entry).toMatchObject({
+      humanWins: 5,
+      humanLosses: 3,
+      humanDraws: 1,
+      ratedGames: 9,
+    });
+  });
 });

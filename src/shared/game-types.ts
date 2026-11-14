@@ -218,10 +218,10 @@ export interface LeaderboardEntry {
   photoUrl: string | null;
   rating: number;
   ratedGames: number;
-  wins: number;
-  losses: number;
-  draws: number;
-  gamesPlayed: number;
+  /** Human-vs-human record only, so the ladder never shows bot padding. */
+  humanWins: number;
+  humanLosses: number;
+  humanDraws: number;
   isYou: boolean;
 }
 
@@ -272,4 +272,26 @@ export interface HelloPayload {
 export function computeWinRate(stats: Pick<UserStats, 'wins' | 'gamesPlayed'>): number {
   if (stats.gamesPlayed <= 0) return 0;
   return Math.round((stats.wins / stats.gamesPlayed) * 1000) / 10;
+}
+
+export interface HumanRecord {
+  wins: number;
+  losses: number;
+  draws: number;
+}
+
+/**
+ * Splits the human-vs-human record out of the all-games counters. AI results
+ * are tracked in parallel (`aiWins`/`aiLosses`/`aiDraws`), so subtracting them
+ * keeps the rated ladder free of bot-padding. Clamped because rows written
+ * before AI counters existed could otherwise go negative.
+ */
+export function humanRecord(
+  stats: Pick<UserStats, 'wins' | 'losses' | 'draws' | 'aiWins' | 'aiLosses' | 'aiDraws'>,
+): HumanRecord {
+  return {
+    wins: Math.max(0, stats.wins - stats.aiWins),
+    losses: Math.max(0, stats.losses - stats.aiLosses),
+    draws: Math.max(0, stats.draws - stats.aiDraws),
+  };
 }

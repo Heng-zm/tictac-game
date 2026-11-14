@@ -1,5 +1,6 @@
 import {
   computeWinRate,
+  humanRecord,
   type HistoryItem,
   type LeaderboardEntry,
   type LeaderboardResponse,
@@ -77,6 +78,8 @@ export function toLeaderboardResponse(
     }
     previous = row;
 
+    const human = humanRecord(row.stats);
+
     return {
       rank,
       userId: row.user.id,
@@ -85,10 +88,9 @@ export function toLeaderboardResponse(
       photoUrl: row.user.photoUrl,
       rating: row.stats.rating,
       ratedGames: row.stats.ratingGames,
-      wins: row.stats.wins,
-      losses: row.stats.losses,
-      draws: row.stats.draws,
-      gamesPlayed: row.stats.gamesPlayed,
+      humanWins: human.wins,
+      humanLosses: human.losses,
+      humanDraws: human.draws,
       isYou: row.user.id === currentUserId,
     };
   });
