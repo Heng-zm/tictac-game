@@ -145,4 +145,24 @@ describe('Board input', () => {
     expect(document.querySelectorAll('.win-cell')).toHaveLength(5);
     expect(document.querySelector('.animate-pulse')).toBeNull();
   });
+
+  it('renders on-screen floating HUD controls and move count', () => {
+    const board = { [encodeCell(0, 0)]: 'X', [encodeCell(1, 0)]: 'O' } as Record<number, 'X' | 'O'>;
+    const { onCell } = renderBoard({ board, lastMoveCell: encodeCell(1, 0) });
+
+    const recenterBtn = screen.getByRole('button', { name: 'Recenter camera on latest move' });
+    const zoomInBtn = screen.getByRole('button', { name: 'Zoom in' });
+    const zoomOutBtn = screen.getByRole('button', { name: 'Zoom out' });
+
+    expect(recenterBtn).toBeDefined();
+    expect(zoomInBtn).toBeDefined();
+    expect(zoomOutBtn).toBeDefined();
+    expect(screen.getByText('Move #2')).toBeDefined();
+
+    fireEvent.click(recenterBtn);
+    fireEvent.click(zoomInBtn);
+    fireEvent.click(zoomOutBtn);
+
+    expect(onCell).not.toHaveBeenCalled();
+  });
 });

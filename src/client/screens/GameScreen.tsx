@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   Timer,
   Volume2,
+  VolumeX,
   WifiOff,
   X,
 } from 'lucide-react';
@@ -23,6 +24,7 @@ import {
   modeLabel,
   opponentFor,
 } from '../lib/game';
+import { isSoundMuted, playStoneSound, playUrgentCountdownSound, toggleSound } from '../lib/sound';
 import { cn } from '../lib/cn';
 import { hapticImpact, hapticNotify, setVerticalSwipeLock } from '../lib/telegram';
 import { useTelegramBackHandler } from '../hooks/use-hash-route';
@@ -172,6 +174,23 @@ export function GameScreen({
       youSide &&
       match.youSide === youSide,
   );
+  const clockUrgent = Boolean(
+    yourTurn && match && match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnRemaining <= 5000,
+  );
+
+  const lastUrgentSecRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (!clockUrgent || turnRemaining === null) {
+      lastUrgentSecRef.current = null;
+      return;
+    }
+    const sec = Math.ceil(turnRemaining / 1000);
+    if (sec > 0 && sec <= 5 && sec !== lastUrgentSecRef.current) {
+      lastUrgentSecRef.current = sec;
+      playUrgentCountdownSound();
+      hapticImpact('light');
+    }
+  }, [clockUrgent, turnRemaining]);
   const board = useMemo(() => match?.board ?? {}, [match]);
   const displayBoard = useMemo(
     () => (pendingCell !== null && youSide ? { ...board, [pendingCell]: youSide } : board),
@@ -200,6 +219,7 @@ export function GameScreen({
       setPendingCell(cell);
       setPendingActionId(actionId);
       hapticImpact('light');
+      playStoneSound(match.youSide);
       try {
         await submitMove(match.id, cell, actionId);
         hapticImpact('light');
@@ -445,9 +465,6 @@ export function GameScreen({
     match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnTimerTotal > 0
       ? Math.min(1, Math.max(0, turnRemaining / turnTimerTotal))
       : null;
-  const clockUrgent = Boolean(
-    yourTurn && match.status === 'ACTIVE' && !match.turnTimerPaused && turnRemaining !== null && turnRemaining <= 5000,
-  );
 
   return (
     <div className="fixed inset-0 z-0 overflow-hidden overscroll-none bg-app">
@@ -751,6 +768,14 @@ function GameHeader({
   connection?: string;
   onRetry?: () => void;
 }) {
+  const [muted, setMuted] = useState(isSoundMuted());
+
+  function handleToggleSound() {
+    const next = toggleSound();
+    setMuted(next);
+    hapticImpact('light');
+  }
+
   return (
     <header className="flex items-center justify-between gap-3 pb-2.5 sm:pb-3.5 pt-0">
       <div className="flex min-w-0 items-center gap-2.5">
@@ -768,33 +793,45 @@ function GameHeader({
           ) : null}
         </div>
       </div>
-      {connection && connection !== 'online' ? (
-        <div className="shrink-0 flex items-center">
-          {connection === 'reconnecting' ? (
-            <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
-              <span className="relative flex h-2 w-2">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-                <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
-              </span>
-              <span>Reconnecting…</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-2.5 py-1 text-[11px] font-medium text-danger">
-              <WifiOff className="h-3 w-3 shrink-0" aria-hidden />
-              <span>Offline</span>
-              {onRetry ? (
-                <button
-                  type="button"
-                  onClick={onRetry}
-                  className="ml-1 font-semibold underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current"
-                >
-                  Retry
-                </button>
-              ) : null}
-            </div>
-          )}
-        </div>
-      ) : null}
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          type="button"
+          onClick={handleToggleSound}
+          className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+          title={muted ? 'Unmute sound effects' : 'Mute sound effects'}
+          aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
+        >
+          {muted ? <VolumeX className="h-4 w-4 text-muted/60" aria-hidden /> : <Volume2 className="h-4 w-4 text-accent" aria-hidden />}
+        </button>
+
+        {connection && connection !== 'online' ? (
+          <div className="shrink-0 flex items-center">
+            {connection === 'reconnecting' ? (
+              <div className="flex items-center gap-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-2.5 py-1 text-[11px] font-medium text-amber-600 dark:text-amber-400">
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500" />
+                </span>
+                <span>Reconnecting…</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 rounded-full border border-danger/30 bg-danger/10 px-2.5 py-1 text-[11px] font-medium text-danger">
+                <WifiOff className="h-3 w-3 shrink-0" aria-hidden />
+                <span>Offline</span>
+                {onRetry ? (
+                  <button
+                    type="button"
+                    onClick={onRetry}
+                    className="ml-1 font-semibold underline underline-offset-2 hover:opacity-80 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-current"
+                  >
+                    Retry
+                  </button>
+                ) : null}
+              </div>
+            )}
+          </div>
+        ) : null}
+      </div>
     </header>
   );
 }

@@ -29,7 +29,14 @@ export interface DisplayReaction {
   timestamp: string;
 }
 import { getAudioContext, playVoiceAudio } from '../lib/audio-radio';
-import { playChatSound, playReactionSound } from '../lib/sound';
+import {
+  playChatSound,
+  playDefeatSound,
+  playReactionSound,
+  playStoneSound,
+  playTurnSound,
+  playVictorySound,
+} from '../lib/sound';
 import {
   ApiRequestError,
   authenticateDev,
@@ -463,6 +470,14 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     socket.on('match:state', ({ match: next }) => {
       if (!active) return;
+      const prev = matchRef.current;
+      if (
+        next.status === 'ACTIVE' &&
+        next.currentTurn === next.youSide &&
+        prev?.currentTurn !== next.youSide
+      ) {
+        playTurnSound();
+      }
       setMatch(next);
       if (next.opponentConnection === 'connected') setOpponentGraceEndsAt(null);
     });
@@ -470,16 +485,21 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     socket.on('move:accepted', (event) => {
       if (!active) return;
       setLastMove({ cell: event.cell, side: event.side, actionId: event.actionId, at: Date.now() });
+      playStoneSound(event.side);
       setMatch((current) => {
         if (!current || current.id !== event.matchId || current.board[event.cell] !== undefined) return current;
         const board = { ...current.board, [event.cell]: event.side };
+        const nextTurn = event.side === 'X' ? 'O' : 'X';
+        if (nextTurn === current.youSide) {
+          playTurnSound();
+        }
         return {
           ...current,
           board,
           version: Math.max(current.version, event.version),
           turnNumber: current.turnNumber + 1,
           lastMove: { cell: event.cell, side: event.side },
-          currentTurn: event.side === 'X' ? 'O' : 'X',
+          currentTurn: nextTurn,
         };
       });
       hapticImpact('light');
@@ -501,6 +521,11 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       setMatch(finished);
       setOpponentGraceEndsAt(null);
       const title = resultHeadline(finished);
+      if (title === 'You win!') {
+        playVictorySound();
+      } else if (title === 'Defeat') {
+        playDefeatSound();
+      }
       hapticNotify(title === 'You win!' ? 'success' : title === 'Draw' ? 'warning' : 'error');
       pushToast({
         type: title === 'You win!' ? 'success' : title === 'Draw' ? 'info' : 'error',

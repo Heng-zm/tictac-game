@@ -1,8 +1,10 @@
 import { memo, useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Focus, Minus, Plus } from 'lucide-react';
 import type { Board as BoardType } from '../../shared/game-types';
 import { decodeCell, encodeCell } from '../../shared/game-types';
 import { cn } from '../lib/cn';
 import { hapticImpact } from '../lib/telegram';
+import { playIllegalMoveSound } from '../lib/sound';
 
 interface BoardProps {
   board: BoardType;
@@ -435,7 +437,12 @@ export const Board = memo(function Board({
     (clientX: number, clientY: number) => {
       if (disabled || !yourTurn) return;
       const cell = cellAtPoint(clientX, clientY);
-      if (cell === null || board[cell] !== undefined) return;
+      if (cell === null) return;
+      if (board[cell] !== undefined) {
+        playIllegalMoveSound();
+        hapticImpact('light');
+        return;
+      }
       hapticImpact('medium');
       onCell(cell);
     },
@@ -782,14 +789,23 @@ export const Board = memo(function Board({
                   ) : null}
                   {side === 'X' ? <XMark /> : <OMark />}
                   {isLast && !isPending ? (
-                    <span
-                      className={cn(
-                        'last-move-dot pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',
-                        side === 'X'
-                          ? 'bg-accent shadow-[0_0_8px_rgba(37,99,235,0.8)]'
-                          : 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.8)]',
-                      )}
-                    />
+                    <>
+                      <span
+                        className={cn(
+                          'pointer-events-none absolute -inset-1 rounded-2xl animate-pulse-ring opacity-75',
+                          side === 'X' ? 'ring-2 ring-accent' : 'ring-2 ring-danger',
+                        )}
+                        aria-hidden
+                      />
+                      <span
+                        className={cn(
+                          'last-move-dot pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',
+                          side === 'X'
+                            ? 'bg-accent shadow-[0_0_8px_rgba(37,99,235,0.8)]'
+                            : 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.8)]',
+                        )}
+                      />
+                    </>
                   ) : null}
                 </div>
               );
@@ -824,6 +840,50 @@ export const Board = memo(function Board({
           Drag to pan, pinch or use plus and minus to zoom. Use the arrow keys to move the view and press Enter or Space to
           place a stone at the centre of the screen.
         </p>
+      </div>
+
+      {/* On-screen Board Controls HUD */}
+      <div
+        data-board-hud
+        className="pointer-events-none absolute left-3 sm:left-4 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex flex-col items-start gap-2"
+      >
+        <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-line/80 bg-surface/90 p-1.5 shadow-soft backdrop-blur-md">
+          <button
+            type="button"
+            onClick={recenter}
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+            title="Recenter camera on latest move"
+            aria-label="Recenter camera on latest move"
+          >
+            <Focus className="h-4 w-4" aria-hidden />
+          </button>
+          <div className="h-4 w-px bg-line/80" aria-hidden />
+          <button
+            type="button"
+            onClick={zoomIn}
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+            title="Zoom in"
+            aria-label="Zoom in"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+          </button>
+          <button
+            type="button"
+            onClick={zoomOut}
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+            title="Zoom out"
+            aria-label="Zoom out"
+          >
+            <Minus className="h-4 w-4" aria-hidden />
+          </button>
+        </div>
+
+        {stones.length > 0 ? (
+          <div className="pointer-events-auto flex items-center gap-1.5 rounded-full border border-line/70 bg-surface/85 px-2.5 py-1 text-[11px] font-semibold text-muted shadow-xs backdrop-blur-sm">
+            <span className="flex h-2 w-2 rounded-full bg-accent" aria-hidden />
+            <span>Move #{stones.length}</span>
+          </div>
+        ) : null}
       </div>
     </div>
   );
