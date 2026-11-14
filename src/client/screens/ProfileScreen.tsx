@@ -5,6 +5,7 @@ import {
   ChevronRight,
   Gamepad2,
   History,
+  LogOut,
   Medal,
   RefreshCw,
   Send,
@@ -19,7 +20,8 @@ import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage, fetchHistory } from '../lib/api';
 import { formatRelativeTime } from '../hooks/use-time';
 import { cn } from '../lib/cn';
-import { Avatar, Button, Card, EmptyState, IconButton, Pill, ScreenHeader, Skeleton, StatTile, Toggle } from '../components/ui';
+import { isKhmer } from '../lib/language';
+import { Avatar, Button, Card, EmptyState, IconButton, Modal, Pill, ScreenHeader, Skeleton, StatTile, Toggle } from '../components/ui';
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { modeShortLabel } from '../lib/game';
@@ -162,7 +164,7 @@ export function ProfileScreen({
           >
             {tab === 'overview' ? <OverviewTab client={client} navigate={navigate} /> : null}
             {tab === 'history' ? <HistoryTab /> : null}
-            {tab === 'settings' ? <SettingsTab client={client} config={config} /> : null}
+            {tab === 'settings' ? <SettingsTab client={client} config={config} navigate={navigate} /> : null}
           </div>
         </div>
       </div>
@@ -372,15 +374,37 @@ function HistoryRow({ item }: { item: HistoryRecord }) {
 function SettingsTab({
   client,
   config,
+  navigate,
 }: {
   client: GameClient;
   config: GameClient['config'];
+  navigate: (path: string) => void;
 }) {
   const { profile, connection } = client;
   const [saving, setSaving] = useState(false);
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [sendingTestNotification, setSendingTestNotification] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   if (!profile) return null;
+
+  const isKm = isKhmer(profile.languageCode);
+
+  async function handleLogout(): Promise<void> {
+    setLoggingOut(true);
+    try {
+      await client.logout();
+      navigate('/');
+    } catch (error) {
+      client.pushToast({
+        type: 'error',
+        title: isKm ? 'មិនអាចចាកចេញបានទេ' : 'Could not log out',
+        message: errorMessage(error),
+      });
+      setLoggingOut(false);
+      setShowLogoutModal(false);
+    }
+  }
 
   async function toggle(value: boolean): Promise<void> {
     setSaving(true);
@@ -546,6 +570,70 @@ function SettingsTab({
           </div>
         ) : null}
       </Card>
+
+      {/* Account Session / Log Out */}
+      <Card className="p-4 md:col-span-2 border-danger/25 bg-danger/[0.03]">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-danger/10 text-danger">
+                <LogOut className="h-3.5 w-3.5" aria-hidden />
+              </span>
+              <h3 className="text-sm font-semibold text-danger">
+                {isKm ? 'ចាកចេញពីគណនី (Log Out)' : 'Log Out'}
+              </h3>
+            </div>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              {isKm
+                ? 'បញ្ចប់ការចូលប្រើប្រាស់គណនីនៅលើឧបករណ៍នេះ។ អ្នកនឹងត្រូវចូលម្តងទៀតដើម្បីលេង និងរក្សាទុកពិន្ទុ Rating។'
+                : 'Sign out of your active session on this device. You will need to sign in again to access ranked matchmaking.'}
+            </p>
+          </div>
+          <Button
+            variant="danger"
+            size="sm"
+            icon={LogOut}
+            onClick={() => setShowLogoutModal(true)}
+            className="shrink-0 font-bold active:scale-95"
+          >
+            {isKm ? 'ចាកចេញ' : 'Log Out'}
+          </Button>
+        </div>
+      </Card>
+
+      <Modal
+        open={showLogoutModal}
+        onClose={() => !loggingOut && setShowLogoutModal(false)}
+        title={isKm ? 'ចាកចេញពីគណនី?' : 'Log out of your account?'}
+        className="!max-w-sm"
+      >
+        <div className="space-y-4">
+          <p className="text-xs leading-relaxed text-muted">
+            {isKm
+              ? 'តើអ្នកពិតជាចង់ចាកចេញមែនទេ? ពិន្ទុ Rating និងប្រវត្តិការប្រកួតរបស់អ្នកត្រូវបានរក្សាទុកដោយសុវត្ថិភាព។'
+              : 'Are you sure you want to log out? Your stats, rating, and match history are saved to your account.'}
+          </p>
+          <div className="flex items-center justify-end gap-2 border-t border-line pt-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              disabled={loggingOut}
+              onClick={() => setShowLogoutModal(false)}
+            >
+              {isKm ? 'បោះបង់' : 'Cancel'}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              icon={LogOut}
+              loading={loggingOut}
+              onClick={() => void handleLogout()}
+            >
+              {isKm ? 'ចាកចេញ' : 'Log Out'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

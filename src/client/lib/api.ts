@@ -93,6 +93,10 @@ export function fetchTelegramBotLoginStatus(): Promise<TelegramLoginStatusRespon
   return request<TelegramLoginStatusResponse>('/api/auth/telegram/bot/status', { method: 'GET' });
 }
 
+export function logout(): Promise<void> {
+  return request<void>('/api/auth/logout', { method: 'POST' });
+}
+
 export interface PreferencesPatch {
   autoAiFallback?: boolean;
   turnNotifications?: boolean;

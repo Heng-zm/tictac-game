@@ -138,6 +138,7 @@ function makeClient(overrides: Partial<GameClient> = {}): GameClient {
     clearPendingInvite: vi.fn(),
     clearCreatedInvite: vi.fn(),
     reconnect: vi.fn(),
+    logout: vi.fn(async () => undefined),
     pushToast: vi.fn(),
     dismissToast: vi.fn(),
     ...overrides,

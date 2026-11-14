@@ -38,6 +38,7 @@ import {
   fetchConfig,
   fetchMe,
   getDeviceKey,
+  logout as apiLogout,
   sendTestNotification as requestTestNotification,
   updatePreferences,
 } from '../lib/api';
@@ -128,6 +129,7 @@ export interface GameClient {
   clearPendingInvite: () => void;
   clearCreatedInvite: () => void;
   reconnect: () => void;
+  logout: () => Promise<void>;
   pushToast: (toast: Omit<ToastMessage, 'id'>) => void;
   dismissToast: (id: string) => void;
 }
@@ -905,6 +907,26 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     retryBoot();
   }, [retryBoot]);
 
+  const logout = useCallback(async (): Promise<void> => {
+    try {
+      await apiLogout();
+    } catch {
+      // Disconnect locally even if the server request fails
+    }
+    const socket = socketRef.current;
+    if (socket) {
+      socket.disconnect();
+    }
+    setProfile(null);
+    setMatch(null);
+    setQueue(null);
+    setCreatedInvite(null);
+    setPendingInvite(null);
+    setBootErrorCode('AUTH_REQUIRED');
+    setBootError(null);
+    setPhase('auth-required');
+  }, []);
+
   return {
     phase,
     bootError,
@@ -948,6 +970,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     clearPendingInvite,
     clearCreatedInvite,
     reconnect,
+    logout,
     pushToast,
     dismissToast,
   };

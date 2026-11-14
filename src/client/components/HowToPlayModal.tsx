@@ -511,50 +511,81 @@ function BoardControlsIllustration({ isKm }: { isKm: boolean }) {
         <circle cx="115" cy="95" r="11" className="fill-emerald-500/20 stroke-emerald-500 stroke-2" />
         <path d="M110 90 L120 100 M120 90 L110 100" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
 
-        {/* Active Placement Target (Center) */}
-        <rect
-          x="136"
-          y="51"
-          width="28"
-          height="28"
-          rx="6"
-          className="fill-accent/15 stroke-accent stroke-2 animate-pulse"
-        />
-        <circle cx="150" cy="65" r="18" fill="url(#tapRipple)" />
-        <circle cx="150" cy="65" r="10" className="fill-accent text-accent-ink" />
-        <path d="M145 60 L155 70 M155 60 L145 70" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
-
-        {/* Tap Gesture Pointer */}
-        <g transform="translate(155, 75)">
-          <path
-            d="M5 2 L5 16 C5 18 2 20 0 24 L10 24 C14 20 16 16 16 12 L16 8 C16 6 14 5 12 5 C11 5 9 6 9 8 L9 2 C9 0 7 0 7 2 Z"
-            fill="currentColor"
-            className="text-amber-400 drop-shadow-md"
+        {/* Active Placement Target (Center: 150, 65) */}
+        <g transform="translate(150, 65)">
+          {/* Target grid cell frame */}
+          <rect
+            x="-14"
+            y="-14"
+            width="28"
+            height="28"
+            rx="6"
+            className="fill-accent/10 stroke-accent/40 stroke-2"
           />
-          <circle cx="5" cy="2" r="3" fill="#f59e0b" />
+
+          {/* Animated Tap Ripple radiating out on tap */}
+          <circle cx="0" cy="0" r="18" fill="url(#tapRipple)" className="animate-htp-ripple pointer-events-none" />
+
+          {/* Animated Stone Placement (pops in when finger strikes) */}
+          <g className="animate-htp-mark">
+            <rect
+              x="-14"
+              y="-14"
+              width="28"
+              height="28"
+              rx="6"
+              className="fill-accent/20 stroke-accent stroke-2"
+            />
+            <circle cx="0" cy="0" r="10" className="fill-accent text-accent-ink" />
+            <path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+          </g>
+
+          {/* Animated Tap Gesture Pointer */}
+          <g className="animate-htp-hand drop-shadow-md">
+            <path
+              d="M 0 0 L 0 14 C 0 17 -3 19 -5 23 L 5 23 C 9 19 11 15 11 11 L 11 7 C 11 5 9 4 7 4 C 6 4 4 5 4 7 L 4 0 C 4 -2 2 -2 2 0 Z"
+              fill="#fbbf24"
+              stroke="#d97706"
+              strokeWidth="1.2"
+              strokeLinejoin="round"
+            />
+            <circle cx="0" cy="0" r="2.8" fill="#f59e0b" />
+          </g>
         </g>
 
         {/* Pan Arrows (Drag gesture cue) */}
-        <g className="text-muted/70">
-          <circle cx="250" cy="90" r="28" className="fill-surface/90 stroke-line" strokeWidth="1.5" />
-          <path d="M250 68 L250 112 M228 90 L272 90" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-          <path d="M246 72 L250 68 L254 72" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M246 108 L250 112 L254 108" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M232 86 L228 90 L232 94" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M268 86 L272 90 L268 94" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-          <text x="250" y="132" textAnchor="middle" className="fill-ink text-[9px] font-bold">
+        <g transform="translate(250, 90)">
+          <g className="animate-htp-pan">
+            <circle cx="0" cy="0" r="28" className="fill-surface/90 stroke-line shadow-sm" strokeWidth="1.5" />
+
+            {/* Animated 4-way arrows expanding & contracting */}
+            <g className="animate-htp-arrow text-muted/80">
+              <path d="M0 -22 L0 22 M-22 0 L22 0" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+              <path d="M-4 -18 L0 -22 L4 -18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M-4 18 L0 22 L4 18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M-18 -4 L-22 0 L-18 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M18 -4 L22 0 L18 4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            </g>
+
+            {/* Simulated subtle touch gliding indicator */}
+            <circle cx="0" cy="0" r="8" className="animate-htp-drag-finger fill-accent/20 stroke-accent stroke-1" />
+          </g>
+
+          <text x="0" y="42" textAnchor="middle" className="fill-ink text-[9px] font-bold">
             {isKm ? 'អូសដើម្បីរំកិល (Drag)' : 'Drag to pan'}
           </text>
         </g>
 
         {/* Zoom In/Out cue */}
-        <g transform="translate(25, 110)">
-          <rect width="84" height="26" rx="13" className="fill-surface/95 stroke-line shadow-xs" strokeWidth="1.2" />
-          <circle cx="16" cy="13" r="6" stroke="currentColor" strokeWidth="1.5" className="text-accent" />
-          <path d="M20 17 L24 21" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent" />
-          <text x="32" y="16" className="fill-ink text-[9.5px] font-bold">
-            {isKm ? 'ពង្រីកម្រាមពីរ' : 'Pinch to zoom'}
-          </text>
+        <g transform="translate(67, 123)">
+          <g className="animate-htp-pinch">
+            <rect x="-42" y="-13" width="84" height="26" rx="13" className="fill-surface/95 stroke-line shadow-xs" strokeWidth="1.2" />
+            <circle cx="-26" cy="0" r="6" stroke="currentColor" strokeWidth="1.5" className="text-accent" />
+            <path d="M-22 4 L-18 8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" className="text-accent" />
+            <text x="-10" y="3.5" className="fill-ink text-[9.5px] font-bold">
+              {isKm ? 'ពង្រីកម្រាមពីរ' : 'Pinch to zoom'}
+            </text>
+          </g>
         </g>
       </svg>
     </div>
@@ -605,25 +636,37 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
           strokeWidth="7"
           strokeLinecap="round"
           filter="url(#glowBlur)"
+          className="animate-htp-laser"
         />
-        <line x1="45" y1="90" x2="265" y2="90" stroke="#fef08a" strokeWidth="3" strokeLinecap="round" />
+        <line
+          x1="45"
+          y1="90"
+          x2="265"
+          y2="90"
+          stroke="#fef08a"
+          strokeWidth="3"
+          strokeLinecap="round"
+          className="animate-htp-laser"
+        />
 
         {/* 5 Winning Stones (X) */}
         {[55, 105, 155, 205, 255].map((x, idx) => (
           <g key={idx} transform={`translate(${x}, 90)`}>
-            <circle cx="0" cy="0" r="16" className="fill-amber-500/20 stroke-amber-400 stroke-2" />
-            <circle cx="0" cy="0" r="13" className="fill-amber-500" />
-            <path
-              d="M-5 -5 L5 5 M5 -5 L-5 5"
-              stroke="#ffffff"
-              strokeWidth="2.5"
-              strokeLinecap="round"
-            />
-            {/* Number indicator */}
-            <circle cx="9" cy="-9" r="6" className="fill-ink text-surface" />
-            <text x="9" y="-6.5" textAnchor="middle" className="fill-surface text-[7px] font-black">
-              {idx + 1}
-            </text>
+            <g className={`animate-htp-win-${idx + 1}`}>
+              <circle cx="0" cy="0" r="16" className="fill-amber-500/20 stroke-amber-400 stroke-2" />
+              <circle cx="0" cy="0" r="13" className="fill-amber-500" />
+              <path
+                d="M-5 -5 L5 5 M5 -5 L-5 5"
+                stroke="#ffffff"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+              />
+              {/* Number indicator */}
+              <circle cx="9" cy="-9" r="6" className="fill-ink text-surface" />
+              <text x="9" y="-6.5" textAnchor="middle" className="fill-surface text-[7px] font-black">
+                {idx + 1}
+              </text>
+            </g>
           </g>
         ))}
 
@@ -639,10 +682,12 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
 
         {/* Win Badge Header */}
         <g transform="translate(170, 25)">
-          <rect x="-85" y="-12" width="170" height="24" rx="12" className="fill-amber-500 shadow-md" />
-          <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[11px] font-black tracking-wide">
-            {isKm ? '🏆 ៥ គ្រាប់ = ឈ្នះភ្លាមៗ (WIN!)' : '🏆 5 in a row = WIN!'}
-          </text>
+          <g className="animate-htp-banner">
+            <rect x="-85" y="-12" width="170" height="24" rx="12" className="fill-amber-500 shadow-md" />
+            <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[11px] font-black tracking-wide">
+              {isKm ? '🏆 ៥ គ្រាប់ = ឈ្នះភ្លាមៗ (WIN!)' : '🏆 5 in a row = WIN!'}
+            </text>
+          </g>
         </g>
 
         {/* Subtitle directions footer */}
@@ -691,18 +736,24 @@ function TacticsIllustration({ isKm }: { isKm: boolean }) {
 
         {/* BLOCK TARGET on the right (230, 80) */}
         <g transform="translate(230, 80)">
+          {/* Animated radar expanding ping */}
+          <circle cx="0" cy="0" r="18" className="animate-htp-radar fill-rose-500/25 stroke-rose-500 stroke-2 pointer-events-none" />
           <circle cx="0" cy="0" r="18" className="fill-rose-500/15 stroke-rose-500 stroke-2 stroke-dashed animate-pulse" />
-          <rect x="-10" y="-10" width="20" height="20" rx="4" className="fill-rose-600 shadow-md" />
-          <path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+          <g className="animate-htp-mark">
+            <rect x="-10" y="-10" width="20" height="20" rx="4" className="fill-rose-600 shadow-md" />
+            <path d="M-5 -5 L5 5 M5 -5 L-5 5" stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" />
+          </g>
         </g>
 
         {/* Warning Badge Callout */}
         <g transform="translate(230, 42)">
-          <rect x="-42" y="-11" width="84" height="22" rx="11" className="fill-rose-600 shadow-md" />
-          <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[9.5px] font-black">
-            {isKm ? '🚨 ត្រូវបិទ! (BLOCK)' : '🚨 BLOCK!'}
-          </text>
-          <path d="M0 11 L-4 15 L4 15 Z" fill="#e11d48" />
+          <g className="animate-htp-warning">
+            <rect x="-42" y="-11" width="84" height="22" rx="11" className="fill-rose-600 shadow-md" />
+            <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[9.5px] font-black">
+              {isKm ? '🚨 ត្រូវបិទ! (BLOCK)' : '🚨 BLOCK!'}
+            </text>
+            <path d="M0 11 L-4 15 L4 15 Z" fill="#e11d48" />
+          </g>
         </g>
 
         {/* Player's Double Threat Attack (Diagonal 3) */}
@@ -750,17 +801,19 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
         {/* Left Side: Walkie Talkie Device Graphic */}
         <g transform="translate(85, 95)">
           {/* Reaction Sticker Speech Bubble (Hello! 👋) */}
-          <g transform="translate(-32, -68)">
-            <rect width="64" height="22" rx="11" className="fill-surface stroke-line stroke-1 drop-shadow-xs" />
-            <path d="M28 22 L32 26 L36 22 Z" className="fill-surface stroke-line stroke-1" />
-            <text x="32" y="14" textAnchor="middle" className="fill-ink text-[9.5px] font-bold">
-              {isKm ? 'សួស្តី! 👋' : 'Hello! 👋'}
-            </text>
+          <g transform="translate(-32, -62)">
+            <g className="animate-htp-bubble">
+              <rect width="64" height="22" rx="11" className="fill-surface stroke-line stroke-1 drop-shadow-xs" />
+              <path d="M28 22 L32 26 L36 22 Z" className="fill-surface stroke-line stroke-1" />
+              <text x="32" y="14" textAnchor="middle" className="fill-ink text-[9.5px] font-bold">
+                {isKm ? 'សួស្តី! 👋' : 'Hello! 👋'}
+              </text>
+            </g>
           </g>
 
           {/* Animated sound ripple rings */}
-          <circle cx="0" cy="0" r="44" fill="url(#micPulse)" />
-          <circle cx="0" cy="0" r="32" className="stroke-emerald-500/40 stroke-2" strokeDasharray="3 3" />
+          <circle cx="0" cy="0" r="32" className="animate-htp-wave-1 stroke-emerald-500/50 stroke-2 pointer-events-none" strokeDasharray="3 3" />
+          <circle cx="0" cy="0" r="44" className="animate-htp-wave-2 stroke-emerald-500/30 stroke-2 pointer-events-none" strokeDasharray="4 4" />
 
           {/* Device Button */}
           <rect
@@ -782,12 +835,12 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
 
           {/* Waveform bars */}
           <g transform="translate(-20, 36)" fill="#10b981">
-            <rect x="4" y="-3" width="3" height="6" rx="1.5" />
-            <rect x="10" y="-8" width="3" height="16" rx="1.5" />
-            <rect x="16" y="-12" width="3" height="24" rx="1.5" />
-            <rect x="22" y="-7" width="3" height="14" rx="1.5" />
-            <rect x="28" y="-11" width="3" height="22" rx="1.5" />
-            <rect x="34" y="-4" width="3" height="8" rx="1.5" />
+            <rect x="4" y="4" width="3" height="8" rx="1.5" className="animate-htp-eq-1" />
+            <rect x="10" y="-1" width="3" height="13" rx="1.5" className="animate-htp-eq-2" />
+            <rect x="16" y="-7" width="3" height="19" rx="1.5" className="animate-htp-eq-3" />
+            <rect x="22" y="0" width="3" height="12" rx="1.5" className="animate-htp-eq-4" />
+            <rect x="28" y="-5" width="3" height="17" rx="1.5" className="animate-htp-eq-5" />
+            <rect x="34" y="3" width="3" height="9" rx="1.5" className="animate-htp-eq-6" />
           </g>
 
           <text x="0" y="58" textAnchor="middle" className="fill-ink text-[10px] font-black">
