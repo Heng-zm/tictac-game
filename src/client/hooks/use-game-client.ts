@@ -29,6 +29,7 @@ export interface DisplayReaction {
   timestamp: string;
 }
 import { getAudioContext, playVoiceAudio } from '../lib/audio-radio';
+import { playChatSound, playReactionSound } from '../lib/sound';
 import {
   ApiRequestError,
   authenticateDev,
@@ -565,6 +566,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
       setReactions((prev) => [...prev.slice(-3), newReaction]);
       hapticImpact('light');
+      playReactionSound();
 
       window.setTimeout(() => {
         if (active) {
@@ -587,6 +589,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
       setChatMessages((prev) => [...prev.slice(-5), newMessage]);
       hapticImpact('light');
+      playChatSound();
 
       window.setTimeout(() => {
         if (active) {

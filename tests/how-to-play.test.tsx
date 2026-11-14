@@ -125,4 +125,22 @@ describe('HowToPlayModal', () => {
 
     expect(localStorage.getItem(HOW_TO_PLAY_STORAGE_KEY)).toBeNull();
   });
+
+  it('navigates through steps using keyboard ArrowRight and ArrowLeft', () => {
+    render(<HowToPlayModal open={true} onClose={vi.fn()} />);
+
+    expect(screen.getByText('Infinite Grid & Controls')).toBeTruthy();
+
+    // ArrowRight -> Step 2
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByText('Connect 5 in a Row to Win!')).toBeTruthy();
+
+    // ArrowRight -> Step 3
+    fireEvent.keyDown(window, { key: 'ArrowRight' });
+    expect(screen.getByText('Attack & Defense Tactics')).toBeTruthy();
+
+    // ArrowLeft -> Step 2
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(screen.getByText('Connect 5 in a Row to Win!')).toBeTruthy();
+  });
 });

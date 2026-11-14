@@ -22,6 +22,7 @@ import { Avatar } from '../components/ui';
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { formatDuration } from '../hooks/use-time';
+import { isKhmer as checkKhmer } from '../lib/language';
 import { HowToPlayModal, HOW_TO_PLAY_STORAGE_KEY } from '../components/HowToPlayModal';
 import './HomeScreen.css';
 
@@ -60,7 +61,7 @@ export function HomeScreen({
   }, [profile, match?.status, pendingInvite]);
 
   if (!profile) return null;
-  const isKhmer = (profile.languageCode ?? '').toLowerCase().startsWith('km');
+  const isKhmer = checkKhmer(profile.languageCode);
   const stats = profile.stats;
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
   const activeOpponent = activeMatch ? opponentFor(activeMatch) : null;

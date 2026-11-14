@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Hand,
+  Medal,
   Mic,
   Move,
   ShieldAlert,
@@ -177,11 +178,11 @@ const STEPS: StepData[] = [
         descEnglish: 'Hold the mic button to talk, then release to send instantly.',
       },
       {
-        icon: Swords,
-        titleKhmer: 'Quick Match',
-        descKhmer: 'ប្រកួតចៃដន្យជាមួយអ្នកលេងផ្សេងទៀតដើម្បីដណ្តើមពិន្ទុ Rating',
-        titleEnglish: 'Ranked matchmaking with random players',
-        descEnglish: 'Play random opponents and compete for rating.',
+        icon: Medal,
+        titleKhmer: 'ប្រកួតដណ្តើមមេដាយ (Rated Medals)',
+        descKhmer: 'ប្រកួតចៃដន្យដណ្តើមពិន្ទុ Rating មេដាយមាស ប្រាក់ និងតំណែងលើតារាងពិន្ទុ',
+        titleEnglish: 'Ranked Match & Championship Medals',
+        descEnglish: 'Play random opponents and compete for Rating, Medals & Ladder Rank.',
       },
       {
         icon: Bot,
@@ -220,6 +221,21 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
     const panel = contentRef.current?.closest<HTMLElement>('[role="dialog"]');
     if (panel) panel.scrollTop = 0;
   }, [currentStep, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        setCurrentStep((prev) => Math.min(STEPS.length - 1, prev + 1));
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        setCurrentStep((prev) => Math.max(0, prev - 1));
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [open]);
 
   function persistGuidePreference(seen: boolean): void {
     try {
@@ -277,15 +293,15 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
       dismissible
       showClose={false}
       ariaLabel={isKm ? 'របៀបលេង' : 'How to play'}
-      className="max-w-md p-0 sm:max-w-lg"
+      className="!max-w-lg !p-0 !pb-0 !overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88dvh]"
     >
       <div
-        className="flex flex-col"
+        className="flex flex-1 min-h-0 flex-col overflow-hidden"
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
       >
-        {/* Header Bar */}
-        <div className="flex items-center justify-between border-b border-line px-5 py-3.5">
+        {/* Header Bar - Fixed */}
+        <div className="flex shrink-0 items-center justify-between border-b border-line px-4 py-3 sm:px-5 sm:py-3.5">
           <div className="flex min-w-0 items-center gap-2">
             <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-accent/10 text-accent">
               <BookOpen className="h-4 w-4" aria-hidden />
@@ -309,8 +325,8 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
           </button>
         </div>
 
-        {/* Step Progress Bar & Pills */}
-        <div className="flex items-center justify-between gap-1.5 border-b border-line/60 bg-elevated/40 px-5 py-2">
+        {/* Step Progress Bar & Pills - Fixed */}
+        <div className="flex shrink-0 items-center justify-between gap-1 border-b border-line/60 bg-elevated/40 px-3 py-1.5 sm:px-5 sm:py-2">
           {STEPS.map((s, idx) => {
             const active = idx === currentStep;
             const completed = idx < currentStep;
@@ -352,10 +368,13 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
           })}
         </div>
 
-        {/* Visual Graphic & Content Container */}
-        <div ref={contentRef} className="p-5 sm:p-6">
+        {/* Visual Graphic & Content Container - Scrollable Middle Body */}
+        <div
+          ref={contentRef}
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 [scrollbar-width:thin]"
+        >
           {/* Visual SVG Graphic for the Active Step */}
-          <div className="relative mb-5 overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-surface via-elevated/50 to-surface p-4 shadow-inner">
+          <div className="relative mb-3.5 sm:mb-4 overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-surface via-elevated/50 to-surface p-2.5 sm:p-3 shadow-inner">
             {currentStep === 0 && <BoardControlsIllustration isKm={isKm} />}
             {currentStep === 1 && <WinConditionIllustration isKm={isKm} />}
             {currentStep === 2 && <TacticsIllustration isKm={isKm} />}
@@ -363,14 +382,14 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
           </div>
 
           {/* Step Text Info */}
-          <div className="space-y-1.5" aria-live="polite" aria-atomic="true">
+          <div className="space-y-1" aria-live="polite" aria-atomic="true">
             <div className="flex items-center justify-between gap-2">
               <span className="inline-block rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
                 {isKm ? step.badgeKhmer : step.badgeEnglish}
               </span>
               <span
                 aria-hidden="true"
-                className="text-[10px] font-semibold text-muted tracking-wide uppercase"
+                className="hidden sm:inline text-[10px] font-semibold text-muted tracking-wide uppercase truncate"
               >
                 {isKm ? step.badgeEnglish : step.badgeKhmer}
               </span>
@@ -383,23 +402,23 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
             </p>
           </div>
 
-          {/* Highlights List */}
-          <div className="mt-4 grid gap-2 sm:grid-cols-3">
+          {/* Highlights List - Responsive Grid */}
+          <div className="mt-3 sm:mt-4 grid grid-cols-1 gap-2 sm:grid-cols-3">
             {step.highlights.map((item, idx) => {
               const Icon = item.icon;
               return (
                 <div
                   key={idx}
-                  className="flex items-start gap-2.5 rounded-xl border border-line/70 bg-surface/80 p-2.5 shadow-2xs"
+                  className="flex items-center sm:items-start gap-2.5 rounded-xl border border-line/70 bg-surface/80 p-2 sm:p-2.5 shadow-sm"
                 >
                   <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
                     <Icon className="h-3.5 w-3.5" aria-hidden />
                   </span>
                   <div className="min-w-0 flex-1">
-                    <p className="text-[11.5px] font-bold leading-tight text-ink">
+                    <p className="text-[11px] sm:text-[11.5px] font-bold leading-tight text-ink">
                       {isKm ? item.titleKhmer : item.titleEnglish}
                     </p>
-                    <p className="mt-0.5 text-[10px] leading-snug text-muted">
+                    <p className="mt-0.5 text-[10px] leading-snug text-muted line-clamp-2 sm:line-clamp-none">
                       {isKm ? item.descKhmer : item.descEnglish}
                     </p>
                   </div>
@@ -409,45 +428,47 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
           </div>
         </div>
 
-        {/* Footer Navigation Bar */}
-        <div className="flex flex-col gap-3 border-t border-line bg-elevated/30 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-          <label className="flex cursor-pointer items-center gap-2 select-none">
-            <input
-              type="checkbox"
-              checked={dontShowAgain}
-              onChange={(e) => setDontShowAgain(e.target.checked)}
-              className="h-3.5 w-3.5 rounded border-line text-accent accent-accent focus:ring-accent"
-            />
-            <span className="text-[11px] font-medium text-muted">
-              {isKm ? 'កុំបង្ហាញម្តងទៀត' : "Don't show again"}
-            </span>
-          </label>
+        {/* Footer Navigation Bar - Fixed at Bottom */}
+        <div className="shrink-0 border-t border-line bg-surface/95 backdrop-blur-md px-4 py-2.5 pb-[calc(env(safe-area-inset-bottom)+10px)] sm:px-5 sm:py-3 sm:pb-3">
+          <div className="flex items-center justify-between gap-3">
+            <label className="flex cursor-pointer items-center gap-2 select-none">
+              <input
+                type="checkbox"
+                checked={dontShowAgain}
+                onChange={(e) => setDontShowAgain(e.target.checked)}
+                className="h-3.5 w-3.5 rounded border-line text-accent accent-accent focus:ring-accent"
+              />
+              <span className="text-[11px] font-medium text-muted">
+                {isKm ? 'កុំបង្ហាញម្តងទៀត' : "Don't show again"}
+              </span>
+            </label>
 
-          <div className="flex items-center gap-2 sm:self-auto self-end w-full sm:w-auto">
-            {!isFirst ? (
+            <div className="flex items-center gap-2">
+              {!isFirst ? (
+                <button
+                  type="button"
+                  onClick={handlePrev}
+                  className="flex items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3 py-1.5 sm:px-3.5 sm:py-2 text-xs font-semibold text-ink shadow-sm transition hover:bg-elevated active:scale-95"
+                >
+                  <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
+                  <span>{isKm ? 'ថយក្រោយ' : 'Back'}</span>
+                </button>
+              ) : null}
+
               <button
                 type="button"
-                onClick={handlePrev}
-                className="flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl border border-line bg-surface px-3.5 py-2 text-xs font-semibold text-ink shadow-2xs transition hover:bg-elevated active:scale-95"
+                onClick={handleNext}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 rounded-xl px-3.5 py-1.5 sm:px-4 sm:py-2 text-xs font-bold shadow-soft transition active:scale-95',
+                  isLast
+                    ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20'
+                    : 'bg-accent text-accent-ink hover:opacity-95 shadow-accent/20',
+                )}
               >
-                <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-                <span>{isKm ? 'ថយក្រោយ' : 'Back'}</span>
+                <span>{isLast ? (isKm ? 'យល់ហើយ' : 'Got it') : isKm ? 'បន្ទាប់' : 'Next'}</span>
+                <ChevronRight className="h-3.5 w-3.5" aria-hidden />
               </button>
-            ) : null}
-
-            <button
-              type="button"
-              onClick={handleNext}
-              className={cn(
-                'flex flex-1 sm:flex-none items-center justify-center gap-1.5 rounded-xl px-4 py-2 text-xs font-bold shadow-soft transition active:scale-95',
-                isLast
-                  ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20'
-                  : 'bg-accent text-accent-ink hover:opacity-95 shadow-accent/20',
-              )}
-            >
-              <span>{isLast ? (isKm ? 'យល់ហើយ' : 'Got it') : isKm ? 'បន្ទាប់' : 'Next'}</span>
-              <ChevronRight className="h-3.5 w-3.5" aria-hidden />
-            </button>
+            </div>
           </div>
         </div>
       </div>
@@ -462,7 +483,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
 /** Step 1: Infinite Board, Panning & Gestures */
 function BoardControlsIllustration({ isKm }: { isKm: boolean }) {
   return (
-    <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
+    <div className="relative flex h-32 sm:h-40 md:h-44 w-full select-none items-center justify-center overflow-hidden">
       {/* Grid Canvas representation */}
       <svg
         viewBox="0 0 340 180"
@@ -543,7 +564,7 @@ function BoardControlsIllustration({ isKm }: { isKm: boolean }) {
 /** Step 2: 5-in-a-Row Gomoku Goal & Directions */
 function WinConditionIllustration({ isKm }: { isKm: boolean }) {
   return (
-    <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
+    <div className="relative flex h-32 sm:h-40 md:h-44 w-full select-none items-center justify-center overflow-hidden">
       <svg
         viewBox="0 0 340 180"
         className="h-full w-full"
@@ -638,7 +659,7 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
 /** Step 3: Attack vs Defense Strategy */
 function TacticsIllustration({ isKm }: { isKm: boolean }) {
   return (
-    <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
+    <div className="relative flex h-32 sm:h-40 md:h-44 w-full select-none items-center justify-center overflow-hidden">
       <svg
         viewBox="0 0 340 180"
         className="h-full w-full"
@@ -711,7 +732,7 @@ function TacticsIllustration({ isKm }: { isKm: boolean }) {
 /** Step 4: Walkie-Talkie Push-to-Talk & Game Modes */
 function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
   return (
-    <div className="relative flex h-48 w-full select-none items-center justify-center overflow-hidden">
+    <div className="relative flex h-32 sm:h-40 md:h-44 w-full select-none items-center justify-center overflow-hidden">
       <svg
         viewBox="0 0 340 180"
         className="h-full w-full"
@@ -727,7 +748,16 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
         </defs>
 
         {/* Left Side: Walkie Talkie Device Graphic */}
-        <g transform="translate(85, 90)">
+        <g transform="translate(85, 95)">
+          {/* Reaction Sticker Speech Bubble (Hello! 👋) */}
+          <g transform="translate(-32, -68)">
+            <rect width="64" height="22" rx="11" className="fill-surface stroke-line stroke-1 drop-shadow-xs" />
+            <path d="M28 22 L32 26 L36 22 Z" className="fill-surface stroke-line stroke-1" />
+            <text x="32" y="14" textAnchor="middle" className="fill-ink text-[9.5px] font-bold">
+              {isKm ? 'សួស្តី! 👋' : 'Hello! 👋'}
+            </text>
+          </g>
+
           {/* Animated sound ripple rings */}
           <circle cx="0" cy="0" r="44" fill="url(#micPulse)" />
           <circle cx="0" cy="0" r="32" className="stroke-emerald-500/40 stroke-2" strokeDasharray="3 3" />
@@ -770,21 +800,23 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
 
         {/* Right Side: Game Modes Badges */}
         <g transform="translate(190, 45)">
-          {/* Quick Match */}
+          {/* Quick Match with Championship Medal */}
           <g transform="translate(0, 0)">
             <rect width="130" height="32" rx="10" className="fill-accent/10 stroke-accent/40 stroke-1" />
-            <circle cx="16" cy="16" r="9" className="fill-accent text-accent-ink" />
+            <circle cx="16" cy="16" r="9" className="fill-amber-400 stroke-amber-500 stroke-1" />
+            <path d="M12.5 12.5 L19.5 12.5 L18 16 L16 15 L14 16 Z" fill="#ffffff" />
+            <circle cx="16" cy="16.5" r="2.5" fill="#ffffff" />
             <text x="32" y="15" className="fill-ink text-[10.5px] font-bold">
               Quick Match
             </text>
             <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
-              {isKm ? 'ប្រកួតចៃដន្យ Rated' : 'Rated match'}
+              {isKm ? 'ប្រកួតដណ្តើមមេដាយ Rated' : 'Rated medals & rank'}
             </text>
           </g>
 
           {/* Invite Friend */}
           <g transform="translate(0, 42)">
-            <rect width="130" height="32" rx="10" className="fill-surface stroke-line stroke-1 shadow-2xs" />
+            <rect width="130" height="32" rx="10" className="fill-surface stroke-line stroke-1" />
             <circle cx="16" cy="16" r="9" className="fill-elevated text-ink" />
             <text x="32" y="15" className="fill-ink text-[10.5px] font-bold">
               Invite Friend
@@ -796,7 +828,7 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
 
           {/* Practice Bot */}
           <g transform="translate(0, 84)">
-            <rect width="130" height="32" rx="10" className="fill-surface stroke-line stroke-1 shadow-2xs" />
+            <rect width="130" height="32" rx="10" className="fill-surface stroke-line stroke-1" />
             <circle cx="16" cy="16" r="9" className="fill-elevated text-ink" />
             <text x="32" y="15" className="fill-ink text-[10.5px] font-bold">
               Practice Bot

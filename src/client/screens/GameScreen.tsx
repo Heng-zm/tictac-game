@@ -186,7 +186,14 @@ export function GameScreen({
 
   const playCell = useCallback(
     async (cell: number): Promise<void> => {
-      if (!match || match.status !== 'ACTIVE' || !yourTurn || pendingCell !== null || board[cell] !== undefined) {
+      if (
+        !match ||
+        match.status !== 'ACTIVE' ||
+        matchStarting ||
+        !yourTurn ||
+        pendingCell !== null ||
+        board[cell] !== undefined
+      ) {
         return;
       }
       const actionId = makeActionId();
@@ -206,7 +213,7 @@ export function GameScreen({
         setPendingActionId(null);
       }
     },
-    [board, match, pendingCell, pushToast, submitMove, yourTurn],
+    [board, match, matchStarting, pendingCell, pushToast, submitMove, yourTurn],
   );
   const handleCell = useCallback(
     (cell: number) => {

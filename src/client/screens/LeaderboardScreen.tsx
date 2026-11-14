@@ -63,7 +63,6 @@ export function LeaderboardScreen({
   }, [load]);
 
   const allEntries = useMemo(() => data?.entries ?? [], [data?.entries]);
-  const currentInList = Boolean(allEntries.some((entry) => entry.isYou));
   const userRating = profile?.stats.rating ?? 1200;
 
   // Filter entries based on active tab and search query
@@ -107,6 +106,10 @@ export function LeaderboardScreen({
 
   const podiumEntries = showPodium ? allEntries.slice(0, 3) : [];
   const listEntries = showPodium ? filteredEntries.slice(3) : filteredEntries;
+  const isUserVisible = Boolean(
+    (showPodium && podiumEntries.some((entry) => entry.isYou)) ||
+      listEntries.some((entry) => entry.isYou),
+  );
 
   const currentPosition = data?.currentUserRank
     ? isKm
@@ -190,7 +193,7 @@ export function LeaderboardScreen({
       ) : data ? (
         <>
           {/* Your Position Banner Card */}
-          {!currentInList && profile ? (
+          {!isUserVisible && profile ? (
             <Card className="relative mb-3.5 overflow-hidden border-accent/30 bg-gradient-to-br from-accent/15 via-accent/5 to-surface p-4 shadow-sm">
               <div className="pointer-events-none absolute -right-8 -top-8 h-24 w-24 rounded-full bg-accent/10 blur-xl" aria-hidden />
               <div className="flex items-center gap-3">

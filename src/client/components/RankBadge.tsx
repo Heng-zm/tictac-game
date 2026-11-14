@@ -16,10 +16,10 @@ const badgeStyles: Record<RankTier, string> = {
   rookie: 'border-line bg-elevated/70 text-muted',
   bronze: 'border-amber-600/30 bg-amber-600/10 text-amber-700 dark:text-amber-300',
   silver: 'border-slate-400/35 bg-slate-400/10 text-slate-600 dark:text-slate-300',
-  gold: 'border-yellow-500/35 bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 shadow-glow-gold/10',
-  platinum: 'border-cyan-500/35 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-glow/10',
-  diamond: 'border-indigo-500/35 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 shadow-glow/15',
-  master: 'border-rose-500/35 bg-rose-500/15 text-rose-600 dark:text-rose-300 shadow-glow-danger/15',
+  gold: 'border-yellow-500/35 bg-yellow-500/15 text-yellow-700 dark:text-yellow-300 shadow-[0_0_12px_-2px_rgba(234,179,8,0.25)]',
+  platinum: 'border-cyan-500/35 bg-cyan-500/15 text-cyan-700 dark:text-cyan-300 shadow-[0_0_12px_-2px_rgba(6,182,212,0.25)]',
+  diamond: 'border-indigo-500/35 bg-indigo-500/15 text-indigo-600 dark:text-indigo-300 shadow-[0_0_12px_-2px_rgba(99,102,241,0.25)]',
+  master: 'border-rose-500/35 bg-rose-500/15 text-rose-600 dark:text-rose-300 shadow-[0_0_12px_-2px_rgba(244,63,94,0.25)]',
 };
 
 const textStyles: Record<RankTier, string> = {

@@ -167,3 +167,60 @@ export function getStickerLabel(id: StickerId, languageCode?: string | null): st
   const lang = (languageCode ?? '').toLowerCase().startsWith('km') ? 'km' : 'en';
   return sticker.label[lang] ?? sticker.label.en;
 }
+
+export interface QuickChatPreset {
+  id: string;
+  emoji: string;
+  text: {
+    en: string;
+    km: string;
+  };
+}
+
+export const QUICK_CHAT_PRESETS: readonly QuickChatPreset[] = [
+  {
+    id: 'good_luck',
+    emoji: '🍀',
+    text: { en: 'Good luck!', km: 'សំណាងល្អ!' },
+  },
+  {
+    id: 'nice_move',
+    emoji: '👏',
+    text: { en: 'Nice move!', km: 'ដើរបានល្អណាស់!' },
+  },
+  {
+    id: 'thinking',
+    emoji: '🤔',
+    text: { en: 'Thinking...', km: 'កំពុងគិត...' },
+  },
+  {
+    id: 'oops',
+    emoji: '😅',
+    text: { en: 'Oops!', km: 'ច្រឡំហើយ!' },
+  },
+  {
+    id: 'thanks',
+    emoji: '🙏',
+    text: { en: 'Thanks!', km: 'អរគុណ!' },
+  },
+  {
+    id: 'well_played',
+    emoji: '🤝',
+    text: { en: 'Well played!', km: 'លេងបានល្អ!' },
+  },
+  {
+    id: 'rematch',
+    emoji: '⚔️',
+    text: { en: 'One more game?', km: 'លេងម្តងទៀតទេ?' },
+  },
+  {
+    id: 'great_game',
+    emoji: '🏆',
+    text: { en: 'Great game!', km: 'ហ្គេមល្អ!' },
+  },
+] as const;
+
+export function getQuickChatText(preset: QuickChatPreset, languageCode?: string | null): string {
+  const lang = (languageCode ?? '').toLowerCase().startsWith('km') ? 'km' : 'en';
+  return preset.text[lang] ?? preset.text.en;
+}

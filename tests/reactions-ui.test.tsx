@@ -183,6 +183,46 @@ describe('Sticker Reactions UI', () => {
       expect(screen.getByRole('textbox', { name: 'សារជជែក' })).toBeTruthy();
       expect(screen.getByRole('button', { name: 'ផ្ញើសារ' })).toBeTruthy();
     });
+
+    it('sends a quick chat preset phrase on single click and closes the tray', () => {
+      const onSendText = vi.fn();
+      const onClose = vi.fn();
+      render(
+        <ReactionPicker
+          isOpen={true}
+          onClose={onClose}
+          onSelect={vi.fn()}
+          onSendText={onSendText}
+          languageCode="en"
+        />,
+      );
+
+      const quickChatBtn = screen.getByRole('button', { name: 'Quick message: Good luck!' });
+      expect(quickChatBtn).toBeTruthy();
+      fireEvent.click(quickChatBtn);
+
+      expect(onSendText).toHaveBeenCalledWith('Good luck!');
+      expect(onClose).toHaveBeenCalled();
+    });
+
+    it('localizes quick chat preset phrases in Khmer', () => {
+      const onSendText = vi.fn();
+      render(
+        <ReactionPicker
+          isOpen={true}
+          onClose={vi.fn()}
+          onSelect={vi.fn()}
+          onSendText={onSendText}
+          languageCode="km"
+        />,
+      );
+
+      const quickChatBtn = screen.getByRole('button', { name: 'សាររហ័ស៖ សំណាងល្អ!' });
+      expect(quickChatBtn).toBeTruthy();
+      fireEvent.click(quickChatBtn);
+
+      expect(onSendText).toHaveBeenCalledWith('សំណាងល្អ!');
+    });
   });
 
   describe('ChatOverlay', () => {

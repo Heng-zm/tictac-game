@@ -2,6 +2,7 @@ import { memo } from 'react';
 import type { StickerId } from '../../../shared/stickers';
 import { getStickerLabel } from '../../../shared/stickers';
 import { StickerCharacter } from './StickerCharacter';
+import { cn } from '../../lib/cn';
 
 export interface DisplayReaction {
   reactionId: string;
@@ -34,13 +35,18 @@ export const ReactionOverlay = memo(function ReactionOverlay({
       }}
     >
       {/* Animated Character Mascot */}
-      <div className="relative flex items-center justify-center">
+      <div className="relative flex items-center justify-center transition-transform hover:scale-105">
         <StickerCharacter id={reaction.stickerId} size={58} animate={true} />
       </div>
 
       {/* Quick-Chat Text Label Bubble */}
       {label ? (
-        <div className="mt-1 flex items-center rounded-full border border-line/60 bg-surface/95 backdrop-blur-md px-2.5 py-0.5 shadow-sm">
+        <div
+          className={cn(
+            'mt-1 flex items-center rounded-full border bg-surface/95 backdrop-blur-md px-2.5 py-0.5 shadow-sm',
+            reaction.isYou ? 'border-accent/40 shadow-accent/10' : 'border-danger/40 shadow-danger/10',
+          )}
+        >
           <span className="text-[11px] font-semibold text-ink whitespace-nowrap">
             {label}
           </span>

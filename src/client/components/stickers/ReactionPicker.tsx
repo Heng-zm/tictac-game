@@ -3,6 +3,8 @@ import { X, Sparkles, MessageSquare, Smile, Zap, Send } from 'lucide-react';
 import {
   STICKER_LIST,
   getStickerLabel,
+  QUICK_CHAT_PRESETS,
+  getQuickChatText,
   type StickerCategory,
   type StickerDefinition,
   type StickerId,
@@ -90,6 +92,13 @@ export function ReactionPicker({
     onClose();
   };
 
+  const handleQuickChatPreset = (text: string) => {
+    if (disabled || !onSendText) return;
+    hapticImpact('light');
+    onSendText(text);
+    onClose();
+  };
+
   return (
     <div
       role="dialog"
@@ -157,6 +166,33 @@ export function ReactionPicker({
               <Send className="h-4 w-4" aria-hidden="true" />
             </button>
           </form>
+        ) : null}
+
+        {/* Quick Chat Presets (One-tap messages) */}
+        {onSendText ? (
+          <div className="pt-2">
+            <div
+              className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar"
+              aria-label={isKm ? 'ឃ្លាជជែករហ័ស' : 'Quick chat phrases'}
+            >
+              {QUICK_CHAT_PRESETS.map((preset) => {
+                const text = getQuickChatText(preset, languageCode);
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => handleQuickChatPreset(text)}
+                    disabled={disabled}
+                    aria-label={isKm ? `សាររហ័ស៖ ${text}` : `Quick message: ${text}`}
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/70 bg-elevated/80 px-3 py-1 text-xs font-semibold text-ink shadow-sm transition hover:border-accent/40 hover:bg-elevated active:scale-95"
+                  >
+                    <span aria-hidden="true">{preset.emoji}</span>
+                    <span>{text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         ) : null}
 
         {/* Category Filter Pills */}

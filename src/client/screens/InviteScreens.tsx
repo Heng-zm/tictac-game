@@ -16,6 +16,7 @@ import { ApiRequestError, cancelInviteRest, errorMessage, fetchInvitePreview } f
 import { SocketRequestError } from '../lib/socket';
 import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink, isValidInviteToken } from '../lib/invites';
 import { shareInTelegram } from '../lib/telegram';
+import { cn } from '../lib/cn';
 import { formatLongDuration, useCountdown } from '../hooks/use-time';
 import { inviteLinkStorageKey } from '../hooks/use-game-client';
 import { Avatar, Button, Card, EmptyState, Pill, ScreenHeader, Spinner } from '../components/ui';
@@ -499,7 +500,14 @@ export function InviteAcceptScreen({
                 <span className="text-xl font-bold text-accent">X</span>
                 <span className="text-[10px] font-medium text-muted">vs</span>
                 <span className="text-xl font-bold text-danger">O</span>
-                <span className="ml-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold text-accent">
+                <span
+                  className={cn(
+                    'ml-1 rounded-full px-2 py-0.5 text-[10px] font-bold',
+                    preview.yourSide === 'X'
+                      ? 'bg-accent/10 text-accent'
+                      : 'bg-danger/10 text-danger',
+                  )}
+                >
                   You play {preview.yourSide}
                 </span>
               </div>
@@ -570,17 +578,26 @@ export function InviteAcceptScreen({
                   </>
                 )
               ) : expired || preview.status === 'EXPIRED' ? (
-                <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
-                  This invite has expired
-                </Button>
+                <div className="space-y-2">
+                  <p className="text-center text-xs text-muted">This invitation has expired.</p>
+                  <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
+                    Back to Home
+                  </Button>
+                </div>
               ) : preview.status === 'CANCELLED' ? (
-                <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
-                  This invite was cancelled
-                </Button>
+                <div className="space-y-2">
+                  <p className="text-center text-xs text-muted">This invitation was cancelled by the host.</p>
+                  <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
+                    Back to Home
+                  </Button>
+                </div>
               ) : preview.status === 'ACCEPTED' || preview.matchStatus !== 'WAITING' ? (
-                <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
-                  This invite was already used
-                </Button>
+                <div className="space-y-2">
+                  <p className="text-center text-xs text-muted">This invitation was already accepted.</p>
+                  <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
+                    Back to Home
+                  </Button>
+                </div>
               ) : (
                 <>
                   <Button size="lg" className="w-full" loading={accepting} disabled={busy} onClick={() => void accept()}>
