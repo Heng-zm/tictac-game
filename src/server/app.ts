@@ -52,6 +52,7 @@ import {
   leaderboardQuerySchema,
   preferencesSchema,
   telegramInitDataSchema,
+  updateProfileSchema,
 } from '../shared/schemas/payloads';
 import type { GameRepository, UserEntity } from './database/types';
 import type { Logger } from 'pino';
@@ -488,6 +489,18 @@ export function createApp(deps: AppDependencies): express.Express {
       user = await repository.setTurnNotifications(user.id, parsed.turnNotifications);
     }
     res.json({ user: toUserProfile(user) });
+  });
+
+  app.patch('/api/me/profile', requireAuth, async (req, res) => {
+    const parsed = updateProfileSchema.parse(req.body);
+    const user = req.authUser as UserEntity;
+    const updated = await repository.updateUserProfile(user.id, {
+      firstName: parsed.firstName,
+      lastName: parsed.lastName,
+      username: parsed.username,
+      photoUrl: parsed.photoUrl === '' ? null : parsed.photoUrl,
+    });
+    res.json({ user: toUserProfile(updated) });
   });
 
   app.post(

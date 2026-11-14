@@ -206,6 +206,14 @@ export interface TelegramProfileInput {
   languageCode?: string | null;
 }
 
+export interface UpdateUserProfileInput {
+  firstName?: string;
+  lastName?: string | null;
+  username?: string | null;
+  photoUrl?: string | null;
+  languageCode?: string | null;
+}
+
 export interface RecentMatchPage {
   matches: MatchEntity[];
   nextCursor: string | null;
@@ -229,6 +237,7 @@ export interface GameRepository {
 
   upsertTelegramUser(profile: TelegramProfileInput): Promise<UserEntity>;
   getUserById(id: string): Promise<UserEntity | null>;
+  updateUserProfile(userId: string, input: UpdateUserProfileInput): Promise<UserEntity>;
   setAutoAiFallback(userId: string, value: boolean): Promise<UserEntity>;
   setTurnNotifications(userId: string, value: boolean): Promise<UserEntity>;
   touchUser(userId: string): Promise<void>;

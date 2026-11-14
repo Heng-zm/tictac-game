@@ -23,6 +23,7 @@ import type {
   RepositoryMoveResult,
   StatsEntity,
   TelegramProfileInput,
+  UpdateUserProfileInput,
   UserEntity,
   UserLite,
 } from './types';
@@ -95,6 +96,17 @@ export class MemoryGameRepository implements GameRepository {
   async getUserById(id: string): Promise<UserEntity | null> {
     const user = this.users.get(id);
     return user ? cloneUser(user) : null;
+  }
+
+  async updateUserProfile(userId: string, input: UpdateUserProfileInput): Promise<UserEntity> {
+    const user = this.requireUser(userId);
+    if (input.firstName !== undefined) user.firstName = input.firstName;
+    if (input.lastName !== undefined) user.lastName = input.lastName;
+    if (input.username !== undefined) user.username = input.username;
+    if (input.photoUrl !== undefined) user.photoUrl = input.photoUrl ? input.photoUrl.trim() : null;
+    if (input.languageCode !== undefined) user.languageCode = input.languageCode;
+    user.lastSeenAt = this.clock();
+    return cloneUser(user);
   }
 
   async setAutoAiFallback(userId: string, value: boolean): Promise<UserEntity> {

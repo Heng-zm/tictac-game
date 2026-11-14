@@ -41,6 +41,8 @@ import {
   logout as apiLogout,
   sendTestNotification as requestTestNotification,
   updatePreferences,
+  updateProfile as apiUpdateProfile,
+  type UpdateProfileInput,
 } from '../lib/api';
 import { createGameSocket, request, SocketRequestError, type GameClientSocket } from '../lib/socket';
 import {
@@ -116,6 +118,7 @@ export interface GameClient {
   requestRematch: (matchId: string) => Promise<RematchResult>;
   leaveMatch: (matchId: string) => Promise<void>;
   refreshProfile: () => Promise<void>;
+  updateProfile: (input: UpdateProfileInput) => Promise<UserProfile>;
   setAutoAiFallback: (value: boolean) => Promise<void>;
   setTurnNotifications: (value: boolean) => Promise<void>;
   sendTestNotification: () => Promise<void>;
@@ -835,6 +838,20 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     }
   }, []);
 
+  const updateProfile = useCallback(async (input: UpdateProfileInput): Promise<UserProfile> => {
+    try {
+      const payload = await apiUpdateProfile(input);
+      setProfile(payload.user);
+      return payload.user;
+    } catch (error) {
+      throw new ApiRequestError(
+        error instanceof ApiRequestError ? error.code : 'UPDATE_FAILED',
+        errorMessage(error),
+        error instanceof ApiRequestError ? error.status : 0,
+      );
+    }
+  }, []);
+
   const setAutoAiFallback = useCallback(async (value: boolean): Promise<void> => {
     try {
       const payload = await updatePreferences({ autoAiFallback: value });
@@ -964,6 +981,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     sendVoice,
     clearIncomingVoice,
     refreshProfile,
+    updateProfile,
     setAutoAiFallback,
     setTurnNotifications,
     sendTestNotification,

@@ -42,6 +42,60 @@ const barStyles: Record<RankTier, string> = {
   master: 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]',
 };
 
+export function RankIcon({
+  rating,
+  tier,
+  size = 'md',
+  variant = 'badge',
+  className,
+}: {
+  rating?: number;
+  tier?: RankTier;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  variant?: 'badge' | 'solid' | 'ghost';
+  className?: string;
+}) {
+  const resolvedTier: RankTier = tier ?? (rating !== undefined ? rankForRating(rating).tier : 'rookie');
+  const Icon = rankIcons[resolvedTier];
+
+  const sizeStyles = {
+    xs: 'h-4 w-4 p-0.5 rounded',
+    sm: 'h-6 w-6 p-1 rounded-lg text-xs',
+    md: 'h-8 w-8 p-1.5 rounded-xl text-sm',
+    lg: 'h-10 w-10 p-2 rounded-2xl text-base',
+    xl: 'h-12 w-12 p-2.5 rounded-2xl text-lg',
+  };
+
+  const iconSizes = {
+    xs: 'h-3 w-3',
+    sm: 'h-3.5 w-3.5',
+    md: 'h-4 w-4',
+    lg: 'h-5 w-5',
+    xl: 'h-6 w-6',
+  };
+
+  const variantStyles = {
+    badge: badgeStyles[resolvedTier],
+    solid: barStyles[resolvedTier] + ' text-white',
+    ghost: textStyles[resolvedTier] + ' bg-transparent border-transparent',
+  };
+
+  return (
+    <span
+      className={cn(
+        'inline-flex shrink-0 items-center justify-center border font-bold shadow-xs select-none',
+        variantStyles[variant],
+        sizeStyles[size],
+        className,
+      )}
+      aria-label={`${resolvedTier} rank icon`}
+      title={`${resolvedTier} rank`}
+    >
+      <Icon className={iconSizes[size]} aria-hidden />
+    </span>
+  );
+}
+
 export function RankBadge({ rating, className }: { rating: number; className?: string }) {
   const rank = rankForRating(rating);
   const Icon = rankIcons[rank.tier];
@@ -60,10 +114,24 @@ export function RankBadge({ rating, className }: { rating: number; className?: s
   );
 }
 
-export function RankLabel({ rating, className }: { rating: number; className?: string }) {
+export function RankLabel({
+  rating,
+  withIcon = false,
+  className,
+}: {
+  rating: number;
+  withIcon?: boolean;
+  className?: string;
+}) {
   const rank = rankForRating(rating);
+  const Icon = rankIcons[rank.tier];
 
-  return <span className={cn('font-semibold', textStyles[rank.tier], className)}>{rank.name}</span>;
+  return (
+    <span className={cn('inline-flex items-center gap-1 font-semibold', textStyles[rank.tier], className)}>
+      {withIcon ? <Icon className="h-3 w-3 shrink-0" aria-hidden /> : null}
+      <span>{rank.name}</span>
+    </span>
+  );
 }
 
 export function RankProgress({ rating, className }: { rating: number; className?: string }) {

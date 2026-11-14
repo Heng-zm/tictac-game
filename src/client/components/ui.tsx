@@ -436,6 +436,9 @@ export function Modal({
 
   if (!open) return null;
 
+  const hasCustomOverflow = className?.includes('overflow-');
+  const hasCustomPadding = className?.includes('p-0');
+
   return createPortal(
     <div className="fixed inset-0 z-[60] flex items-end justify-center sm:items-center" role="presentation">
         <div
@@ -450,8 +453,9 @@ export function Modal({
           aria-labelledby={title ? titleId : undefined}
           aria-label={!title ? ariaLabel : undefined}
           className={cn(
-            'relative max-h-[90dvh] w-full max-w-md overflow-y-auto rounded-t-3xl border border-line bg-surface p-5 shadow-soft animate-fade-up sm:max-w-lg sm:rounded-3xl sm:p-6',
-            'pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-6',
+            'relative max-h-[90dvh] w-full max-w-md rounded-t-3xl border border-line bg-surface shadow-soft animate-fade-up sm:max-w-lg sm:rounded-3xl',
+            !hasCustomOverflow && 'overflow-y-auto no-scrollbar',
+            !hasCustomPadding && 'p-5 sm:p-6 pb-[calc(env(safe-area-inset-bottom)+20px)] sm:pb-6',
             className,
           )}
         >

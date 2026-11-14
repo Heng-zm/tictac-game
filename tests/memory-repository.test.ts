@@ -529,4 +529,21 @@ describe('MemoryGameRepository', () => {
     await repo.touchUser(alice.id);
     expect((await repo.getUserById(alice.id))?.lastSeenAt).toEqual(clock.now());
   });
+
+  it('updates user profile fields', async () => {
+    const updated = await repo.updateUserProfile(alice.id, {
+      firstName: 'AliceNew',
+      lastName: 'Wonder',
+      username: 'alicewonder',
+      photoUrl: '/avatars/tiger.svg',
+    });
+    expect(updated.firstName).toBe('AliceNew');
+    expect(updated.lastName).toBe('Wonder');
+    expect(updated.username).toBe('alicewonder');
+    expect(updated.photoUrl).toBe('/avatars/tiger.svg');
+
+    // Clear photoUrl
+    const cleared = await repo.updateUserProfile(alice.id, { photoUrl: '' });
+    expect(cleared.photoUrl).toBeNull();
+  });
 });

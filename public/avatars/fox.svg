@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="foxBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#9a3412"/>
+    </radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#foxBg)"/>
+  <polygon points="26,16 42,36 18,36" fill="#ea580c"/>
+  <polygon points="26,20 38,34 22,34" fill="#18181b"/>
+  <polygon points="74,16 82,36 58,36" fill="#ea580c"/>
+  <polygon points="74,20 78,34 62,34" fill="#18181b"/>
+  <polygon points="50,76 18,38 82,38" fill="#f97316"/>
+  <polygon points="50,76 18,38 34,54" fill="#ffffff"/>
+  <polygon points="50,76 82,38 66,54" fill="#ffffff"/>
+  <ellipse cx="37" cy="44" rx="3.5" ry="3" fill="#18181b"/>
+  <ellipse cx="63" cy="44" rx="3.5" ry="3" fill="#18181b"/>
+  <circle cx="38" cy="43" r="1" fill="#ffffff"/>
+  <circle cx="64" cy="43" r="1" fill="#ffffff"/>
+  <circle cx="50" cy="74" r="3.5" fill="#18181b"/>
+</svg>

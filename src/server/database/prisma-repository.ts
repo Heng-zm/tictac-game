@@ -32,6 +32,7 @@ import type {
   RepositoryMoveResult,
   StatsEntity,
   TelegramProfileInput,
+  UpdateUserProfileInput,
   UserEntity,
   UserLite,
 } from './types';
@@ -114,6 +115,22 @@ export class PrismaGameRepository implements GameRepository {
   async getUserById(id: string): Promise<UserEntity | null> {
     const user = await this.prisma.user.findUnique({ where: { id }, include: userInclude });
     return user ? mapUser(user) : null;
+  }
+
+  async updateUserProfile(userId: string, input: UpdateUserProfileInput): Promise<UserEntity> {
+    const data: Prisma.UserUpdateInput = {};
+    if (input.firstName !== undefined) data.firstName = input.firstName;
+    if (input.lastName !== undefined) data.lastName = input.lastName;
+    if (input.username !== undefined) data.username = input.username;
+    if (input.photoUrl !== undefined) data.photoUrl = input.photoUrl ? input.photoUrl.trim() : null;
+    if (input.languageCode !== undefined) data.languageCode = input.languageCode;
+
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data,
+      include: userInclude,
+    });
+    return mapUser(user);
   }
 
   async setAutoAiFallback(userId: string, value: boolean): Promise<UserEntity> {

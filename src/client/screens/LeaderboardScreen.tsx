@@ -437,7 +437,7 @@ function PodiumCard({
       </p>
 
       {/* Rating */}
-      <p className="tabular-nums text-xs font-extrabold text-ink">
+      <p className="mt-0.5 tabular-nums text-xs font-extrabold text-ink">
         {entry.rating}
       </p>
 

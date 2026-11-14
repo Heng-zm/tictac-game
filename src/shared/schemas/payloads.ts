@@ -110,6 +110,50 @@ export const preferencesSchema = z
     message: 'At least one preference is required',
   });
 
+export const updateProfileSchema = z
+  .object({
+    firstName: z
+      .string()
+      .trim()
+      .min(1, 'Name is required')
+      .max(64, 'Name must be 64 characters or fewer')
+      .regex(/^[^\p{Cc}\p{Cf}]+$/u, 'Name contains unsupported characters')
+      .optional(),
+    lastName: z
+      .string()
+      .trim()
+      .max(64, 'Last name must be 64 characters or fewer')
+      .regex(/^[^\p{Cc}\p{Cf}]+$/u, 'Last name contains unsupported characters')
+      .optional()
+      .nullable(),
+    username: z
+      .string()
+      .trim()
+      .max(64)
+      .regex(/^[A-Za-z0-9_]*$/, 'Username must contain only letters, numbers, and underscores')
+      .optional()
+      .nullable(),
+    photoUrl: z
+      .string()
+      .trim()
+      .max(1024, 'Avatar URL too long')
+      .optional()
+      .nullable(),
+  })
+  .strict()
+  .refine(
+    (data) =>
+      data.firstName !== undefined ||
+      data.lastName !== undefined ||
+      data.username !== undefined ||
+      data.photoUrl !== undefined,
+    {
+      message: 'At least one field to update is required',
+    },
+  );
+
+export type UpdateProfilePayload = z.infer<typeof updateProfileSchema>;
+
 export const historyQuerySchema = z
   .object({
     limit: z.coerce.number().int().min(1).max(50).default(10),

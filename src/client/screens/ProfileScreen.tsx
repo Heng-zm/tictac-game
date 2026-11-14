@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 're
 import {
   BarChart3,
   Bot,
+  Camera,
   ChevronRight,
+  Edit3,
   Gamepad2,
   History,
   LogOut,
@@ -25,6 +27,7 @@ import { Avatar, Button, Card, EmptyState, IconButton, Modal, Pill, ScreenHeader
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { modeShortLabel } from '../lib/game';
+import { EditProfileModal } from '../components/EditProfileModal';
 
 type ProfileTab = 'overview' | 'history' | 'settings';
 
@@ -45,9 +48,11 @@ export function ProfileScreen({
 }) {
   const { profile, config } = client;
   const tabListRef = useRef<HTMLDivElement>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   if (!profile) return null;
   const stats = profile.stats;
+  const isKm = isKhmer(profile.languageCode);
 
   function selectTab(nextTab: ProfileTab): void {
     navigate(nextTab === 'overview' ? '/profile' : `/profile/${nextTab}`);
@@ -87,11 +92,33 @@ export function ProfileScreen({
         <Card className="relative overflow-hidden p-4 lg:sticky lg:top-6">
           <div className="pointer-events-none absolute -right-10 -top-10 h-28 w-28 rounded-full bg-accent/5 blur-xl" aria-hidden />
           <div className="flex items-center gap-3.5">
-            <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="lg" ring />
+            <button
+              type="button"
+              onClick={() => setIsEditModalOpen(true)}
+              className="group relative cursor-pointer rounded-full transition active:scale-95 select-none"
+              aria-label={isKm ? 'ផ្លាស់ប្តូររូបតំណាង' : 'Change avatar'}
+              title={isKm ? 'ផ្លាស់ប្តូររូបតំណាង' : 'Change avatar'}
+            >
+              <Avatar name={profile.firstName} photoUrl={profile.photoUrl} size="lg" ring />
+              <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-accent-ink shadow-sm ring-2 ring-surface transition group-hover:scale-110">
+                <Camera className="h-2.5 w-2.5" aria-hidden />
+              </span>
+            </button>
             <div className="min-w-0 flex-1">
-              <h2 className="truncate text-lg font-bold tracking-tight text-ink">
-                {profile.firstName} {profile.lastName ?? ''}
-              </h2>
+              <div className="flex items-center justify-between gap-1.5">
+                <h2 className="truncate text-lg font-bold tracking-tight text-ink">
+                  {profile.firstName} {profile.lastName ?? ''}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setIsEditModalOpen(true)}
+                  className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-line text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+                  aria-label={isKm ? 'កែសម្រួលព័ត៌មានគណនី' : 'Edit profile'}
+                  title={isKm ? 'កែសម្រួលព័ត៌មានគណនី' : 'Edit profile'}
+                >
+                  <Edit3 className="h-3.5 w-3.5" aria-hidden />
+                </button>
+              </div>
               {profile.username ? <p className="truncate text-xs text-muted">@{profile.username}</p> : null}
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
                 <RankBadge rating={stats.rating} />
@@ -118,6 +145,15 @@ export function ProfileScreen({
               <p className="mt-0.5 text-[10px] font-medium text-muted">Win rate</p>
             </div>
           </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            icon={Edit3}
+            onClick={() => setIsEditModalOpen(true)}
+            className="mt-3.5 w-full text-xs font-semibold"
+          >
+            {isKm ? 'កែសម្រួលព័ត៌មាន' : 'Edit Profile'}
+          </Button>
         </Card>
 
         <div className="min-w-0">
@@ -164,10 +200,32 @@ export function ProfileScreen({
           >
             {tab === 'overview' ? <OverviewTab client={client} navigate={navigate} /> : null}
             {tab === 'history' ? <HistoryTab /> : null}
-            {tab === 'settings' ? <SettingsTab client={client} config={config} navigate={navigate} /> : null}
+            {tab === 'settings' ? (
+              <SettingsTab
+                client={client}
+                config={config}
+                navigate={navigate}
+                onEditProfile={() => setIsEditModalOpen(true)}
+              />
+            ) : null}
           </div>
         </div>
       </div>
+
+      <EditProfileModal
+        open={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        profile={profile}
+        onSave={async (data) => {
+          await client.updateProfile(data);
+          client.pushToast({
+            type: 'success',
+            title: isKm ? 'កែសម្រួលព័ត៌មានជោគជ័យ' : 'Profile updated',
+            message: isKm ? 'ព័ត៌មានគណនីត្រូវបានផ្លាស់ប្តូរ' : 'Your profile has been updated.',
+          });
+        }}
+        languageCode={profile.languageCode}
+      />
     </Page>
   );
 }
@@ -375,10 +433,12 @@ function SettingsTab({
   client,
   config,
   navigate,
+  onEditProfile,
 }: {
   client: GameClient;
   config: GameClient['config'];
   navigate: (path: string) => void;
+  onEditProfile?: () => void;
 }) {
   const { profile, connection } = client;
   const [saving, setSaving] = useState(false);
@@ -459,6 +519,29 @@ function SettingsTab({
 
   return (
     <div className="mt-4 grid gap-3 md:grid-cols-2">
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-ink">
+              {isKm ? 'ព័ត៌មានគណនី' : 'Profile info'}
+            </h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              {isKm
+                ? 'ផ្លាស់ប្តូរឈ្មោះ រូបតំណាង (Avatar) និងឈ្មោះអ្នកប្រើរបស់អ្នក'
+                : 'Customize your avatar, display name, and username.'}
+            </p>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            icon={Edit3}
+            onClick={onEditProfile}
+          >
+            {isKm ? 'កែសម្រួល' : 'Edit'}
+          </Button>
+        </div>
+      </Card>
+
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -572,7 +655,7 @@ function SettingsTab({
       </Card>
 
       {/* Account Session / Log Out */}
-      <Card className="p-4 md:col-span-2 border-danger/25 bg-danger/[0.03]">
+      <Card className="p-4 md:col-span-2">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
@@ -580,12 +663,12 @@ function SettingsTab({
                 <LogOut className="h-3.5 w-3.5" aria-hidden />
               </span>
               <h3 className="text-sm font-semibold text-danger">
-                {isKm ? 'ចាកចេញពីគណនី (Log Out)' : 'Log Out'}
+                {isKm ? 'ចាកចេញពីគណនី' : 'Log Out'}
               </h3>
             </div>
             <p className="mt-1 text-[11px] leading-relaxed text-muted">
               {isKm
-                ? 'បញ្ចប់ការចូលប្រើប្រាស់គណនីនៅលើឧបករណ៍នេះ។ អ្នកនឹងត្រូវចូលម្តងទៀតដើម្បីលេង និងរក្សាទុកពិន្ទុ Rating។'
+                ? 'បញ្ចប់ការចូលប្រើប្រាស់គណនីនៅលើឧបករណ៍នេះ។ អ្នកនឹងត្រូវចូលម្តងទៀតដើម្បីលេង។'
                 : 'Sign out of your active session on this device. You will need to sign in again to access ranked matchmaking.'}
             </p>
           </div>

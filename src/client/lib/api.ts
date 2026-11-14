@@ -109,6 +109,20 @@ export function updatePreferences(patch: PreferencesPatch): Promise<{ user: User
   });
 }
 
+export interface UpdateProfileInput {
+  firstName?: string;
+  lastName?: string | null;
+  username?: string | null;
+  photoUrl?: string | null;
+}
+
+export function updateProfile(patch: UpdateProfileInput): Promise<{ user: UserProfile }> {
+  return request<{ user: UserProfile }>('/api/me/profile', {
+    method: 'PATCH',
+    body: JSON.stringify(patch),
+  });
+}
+
 export function sendTestNotification(): Promise<{ status: 'sent' }> {
   return request<{ status: 'sent' }>('/api/me/notifications/test', { method: 'POST' });
 }

@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="tigerBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#c2410c"/>
+    </radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#tigerBg)"/>
+  <circle cx="28" cy="28" r="10" fill="#ea580c"/>
+  <circle cx="28" cy="28" r="6" fill="#fed7aa"/>
+  <circle cx="72" cy="28" r="10" fill="#ea580c"/>
+  <circle cx="72" cy="28" r="6" fill="#fed7aa"/>
+  <circle cx="50" cy="54" r="32" fill="#f97316"/>
+  <ellipse cx="34" cy="62" rx="12" ry="8" fill="#fff7ed"/>
+  <ellipse cx="66" cy="62" rx="12" ry="8" fill="#fff7ed"/>
+  <path d="M50 28 L50 38 M43 32 L46 36 M57 32 L54 36" stroke="#431407" stroke-width="3" stroke-linecap="round"/>
+  <path d="M22 50 L30 52 M22 58 L30 58 M78 50 L70 52 M78 58 L70 58" stroke="#431407" stroke-width="2.5" stroke-linecap="round"/>
+  <ellipse cx="38" cy="48" rx="4" ry="4.5" fill="#431407"/>
+  <ellipse cx="62" cy="48" rx="4" ry="4.5" fill="#431407"/>
+  <circle cx="39" cy="47" r="1.5" fill="#ffffff"/>
+  <circle cx="63" cy="47" r="1.5" fill="#ffffff"/>
+  <polygon points="50,56 46,61 54,61" fill="#ea580c"/>
+  <path d="M46 64 Q50 67 54 64" stroke="#431407" stroke-width="2" stroke-linecap="round" fill="none"/>
+</svg>

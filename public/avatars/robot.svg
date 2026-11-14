@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="100" height="100">
+  <defs>
+    <radialGradient id="robotBg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#0ea5e9"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </radialGradient>
+  </defs>
+  <circle cx="50" cy="50" r="48" fill="url(#robotBg)"/>
+  <line x1="50" y1="20" x2="50" y2="28" stroke="#f0f9ff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="50" cy="18" r="4" fill="#38bdf8"/>
+  <rect x="25" y="28" width="50" height="42" rx="12" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+  <rect x="20" y="42" width="5" height="14" rx="2.5" fill="#38bdf8"/>
+  <rect x="75" y="42" width="5" height="14" rx="2.5" fill="#38bdf8"/>
+  <rect x="31" y="36" width="38" height="18" rx="6" fill="#0f172a"/>
+  <circle cx="42" cy="45" r="4" fill="#38bdf8"/>
+  <circle cx="58" cy="45" r="4" fill="#38bdf8"/>
+  <circle cx="43" cy="44" r="1.5" fill="#ffffff"/>
+  <circle cx="59" cy="44" r="1.5" fill="#ffffff"/>
+  <path d="M42 60 Q50 64 58 60" stroke="#0284c7" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+</svg>

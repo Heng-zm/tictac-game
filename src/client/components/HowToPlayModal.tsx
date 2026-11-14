@@ -293,7 +293,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
       dismissible
       showClose={false}
       ariaLabel={isKm ? 'របៀបលេង' : 'How to play'}
-      className="!max-w-lg !p-0 !pb-0 !overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88dvh]"
+      className="max-w-lg p-0 pb-0 overflow-hidden flex flex-col max-h-[92dvh] sm:max-h-[88dvh]"
     >
       <div
         className="flex flex-1 min-h-0 flex-col overflow-hidden"
@@ -371,7 +371,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
         {/* Visual Graphic & Content Container - Scrollable Middle Body */}
         <div
           ref={contentRef}
-          className="flex-1 min-h-0 overflow-y-auto overscroll-contain p-3.5 sm:p-5 [scrollbar-width:thin]"
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain no-scrollbar [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden p-3.5 sm:p-5"
         >
           {/* Visual SVG Graphic for the Active Step */}
           <div className="relative mb-3.5 sm:mb-4 overflow-hidden rounded-2xl border border-line bg-gradient-to-b from-surface via-elevated/50 to-surface p-2.5 sm:p-3 shadow-inner">
@@ -508,8 +508,8 @@ function BoardControlsIllustration({ isKm }: { isKm: boolean }) {
         {/* Existing Stones on Board */}
         <circle cx="85" cy="65" r="11" className="fill-rose-500/20 stroke-rose-500 stroke-2" />
         <circle cx="85" cy="65" r="5" className="fill-rose-500" />
-        <circle cx="115" cy="95" r="11" className="fill-emerald-500/20 stroke-emerald-500 stroke-2" />
-        <path d="M110 90 L120 100 M120 90 L110 100" stroke="#10b981" strokeWidth="2.5" strokeLinecap="round" />
+        <circle cx="115" cy="95" r="11" className="fill-accent/20 stroke-accent stroke-2" />
+        <path d="M110 90 L120 100 M120 90 L110 100" stroke="currentColor" className="text-accent" strokeWidth="2.5" strokeLinecap="round" />
 
         {/* Active Placement Target (Center: 150, 65) */}
         <g transform="translate(150, 65)">
@@ -609,10 +609,6 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
             <stop offset="50%" stopColor="#fbbf24" stopOpacity="1" />
             <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.8" />
           </linearGradient>
-          <filter id="glowBlur" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="4" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
         </defs>
 
         {/* Board Lines */}
@@ -633,9 +629,8 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
           x2="265"
           y2="90"
           stroke="url(#winGlow)"
-          strokeWidth="7"
+          strokeWidth="6"
           strokeLinecap="round"
-          filter="url(#glowBlur)"
           className="animate-htp-laser"
         />
         <line
@@ -644,29 +639,26 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
           x2="265"
           y2="90"
           stroke="#fef08a"
-          strokeWidth="3"
+          strokeWidth="2.5"
           strokeLinecap="round"
-          className="animate-htp-laser"
         />
 
         {/* 5 Winning Stones (X) */}
         {[55, 105, 155, 205, 255].map((x, idx) => (
-          <g key={idx} transform={`translate(${x}, 90)`}>
-            <g className={`animate-htp-win-${idx + 1}`}>
-              <circle cx="0" cy="0" r="16" className="fill-amber-500/20 stroke-amber-400 stroke-2" />
-              <circle cx="0" cy="0" r="13" className="fill-amber-500" />
-              <path
-                d="M-5 -5 L5 5 M5 -5 L-5 5"
-                stroke="#ffffff"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-              />
-              {/* Number indicator */}
-              <circle cx="9" cy="-9" r="6" className="fill-ink text-surface" />
-              <text x="9" y="-6.5" textAnchor="middle" className="fill-surface text-[7px] font-black">
-                {idx + 1}
-              </text>
-            </g>
+          <g key={idx} transform={`translate(${x}, 90)`} className={`animate-htp-win-${idx + 1}`}>
+            <circle cx="0" cy="0" r="15" fill="#f59e0b" fillOpacity="0.25" stroke="#fbbf24" strokeWidth="2" />
+            <circle cx="0" cy="0" r="12" fill="#f59e0b" />
+            <path
+              d="M-4.5 -4.5 L4.5 4.5 M4.5 -4.5 L-4.5 4.5"
+              stroke="#ffffff"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+            />
+            {/* Number indicator */}
+            <circle cx="8" cy="-8" r="5.5" fill="#0f172a" stroke="#ffffff" strokeWidth="1" />
+            <text x="8" y="-5.5" textAnchor="middle" fill="#ffffff" fontSize="7" fontWeight="bold">
+              {idx + 1}
+            </text>
           </g>
         ))}
 
@@ -681,13 +673,11 @@ function WinConditionIllustration({ isKm }: { isKm: boolean }) {
         </g>
 
         {/* Win Badge Header */}
-        <g transform="translate(170, 25)">
-          <g className="animate-htp-banner">
-            <rect x="-85" y="-12" width="170" height="24" rx="12" className="fill-amber-500 shadow-md" />
-            <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[11px] font-black tracking-wide">
-              {isKm ? '🏆 ៥ គ្រាប់ = ឈ្នះភ្លាមៗ (WIN!)' : '🏆 5 in a row = WIN!'}
-            </text>
-          </g>
+        <g transform="translate(170, 24)" className="animate-htp-banner">
+          <rect x="-85" y="-12" width="170" height="24" rx="12" className="fill-amber-500 shadow-md" />
+          <text x="0" y="4.5" textAnchor="middle" fill="#ffffff" className="text-[11px] font-black tracking-wide">
+            {isKm ? '🏆 ៥ គ្រាប់ = ឈ្នះភ្លាមៗ (WIN!)' : '🏆 5 in a row = WIN!'}
+          </text>
         </g>
 
         {/* Subtitle directions footer */}
@@ -746,14 +736,12 @@ function TacticsIllustration({ isKm }: { isKm: boolean }) {
         </g>
 
         {/* Warning Badge Callout */}
-        <g transform="translate(230, 42)">
-          <g className="animate-htp-warning">
-            <rect x="-42" y="-11" width="84" height="22" rx="11" className="fill-rose-600 shadow-md" />
-            <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[9.5px] font-black">
-              {isKm ? '🚨 ត្រូវបិទ! (BLOCK)' : '🚨 BLOCK!'}
-            </text>
-            <path d="M0 11 L-4 15 L4 15 Z" fill="#e11d48" />
-          </g>
+        <g transform="translate(230, 42)" className="animate-htp-warning">
+          <rect x="-42" y="-11" width="84" height="22" rx="11" className="fill-rose-600 shadow-md" />
+          <text x="0" y="4" textAnchor="middle" fill="#ffffff" className="text-[9.5px] font-black">
+            {isKm ? '🚨 ត្រូវបិទ! (BLOCK)' : '🚨 BLOCK!'}
+          </text>
+          <path d="M0 11 L-4 15 L4 15 Z" fill="#e11d48" />
         </g>
 
         {/* Player's Double Threat Attack (Diagonal 3) */}
@@ -801,14 +789,12 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
         {/* Left Side: Walkie Talkie Device Graphic */}
         <g transform="translate(85, 95)">
           {/* Reaction Sticker Speech Bubble (Hello! 👋) */}
-          <g transform="translate(-32, -62)">
-            <g className="animate-htp-bubble">
-              <rect width="64" height="22" rx="11" className="fill-surface stroke-line stroke-1 drop-shadow-xs" />
-              <path d="M28 22 L32 26 L36 22 Z" className="fill-surface stroke-line stroke-1" />
-              <text x="32" y="14" textAnchor="middle" className="fill-ink text-[9.5px] font-bold">
-                {isKm ? 'សួស្តី! 👋' : 'Hello! 👋'}
-              </text>
-            </g>
+          <g transform="translate(0, -56)" className="animate-htp-bubble">
+            <rect x="-32" y="-11" width="64" height="22" rx="11" className="fill-surface stroke-line stroke-1 drop-shadow-xs" />
+            <path d="M-4 11 L0 15 L4 11 Z" className="fill-surface stroke-line stroke-1" />
+            <text x="0" y="3" textAnchor="middle" className="fill-ink text-[9.5px] font-bold">
+              {isKm ? 'សួស្តី! 👋' : 'Hello! 👋'}
+            </text>
           </g>
 
           {/* Animated sound ripple rings */}
@@ -852,41 +838,53 @@ function VoiceModesIllustration({ isKm }: { isKm: boolean }) {
         <line x1="170" y1="25" x2="170" y2="155" stroke="currentColor" strokeWidth="1" className="text-line/70" strokeDasharray="4 4" />
 
         {/* Right Side: Game Modes Badges */}
-        <g transform="translate(190, 45)">
+        <g transform="translate(190, 42)">
           {/* Quick Match with Championship Medal */}
           <g transform="translate(0, 0)">
-            <rect width="130" height="32" rx="10" className="fill-accent/10 stroke-accent/40 stroke-1" />
-            <circle cx="16" cy="16" r="9" className="fill-amber-400 stroke-amber-500 stroke-1" />
-            <path d="M12.5 12.5 L19.5 12.5 L18 16 L16 15 L14 16 Z" fill="#ffffff" />
-            <circle cx="16" cy="16.5" r="2.5" fill="#ffffff" />
-            <text x="32" y="15" className="fill-ink text-[10.5px] font-bold">
+            <rect width="130" height="34" rx="10" className="fill-accent/10 stroke-accent/40 stroke-1" />
+            <circle cx="17" cy="17" r="9" className="fill-amber-400 stroke-amber-500 stroke-1" />
+            <path d="M13.5 13.5 L20.5 13.5 L19 17 L17 16 L15 17 Z" fill="#ffffff" />
+            <circle cx="17" cy="17.5" r="2.5" fill="#ffffff" />
+            <text x="34" y="15" className="fill-ink text-[10.5px] font-bold">
               Quick Match
             </text>
-            <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
+            <text x="34" y="26" className="fill-muted text-[8.5px] font-semibold">
               {isKm ? 'ប្រកួតដណ្តើមមេដាយ Rated' : 'Rated medals & rank'}
             </text>
           </g>
 
           {/* Invite Friend */}
-          <g transform="translate(0, 42)">
-            <rect width="130" height="32" rx="10" className="fill-surface stroke-line stroke-1" />
-            <circle cx="16" cy="16" r="9" className="fill-elevated text-ink" />
-            <text x="32" y="15" className="fill-ink text-[10.5px] font-bold">
+          <g transform="translate(0, 44)">
+            <rect width="130" height="34" rx="10" className="fill-surface stroke-line stroke-1" />
+            <circle cx="17" cy="17" r="9" className="fill-sky-500/15 stroke-sky-400 stroke-1" />
+            {/* Users icon */}
+            <circle cx="14" cy="14" r="2.5" fill="#38bdf8" />
+            <path d="M10 21.5 C10 18.5 11.8 17.5 14 17.5 C16.2 17.5 18 18.5 18 21.5" stroke="#38bdf8" strokeWidth="1.2" fill="none" />
+            <circle cx="20" cy="13.5" r="2" fill="#38bdf8" />
+            <path d="M18 19.5 C18.5 18 19.5 17.5 21 17.5 C22.5 17.5 23.5 18.5 24 20" stroke="#38bdf8" strokeWidth="1" fill="none" />
+            <text x="34" y="15" className="fill-ink text-[10.5px] font-bold">
               Invite Friend
             </text>
-            <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
+            <text x="34" y="26" className="fill-muted text-[8.5px] font-semibold">
               {isKm ? 'តំណ link ជាមួយមិត្ត' : 'Private link'}
             </text>
           </g>
 
           {/* Practice Bot */}
-          <g transform="translate(0, 84)">
-            <rect width="130" height="32" rx="10" className="fill-surface stroke-line stroke-1" />
-            <circle cx="16" cy="16" r="9" className="fill-elevated text-ink" />
-            <text x="32" y="15" className="fill-ink text-[10.5px] font-bold">
+          <g transform="translate(0, 88)">
+            <rect width="130" height="34" rx="10" className="fill-surface stroke-line stroke-1" />
+            <circle cx="17" cy="17" r="9" className="fill-purple-500/15 stroke-purple-400 stroke-1" />
+            {/* Robot icon */}
+            <line x1="17" y1="10" x2="17" y2="12" stroke="#a855f7" strokeWidth="1.2" />
+            <circle cx="17" cy="9.5" r="1" fill="#a855f7" />
+            <rect x="12" y="12" width="10" height="8" rx="2" fill="#a855f7" />
+            <circle cx="14.5" cy="15" r="1" fill="#ffffff" />
+            <circle cx="19.5" cy="15" r="1" fill="#ffffff" />
+            <line x1="14.5" y1="18" x2="19.5" y2="18" stroke="#ffffff" strokeWidth="0.9" strokeLinecap="round" />
+            <text x="34" y="15" className="fill-ink text-[10.5px] font-bold">
               Practice Bot
             </text>
-            <text x="32" y="25" className="fill-muted text-[8.5px] font-semibold">
+            <text x="34" y="26" className="fill-muted text-[8.5px] font-semibold">
               {isKm ? 'ហ្វឹកហាត់ Unrated' : 'Unrated practice'}
             </text>
           </g>

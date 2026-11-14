@@ -322,6 +322,48 @@ describe('HTTP API', () => {
     expect(invalid.status).toBe(400);
   });
 
+  it('updates player profile (name, avatar, username)', async () => {
+    const session = await authenticate(current.app, 'device-key-profile-edit');
+    const response = await session.agent
+      .patch('/api/me/profile')
+      .send({
+        firstName: 'MasterGamer',
+        lastName: 'Pro',
+        username: 'master_gamer',
+        photoUrl: '/avatars/ninja.svg',
+      });
+    expect(response.status).toBe(200);
+    expect(response.body.user).toMatchObject({
+      firstName: 'MasterGamer',
+      lastName: 'Pro',
+      username: 'master_gamer',
+      photoUrl: '/avatars/ninja.svg',
+    });
+
+    const cleared = await session.agent
+      .patch('/api/me/profile')
+      .send({ photoUrl: '' });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.user.photoUrl).toBeNull();
+
+    const me = await session.agent.get('/api/me');
+    expect(me.body.user).toMatchObject({
+      firstName: 'MasterGamer',
+      lastName: 'Pro',
+      username: 'master_gamer',
+      photoUrl: null,
+    });
+
+    const empty = await session.agent.patch('/api/me/profile').send({});
+    expect(empty.status).toBe(400);
+
+    const emptyName = await session.agent.patch('/api/me/profile').send({ firstName: '   ' });
+    expect(emptyName.status).toBe(400);
+
+    const invalidUser = await session.agent.patch('/api/me/profile').send({ username: 'bad user!' });
+    expect(invalidUser.status).toBe(400);
+  });
+
   it('sends test notifications only when configured and enabled', async () => {
     const unauthenticated = await request(current.app).post('/api/me/notifications/test');
     expect(unauthenticated.status).toBe(401);

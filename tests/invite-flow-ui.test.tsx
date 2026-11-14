@@ -132,6 +132,7 @@ function makeClient(overrides: Partial<GameClient> = {}): GameClient {
     sendVoice: vi.fn(),
     clearIncomingVoice: vi.fn(),
     refreshProfile: vi.fn(),
+    updateProfile: vi.fn(),
     setAutoAiFallback: vi.fn(),
     setTurnNotifications: vi.fn(),
     sendTestNotification: vi.fn(),
