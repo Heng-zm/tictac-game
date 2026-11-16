@@ -19,7 +19,7 @@ describe('Sticker Reactions UI', () => {
   });
 
   describe('StickerCharacter', () => {
-    it('renders vector graphics for all 12 animated sticker definitions', () => {
+    it('renders vector graphics for all animated sticker definitions', () => {
       for (const id of STICKER_IDS) {
         const { container } = render(<StickerCharacter id={id} size={48} animate={true} />);
         const svg = container.querySelector('svg');

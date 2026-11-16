@@ -30,6 +30,7 @@ export default defineConfig({
         manualChunks: {
           react: ['react', 'react-dom'],
           socket: ['socket.io-client'],
+          icons: ['lucide-react'],
         },
       },
     },

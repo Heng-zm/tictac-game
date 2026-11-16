@@ -11,6 +11,8 @@ export const STICKER_IDS = [
   'teasing',
   'good_game',
   'rematch_invite',
+  'mocking',
+  'smug_tease',
 ] as const;
 
 export type StickerId = (typeof STICKER_IDS)[number];
@@ -146,6 +148,26 @@ export const STICKER_REGISTRY: Record<StickerId, StickerDefinition> = {
     label: {
       en: 'One more round?',
       km: 'លេងម្តងទៀតទេ?',
+    },
+    durationMs: 3200,
+  },
+  mocking: {
+    id: 'mocking',
+    name: 'Playful Mock',
+    category: 'emotion',
+    label: {
+      en: 'Blehh! Too easy!',
+      km: 'ឡេះឡោះ! ស្រួលពេក!',
+    },
+    durationMs: 3200,
+  },
+  smug_tease: {
+    id: 'smug_tease',
+    name: 'Smug Tease',
+    category: 'tactics',
+    label: {
+      en: 'Is that all you got?',
+      km: 'មានតែប៉ុណ្ណឹងទេ?',
     },
     durationMs: 3200,
   },

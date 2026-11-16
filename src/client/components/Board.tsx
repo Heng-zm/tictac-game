@@ -61,7 +61,7 @@ function cancelScheduledFrame(id: number): void {
   else window.clearTimeout(id);
 }
 
-function XMark() {
+const XMark = memo(function XMark() {
   return (
     <svg viewBox="0 0 100 100" className="mark-enter neon-x h-[68%] w-[68%] text-accent" aria-hidden>
       <path
@@ -75,9 +75,9 @@ function XMark() {
       />
     </svg>
   );
-}
+});
 
-function OMark() {
+const OMark = memo(function OMark() {
   return (
     <svg viewBox="0 0 100 100" className="mark-enter neon-o h-[70%] w-[70%] text-danger" aria-hidden>
       <circle
@@ -92,7 +92,78 @@ function OMark() {
       />
     </svg>
   );
+});
+
+interface StoneCellProps {
+  x: number;
+  y: number;
+  side: 'X' | 'O';
+  isWinning: boolean;
+  isLast: boolean;
+  isPending: boolean;
 }
+
+const StoneCell = memo(function StoneCell({
+  x,
+  y,
+  side,
+  isWinning,
+  isLast,
+  isPending,
+}: StoneCellProps) {
+  return (
+    <div
+      className={cn(
+        'pointer-events-none absolute flex items-center justify-center transition-opacity duration-150 [contain:layout_style]',
+        isPending && 'opacity-90',
+      )}
+      style={{
+        left: `${x * CELL_SIZE}px`,
+        top: `${y * CELL_SIZE}px`,
+        width: `${CELL_SIZE}px`,
+        height: `${CELL_SIZE}px`,
+        transform: 'translate(-50%, -50%)',
+      }}
+    >
+      {isWinning ? (
+        <span className="win-cell pointer-events-none absolute inset-0.5 rounded-xl bg-amber-400/15 ring-2 ring-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.55)]" />
+      ) : null}
+      {isPending ? (
+        <span
+          className="pointer-events-none absolute inset-0.5 rounded-xl ring-2 ring-accent/70 ring-dashed animate-pulse bg-accent/10"
+          aria-hidden
+        />
+      ) : null}
+      {side === 'X' ? <XMark /> : <OMark />}
+      {isLast && !isPending ? (
+        <>
+          <span
+            className={cn(
+              'stone-impact-wave pointer-events-none absolute inset-0 rounded-2xl border-2',
+              side === 'X' ? 'border-accent/70' : 'border-danger/70',
+            )}
+            aria-hidden
+          />
+          <span
+            className={cn(
+              'pointer-events-none absolute -inset-1 rounded-2xl animate-pulse-ring opacity-75',
+              side === 'X' ? 'ring-2 ring-accent' : 'ring-2 ring-danger',
+            )}
+            aria-hidden
+          />
+          <span
+            className={cn(
+              'last-move-dot pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',
+              side === 'X'
+                ? 'bg-accent shadow-[0_0_8px_rgba(37,99,235,0.8)]'
+                : 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.8)]',
+            )}
+          />
+        </>
+      ) : null}
+    </div>
+  );
+});
 
 export const Board = memo(function Board({
   board,
@@ -127,8 +198,19 @@ export const Board = memo(function Board({
   const animationRafRef = useRef<number | null>(null);
   const lastMoveRef = useRef<number | null>(null);
 
-  const [isPanning, setIsPanning] = useState(false);
   const [hoveredCell, setHoveredCell] = useState<number | null>(null);
+
+  const setCursorPanning = useCallback((panning: boolean) => {
+    const el = containerRef.current;
+    if (!el) return;
+    if (panning) {
+      el.classList.add('cursor-grabbing');
+      el.classList.remove('cursor-grab');
+    } else {
+      el.classList.add('cursor-grab');
+      el.classList.remove('cursor-grabbing');
+    }
+  }, []);
 
   const winningSet = useMemo(() => new Set(winningLine ?? []), [winningLine]);
   const stones = useMemo(
@@ -500,7 +582,7 @@ export const Board = memo(function Board({
     if (activePointers.current.size === 1) {
       didMove.current = false;
       pinchRef.current = null;
-      setIsPanning(false);
+      setCursorPanning(false);
       setHoveredCell(null);
       dragStart.current = {
         clientX: event.clientX,
@@ -516,7 +598,7 @@ export const Board = memo(function Board({
       velocityRef.current = { x: 0, y: 0 };
     } else if (activePointers.current.size === 2) {
       didMove.current = true;
-      setIsPanning(true);
+      setCursorPanning(true);
       velocityRef.current = { x: 0, y: 0 };
       beginPinch();
     }
@@ -559,7 +641,7 @@ export const Board = memo(function Board({
 
     if (!didMove.current && Math.hypot(deltaX, deltaY) > DRAG_THRESHOLD) {
       didMove.current = true;
-      setIsPanning(true);
+      setCursorPanning(true);
     }
 
     if (!didMove.current) return;
@@ -602,7 +684,7 @@ export const Board = memo(function Board({
     pinchRef.current = null;
 
     if (activePointers.current.size === 0) {
-      setIsPanning(false);
+      setCursorPanning(false);
 
       if (wasTap && !releasedOverHud) {
         placeCellAt(event.clientX, event.clientY);
@@ -640,7 +722,7 @@ export const Board = memo(function Board({
     velocityRef.current = { x: 0, y: 0 };
 
     if (activePointers.current.size === 0) {
-      setIsPanning(false);
+      setCursorPanning(false);
     } else if (activePointers.current.size === 1) {
       const remaining = Array.from(activePointers.current.values())[0];
       if (remaining) {
@@ -704,14 +786,14 @@ export const Board = memo(function Board({
         aria-roledescription="infinite game grid"
         tabIndex={0}
         className={cn(
-          'game-grid-surface relative h-full w-full touch-none overflow-hidden outline-none',
+          'game-grid-surface relative h-full w-full cursor-grab touch-none overflow-hidden outline-none',
           'focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-accent/60',
-          isPanning ? 'cursor-grabbing' : 'cursor-grab',
         )}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerCancel}
+        onLostPointerCapture={handlePointerCancel}
         onPointerLeave={() => {
           if (activePointers.current.size === 0) setHoveredCell(null);
         }}
@@ -758,58 +840,17 @@ export const Board = memo(function Board({
               </div>
             ) : null}
 
-            {stones.map(({ cell, x, y, side }) => {
-              const isWinning = winningSet.has(cell);
-              const isLast = lastMoveCell === cell;
-              const isPending = pendingCell === cell;
-
-              return (
-                <div
-                  key={cell}
-                  className={cn(
-                    'pointer-events-none absolute flex items-center justify-center transition-opacity duration-150',
-                    isPending && 'opacity-90',
-                  )}
-                  style={{
-                    left: `${x * CELL_SIZE}px`,
-                    top: `${y * CELL_SIZE}px`,
-                    width: `${CELL_SIZE}px`,
-                    height: `${CELL_SIZE}px`,
-                    transform: 'translate(-50%, -50%)',
-                  }}
-                >
-                  {isWinning ? (
-                    <span className="win-cell pointer-events-none absolute inset-0.5 rounded-xl bg-amber-400/15 ring-2 ring-amber-400/80 shadow-[0_0_18px_rgba(251,191,36,0.55)]" />
-                  ) : null}
-                  {isPending ? (
-                    <span
-                      className="pointer-events-none absolute inset-0.5 rounded-xl ring-2 ring-accent/70 ring-dashed animate-pulse bg-accent/10"
-                      aria-hidden
-                    />
-                  ) : null}
-                  {side === 'X' ? <XMark /> : <OMark />}
-                  {isLast && !isPending ? (
-                    <>
-                      <span
-                        className={cn(
-                          'pointer-events-none absolute -inset-1 rounded-2xl animate-pulse-ring opacity-75',
-                          side === 'X' ? 'ring-2 ring-accent' : 'ring-2 ring-danger',
-                        )}
-                        aria-hidden
-                      />
-                      <span
-                        className={cn(
-                          'last-move-dot pointer-events-none absolute right-1 top-1 h-2 w-2 rounded-full ring-2 ring-surface',
-                          side === 'X'
-                            ? 'bg-accent shadow-[0_0_8px_rgba(37,99,235,0.8)]'
-                            : 'bg-danger shadow-[0_0_8px_rgba(239,68,68,0.8)]',
-                        )}
-                      />
-                    </>
-                  ) : null}
-                </div>
-              );
-            })}
+            {stones.map(({ cell, x, y, side }) => (
+              <StoneCell
+                key={cell}
+                x={x}
+                y={y}
+                side={side}
+                isWinning={winningSet.has(cell)}
+                isLast={lastMoveCell === cell}
+                isPending={pendingCell === cell}
+              />
+            ))}
 
             {board[encodeCell(0, 0)] === undefined ? (
               <span
@@ -845,36 +886,36 @@ export const Board = memo(function Board({
       {/* On-screen Board Controls HUD */}
       <div
         data-board-hud
-        className="pointer-events-none absolute left-3 sm:left-4 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex flex-col items-start gap-2"
+        className="pointer-events-none absolute left-3 sm:left-4 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 hidden sm:flex flex-col items-start gap-2"
       >
         <div className="pointer-events-auto flex items-center gap-1.5 rounded-2xl border border-line/80 bg-surface/90 p-1.5 shadow-soft backdrop-blur-md">
           <button
             type="button"
             onClick={recenter}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+            className="group flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             title="Recenter camera on latest move"
             aria-label="Recenter camera on latest move"
           >
-            <Focus className="h-4 w-4" aria-hidden />
+            <Focus className="h-4 w-4 transition-transform duration-200 group-hover:scale-115 group-active:scale-90" aria-hidden />
           </button>
           <div className="h-4 w-px bg-line/80" aria-hidden />
           <button
             type="button"
             onClick={zoomIn}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+            className="group flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             title="Zoom in"
             aria-label="Zoom in"
           >
-            <Plus className="h-4 w-4" aria-hidden />
+            <Plus className="h-4 w-4 transition-transform duration-200 group-hover:scale-115 group-active:scale-90" aria-hidden />
           </button>
           <button
             type="button"
             onClick={zoomOut}
-            className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
+            className="group flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
             title="Zoom out"
             aria-label="Zoom out"
           >
-            <Minus className="h-4 w-4" aria-hidden />
+            <Minus className="h-4 w-4 transition-transform duration-200 group-hover:scale-115 group-active:scale-90" aria-hidden />
           </button>
         </div>
 

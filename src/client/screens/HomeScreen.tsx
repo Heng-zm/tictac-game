@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import {
   BookOpen,
   Bot,
@@ -17,14 +17,18 @@ import {
 import type { AiDifficulty, Side } from '../../shared/game-types';
 import type { GameClient } from '../hooks/use-game-client';
 import { errorMessage } from '../lib/api';
-import { modeLabel, opponentFor } from '../lib/game';
+import { HOW_TO_PLAY_STORAGE_KEY, modeLabel, opponentFor } from '../lib/game';
 import { Avatar } from '../components/ui';
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
+import { LanguageButton } from '../components/LanguageButton';
 import { formatDuration } from '../hooks/use-time';
 import { isKhmer as checkKhmer } from '../lib/language';
-import { HowToPlayModal, HOW_TO_PLAY_STORAGE_KEY } from '../components/HowToPlayModal';
 import './HomeScreen.css';
+
+const HowToPlayModal = lazy(() =>
+  import('../components/HowToPlayModal').then((m) => ({ default: m.HowToPlayModal })),
+);
 
 const DIFFICULTIES: Array<{ value: AiDifficulty; label: string }> = [
   { value: 'EASY', label: 'Easy' },
@@ -94,6 +98,7 @@ export function HomeScreen({
           </div>
         </div>
         <div className="home-header-actions">
+          <LanguageButton client={client} variant="circle" className="home-lang-button" />
           <button
             type="button"
             className="home-guide-button"
@@ -351,11 +356,15 @@ export function HomeScreen({
         </aside>
       </div>
 
-      <HowToPlayModal
-        open={guideOpen}
-        onClose={() => setGuideOpen(false)}
-        languageCode={profile.languageCode}
-      />
+      {guideOpen ? (
+        <Suspense fallback={null}>
+          <HowToPlayModal
+            open={guideOpen}
+            onClose={() => setGuideOpen(false)}
+            languageCode={profile.languageCode}
+          />
+        </Suspense>
+      ) : null}
     </Page>
   );
 }

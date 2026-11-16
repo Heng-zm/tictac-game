@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
-import { Camera, Check, Link as LinkIcon, Sparkles, User, X } from 'lucide-react';
+import { Camera, Check, Globe, Link as LinkIcon, Sparkles, User, X } from 'lucide-react';
 import { Avatar, Button, Modal } from './ui';
+import { CircularFlag } from './CircularFlag';
 import { cn } from '../lib/cn';
-import { isKhmer } from '../lib/language';
+import { isKhmer, normalizeLanguage, LANGUAGE_OPTIONS, type SupportedLanguage } from '../lib/language';
+import { useTelegramBackHandler } from '../hooks/use-hash-route';
 import type { UserProfile } from '../../shared/game-types';
 
 const PRESET_AVATARS = [
@@ -27,6 +29,7 @@ export interface EditProfileModalProps {
     lastName: string | null;
     username: string | null;
     photoUrl: string | null;
+    languageCode?: string | null;
   }) => Promise<void>;
   languageCode?: string | null;
 }
@@ -44,16 +47,22 @@ export function EditProfileModal({
   const [lastName, setLastName] = useState(profile.lastName ?? '');
   const [username, setUsername] = useState(profile.username ?? '');
   const [photoUrl, setPhotoUrl] = useState(profile.photoUrl ?? '');
+  const [selectedLang, setSelectedLang] = useState<SupportedLanguage>(() =>
+    normalizeLanguage(languageCode ?? profile.languageCode),
+  );
   const [showCustomUrl, setShowCustomUrl] = useState(false);
   const [customUrl, setCustomUrl] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useTelegramBackHandler(open, onClose, 2);
 
   useEffect(() => {
     if (!open) return;
     setFirstName(profile.firstName);
     setLastName(profile.lastName ?? '');
     setUsername(profile.username ?? '');
+    setSelectedLang(normalizeLanguage(languageCode ?? profile.languageCode));
     const currentPhoto = profile.photoUrl ?? '';
     setPhotoUrl(currentPhoto);
     const isPreset = PRESET_AVATARS.some((p) => p.url === currentPhoto);
@@ -62,7 +71,7 @@ export function EditProfileModal({
     setCustomUrl(isCustom ? currentPhoto : '');
     setError(null);
     setSaving(false);
-  }, [open, profile]);
+  }, [open, profile, languageCode]);
 
   function handleSelectPreset(url: string) {
     setPhotoUrl(url);
@@ -103,6 +112,8 @@ export function EditProfileModal({
     }
 
     const cleanPhoto = photoUrl.trim() || null;
+    const initialLang = normalizeLanguage(languageCode ?? profile.languageCode);
+    const langChanged = selectedLang !== initialLang;
 
     setSaving(true);
     setError(null);
@@ -112,6 +123,7 @@ export function EditProfileModal({
         lastName: cleanLast,
         username: cleanUser,
         photoUrl: cleanPhoto,
+        ...(langChanged ? { languageCode: selectedLang } : {}),
       });
       onClose();
     } catch (err) {
@@ -344,6 +356,45 @@ export function EditProfileModal({
                   placeholder={isKm ? 'username' : 'username'}
                   className="w-full rounded-xl border border-line bg-surface pl-7 pr-3 py-2 text-sm text-ink placeholder:text-muted/60 focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
                 />
+              </div>
+            </div>
+
+            {/* Preferred Language with Circular Flag */}
+            <div>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="text-xs font-bold text-ink flex items-center gap-1.5">
+                  <Globe className="h-3.5 w-3.5 text-accent" aria-hidden />
+                  <span>{isKm ? 'ភាសាបង្ហាញ (Language)' : 'Display Language'}</span>
+                </label>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {LANGUAGE_OPTIONS.map((opt) => {
+                  const isSelected = selectedLang === opt.code;
+                  return (
+                    <button
+                      key={opt.code}
+                      type="button"
+                      onClick={() => setSelectedLang(opt.code)}
+                      className={cn(
+                        'flex items-center gap-2.5 rounded-xl border p-2.5 text-left transition-all active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent',
+                        isSelected
+                          ? 'border-accent bg-accent/10 text-ink shadow-xs ring-1 ring-accent'
+                          : 'border-line bg-surface hover:bg-elevated text-muted hover:text-ink',
+                      )}
+                    >
+                      <CircularFlag code={opt.code} size="sm" />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-xs font-bold text-ink">{opt.nativeLabel}</p>
+                        <p className="truncate text-[10px] text-muted">{opt.englishLabel}</p>
+                      </div>
+                      {isSelected ? (
+                        <span className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink">
+                          <Check className="h-2.5 w-2.5 stroke-[3]" />
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>

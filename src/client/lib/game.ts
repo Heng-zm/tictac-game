@@ -15,6 +15,8 @@ const DIRECTIONS = [
   [1, -1],
 ] as const;
 
+export const HOW_TO_PLAY_STORAGE_KEY = 'tictac_guide_seen';
+
 export function findWinningLine(board: Board): number[] | null {
   const entries = Object.entries(board) as [string, Side][];
   if (entries.length < 9) return null;

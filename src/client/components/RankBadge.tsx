@@ -83,7 +83,7 @@ export function RankIcon({
   return (
     <span
       className={cn(
-        'inline-flex shrink-0 items-center justify-center border font-bold shadow-xs select-none',
+        'group inline-flex shrink-0 items-center justify-center border font-bold shadow-xs select-none transition-transform duration-200 hover:scale-105 active:scale-95',
         variantStyles[variant],
         sizeStyles[size],
         className,
@@ -91,7 +91,7 @@ export function RankIcon({
       aria-label={`${resolvedTier} rank icon`}
       title={`${resolvedTier} rank`}
     >
-      <Icon className={iconSizes[size]} aria-hidden />
+      <Icon className={cn(iconSizes[size], 'transition-transform duration-200 group-hover:scale-110', (resolvedTier === 'master' || resolvedTier === 'diamond') && 'animate-pulse-subtle')} aria-hidden />
     </span>
   );
 }

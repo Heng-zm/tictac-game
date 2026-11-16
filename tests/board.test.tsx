@@ -150,6 +150,10 @@ describe('Board input', () => {
     const board = { [encodeCell(0, 0)]: 'X', [encodeCell(1, 0)]: 'O' } as Record<number, 'X' | 'O'>;
     const { onCell } = renderBoard({ board, lastMoveCell: encodeCell(1, 0) });
 
+    const hud = document.querySelector('[data-board-hud]');
+    expect(hud?.classList.contains('hidden')).toBe(true);
+    expect(hud?.classList.contains('sm:flex')).toBe(true);
+
     const recenterBtn = screen.getByRole('button', { name: 'Recenter camera on latest move' });
     const zoomInBtn = screen.getByRole('button', { name: 'Zoom in' });
     const zoomOutBtn = screen.getByRole('button', { name: 'Zoom out' });

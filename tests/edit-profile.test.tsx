@@ -182,4 +182,31 @@ describe('EditProfileModal', () => {
     expect(screen.getByRole('button', { name: /រក្សាទុក/i })).toBeDefined();
     expect(screen.getByRole('button', { name: /បោះបង់/i })).toBeDefined();
   });
+
+  it('allows changing language with circular flag selector', () => {
+    const onSave = vi.fn(async () => undefined);
+
+    render(
+      <EditProfileModal
+        open={true}
+        onClose={vi.fn()}
+        profile={mockProfile}
+        onSave={onSave}
+        languageCode="en"
+      />,
+    );
+
+    // Select Khmer language
+    const kmButton = screen.getByRole('button', { name: /ភាសាខ្មែរ/i });
+    fireEvent.click(kmButton);
+
+    const saveButton = screen.getByRole('button', { name: /Save Changes/i });
+    fireEvent.click(saveButton);
+
+    expect(onSave).toHaveBeenCalledWith(
+      expect.objectContaining({
+        languageCode: 'km',
+      }),
+    );
+  });
 });

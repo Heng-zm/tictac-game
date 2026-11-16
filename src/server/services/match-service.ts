@@ -683,6 +683,8 @@ export class MatchService {
       thinking: ['thinking'],
       respect: ['respect', 'good_game'],
       laughing: ['laughing', 'teasing'],
+      mocking: ['frustrated', 'smug_tease', 'laughing'],
+      smug_tease: ['thinking', 'teasing', 'clapping'],
     };
 
     const choices = botReplies[userStickerId];

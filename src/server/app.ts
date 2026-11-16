@@ -499,6 +499,9 @@ export function createApp(deps: AppDependencies): express.Express {
       lastName: parsed.lastName,
       username: parsed.username,
       photoUrl: parsed.photoUrl === '' ? null : parsed.photoUrl,
+      ...(parsed.languageCode !== undefined
+        ? { languageCode: parsed.languageCode === '' ? null : parsed.languageCode }
+        : {}),
     });
     res.json({ user: toUserProfile(updated) });
   });

@@ -29,6 +29,7 @@ export interface DisplayReaction {
   timestamp: string;
 }
 import { getAudioContext, playVoiceAudio } from '../lib/audio-radio';
+import { describeOutcome } from '../lib/game';
 import {
   playChatSound,
   playDefeatSound,
@@ -185,6 +186,9 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
   const socketRef = useRef<GameClientSocket | null>(null);
   const voicePlaybackRef = useRef<{ stop: () => void } | null>(null);
+  // Identifies which voice note owns the incoming-voice indicator so a stop
+  // callback from an older note cannot clear a newer one.
+  const voiceTokenRef = useRef(0);
   const onMatchFoundRef = useRef(onMatchFound);
   onMatchFoundRef.current = onMatchFound;
   const toastTimers = useRef(new Map<string, number>());
@@ -194,6 +198,16 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
   matchRef.current = match;
   const createdInviteRef = useRef<CreatedInvitation | null>(null);
   const pendingInviteRef = useRef<PendingInvitation | null>(null);
+
+  // Play one chime per turn change, no matter which event caused it:
+  // move:accepted and match:state arrive back to back for the same move, so
+  // chiming from both handlers would double up.
+  const yourTurn = Boolean(match && match.status === 'ACTIVE' && match.currentTurn === match.youSide);
+  const wasYourTurnRef = useRef(yourTurn);
+  useEffect(() => {
+    if (yourTurn && !wasYourTurnRef.current) playTurnSound();
+    wasYourTurnRef.current = yourTurn;
+  }, [yourTurn]);
 
   // iOS WebViews create the AudioContext in a suspended state and only allow
   // `resume()` inside a trusted gesture. Without this unlock, an incoming voice
@@ -470,36 +484,31 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     socket.on('match:state', ({ match: next }) => {
       if (!active) return;
-      const prev = matchRef.current;
-      if (
-        next.status === 'ACTIVE' &&
-        next.currentTurn === next.youSide &&
-        prev?.currentTurn !== next.youSide
-      ) {
-        playTurnSound();
-      }
       setMatch(next);
       if (next.opponentConnection === 'connected') setOpponentGraceEndsAt(null);
     });
 
     socket.on('move:accepted', (event) => {
       if (!active) return;
+      const current = matchRef.current;
+      // Ignore events for a match the player already left, plus replays of a
+      // move that is already on the board (for example after a reconnect).
+      if (!current || current.id !== event.matchId || current.board[event.cell] !== undefined) return;
+
       setLastMove({ cell: event.cell, side: event.side, actionId: event.actionId, at: Date.now() });
-      playStoneSound(event.side);
-      setMatch((current) => {
-        if (!current || current.id !== event.matchId || current.board[event.cell] !== undefined) return current;
-        const board = { ...current.board, [event.cell]: event.side };
-        const nextTurn = event.side === 'X' ? 'O' : 'X';
-        if (nextTurn === current.youSide) {
-          playTurnSound();
-        }
+      // Your own stone already made its sound optimistically when you tapped,
+      // so only the opponent's accepted moves need a cue here.
+      if (event.side !== current.youSide) playStoneSound(event.side);
+      setMatch((state) => {
+        if (!state || state.id !== event.matchId || state.board[event.cell] !== undefined) return state;
+        const board = { ...state.board, [event.cell]: event.side };
         return {
-          ...current,
+          ...state,
           board,
-          version: Math.max(current.version, event.version),
-          turnNumber: current.turnNumber + 1,
+          version: Math.max(state.version, event.version),
+          turnNumber: state.turnNumber + 1,
           lastMove: { cell: event.cell, side: event.side },
-          currentTurn: nextTurn,
+          currentTurn: event.side === 'X' ? 'O' : 'X',
         };
       });
       hapticImpact('light');
@@ -521,14 +530,15 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       setMatch(finished);
       setOpponentGraceEndsAt(null);
       const title = resultHeadline(finished);
-      if (title === 'You win!') {
+      const outcome = describeOutcome(finished);
+      if (outcome === 'win') {
         playVictorySound();
-      } else if (title === 'Defeat') {
+      } else if (outcome === 'loss') {
         playDefeatSound();
       }
-      hapticNotify(title === 'You win!' ? 'success' : title === 'Draw' ? 'warning' : 'error');
+      hapticNotify(outcome === 'win' ? 'success' : outcome === 'draw' ? 'warning' : 'error');
       pushToast({
-        type: title === 'You win!' ? 'success' : title === 'Draw' ? 'info' : 'error',
+        type: outcome === 'win' ? 'success' : outcome === 'draw' ? 'info' : 'error',
         title,
         message: finishReasonText(finished.finishReason),
         source: 'match-result',
@@ -633,14 +643,17 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       const currentMatch = matchRef.current;
       if (!currentMatch || currentMatch.id !== event.matchId) return;
       if (event.senderSide !== currentMatch.youSide) {
-        setIncomingVoice(event);
+        // Stopping the previous note fires its onStateChange synchronously, so
+        // it must happen before the new voice becomes visible; the token makes
+        // sure that stale callback cannot hide the new transmission.
+        const token = ++voiceTokenRef.current;
         voicePlaybackRef.current?.stop();
-        let playback: { stop: () => void } | null = null;
-        playback = playVoiceAudio(event.audioData, ({ isPlaying }) => {
-          if (!isPlaying && active) {
-            setIncomingVoice(null);
-            if (voicePlaybackRef.current === playback) voicePlaybackRef.current = null;
-          }
+        voicePlaybackRef.current = null;
+        setIncomingVoice(event);
+        const playback = playVoiceAudio(event.audioData, ({ isPlaying }) => {
+          if (isPlaying || !active || voiceTokenRef.current !== token) return;
+          voicePlaybackRef.current = null;
+          setIncomingVoice(null);
         });
         voicePlaybackRef.current = playback;
       }

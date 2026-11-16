@@ -11,6 +11,22 @@ export function isSoundMuted(): boolean {
   }
 }
 
+type SoundChangeListener = (muted: boolean) => void;
+
+const soundListeners = new Set<SoundChangeListener>();
+
+/**
+ * Notifies subscribers whenever the mute setting changes, so every mounted
+ * control (game header, settings) can stay in sync instead of each one holding
+ * its own copy of the persisted value.
+ */
+export function subscribeSoundChange(listener: SoundChangeListener): () => void {
+  soundListeners.add(listener);
+  return () => {
+    soundListeners.delete(listener);
+  };
+}
+
 export function setSoundMuted(muted: boolean): void {
   if (typeof window === 'undefined') return;
   try {
@@ -19,6 +35,9 @@ export function setSoundMuted(muted: boolean): void {
   } catch {
     // Ignore storage errors in sandboxed iframes
   }
+  // Fire outside the storage call so a blocked localStorage (private mode,
+  // sandboxed iframe) still updates every control on screen.
+  for (const listener of soundListeners) listener(muted);
 }
 
 export function toggleSound(): boolean {

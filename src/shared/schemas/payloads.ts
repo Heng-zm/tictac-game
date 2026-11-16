@@ -139,6 +139,12 @@ export const updateProfileSchema = z
       .max(1024, 'Avatar URL too long')
       .optional()
       .nullable(),
+    languageCode: z
+      .string()
+      .trim()
+      .max(16, 'Language code too long')
+      .optional()
+      .nullable(),
   })
   .strict()
   .refine(
@@ -146,7 +152,8 @@ export const updateProfileSchema = z
       data.firstName !== undefined ||
       data.lastName !== undefined ||
       data.username !== undefined ||
-      data.photoUrl !== undefined,
+      data.photoUrl !== undefined ||
+      data.languageCode !== undefined,
     {
       message: 'At least one field to update is required',
     },

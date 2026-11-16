@@ -27,7 +27,8 @@ export interface HowToPlayModalProps {
   languageCode?: string | null;
 }
 
-export const HOW_TO_PLAY_STORAGE_KEY = 'tictac_guide_seen';
+import { HOW_TO_PLAY_STORAGE_KEY } from '../lib/game';
+export { HOW_TO_PLAY_STORAGE_KEY };
 
 interface StepData {
   id: string;
@@ -199,6 +200,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
   const [currentStep, setCurrentStep] = useState(0);
   const [dontShowAgain, setDontShowAgain] = useState(false);
   const touchStartXRef = useRef<number | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const isKm = isKhmer(languageCode);
 
@@ -218,8 +220,9 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
 
   useEffect(() => {
     if (!open) return;
-    const panel = contentRef.current?.closest<HTMLElement>('[role="dialog"]');
-    if (panel) panel.scrollTop = 0;
+    // The scrolling element is the content div itself, not the dialog panel
+    // (which is overflow-hidden), so resetting the dialog would do nothing.
+    if (contentRef.current) contentRef.current.scrollTop = 0;
   }, [currentStep, open]);
 
   useEffect(() => {
@@ -251,7 +254,7 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
     onClose();
   }
 
-  useTelegramBackHandler(open, handleClose);
+  useTelegramBackHandler(open, handleClose, 2);
 
   function handleComplete() {
     // Completing the guide counts as seen even if the early-close checkbox is unchecked.
@@ -269,21 +272,32 @@ export function HowToPlayModal({ open, onClose, languageCode }: HowToPlayModalPr
   }
 
   function handleTouchStart(e: TouchEvent) {
-    touchStartXRef.current = e.touches[0]?.clientX ?? null;
+    const touch = e.touches[0];
+    touchStartXRef.current = touch?.clientX ?? null;
+    touchStartYRef.current = touch?.clientY ?? null;
   }
 
   function handleTouchEnd(e: TouchEvent) {
-    if (touchStartXRef.current === null) return;
-    const touchEndX = e.changedTouches[0]?.clientX ?? null;
-    if (touchEndX !== null) {
-      const diff = touchEndX - touchStartXRef.current;
-      if (diff > 50 && !isFirst) {
-        handlePrev();
-      } else if (diff < -50 && !isLast) {
-        handleNext();
-      }
-    }
+    const startX = touchStartXRef.current;
+    const startY = touchStartYRef.current;
     touchStartXRef.current = null;
+    touchStartYRef.current = null;
+    if (startX === null || startY === null) return;
+    const touchEndX = e.changedTouches[0]?.clientX ?? null;
+    const touchEndY = e.changedTouches[0]?.clientY ?? null;
+    if (touchEndX === null || touchEndY === null) return;
+
+    const diffX = touchEndX - startX;
+    const diffY = touchEndY - startY;
+    // Require a clearly horizontal gesture: a vertical scroll with a little
+    // sideways drift should never change the step.
+    if (Math.abs(diffX) <= Math.abs(diffY) || Math.abs(diffX) < 50) return;
+
+    if (diffX > 0 && !isFirst) {
+      handlePrev();
+    } else if (diffX < 0 && !isLast) {
+      handleNext();
+    }
   }
 
   return (

@@ -346,12 +346,19 @@ describe('HTTP API', () => {
     expect(cleared.status).toBe(200);
     expect(cleared.body.user.photoUrl).toBeNull();
 
+    const updatedLang = await session.agent
+      .patch('/api/me/profile')
+      .send({ languageCode: 'km' });
+    expect(updatedLang.status).toBe(200);
+    expect(updatedLang.body.user.languageCode).toBe('km');
+
     const me = await session.agent.get('/api/me');
     expect(me.body.user).toMatchObject({
       firstName: 'MasterGamer',
       lastName: 'Pro',
       username: 'master_gamer',
       photoUrl: null,
+      languageCode: 'km',
     });
 
     const empty = await session.agent.patch('/api/me/profile').send({});

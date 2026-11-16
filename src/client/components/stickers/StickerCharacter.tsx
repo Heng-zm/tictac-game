@@ -302,6 +302,36 @@ export const StickerCharacter = memo(function StickerCharacter({
             50% { opacity: 1; transform: scale(1.08); }
           }
 
+          @keyframes st-mock-sway {
+            0%, 100% { transform: rotate(-7deg) translateY(0); }
+            50% { transform: rotate(7deg) translateY(-3px); }
+          }
+          @keyframes st-mock-wag-l {
+            0%, 100% { transform: rotate(-18deg); }
+            50% { transform: rotate(18deg); }
+          }
+          @keyframes st-mock-wag-r {
+            0%, 100% { transform: rotate(18deg); }
+            50% { transform: rotate(-18deg); }
+          }
+          @keyframes st-mock-tongue {
+            0%, 100% { transform: rotate(-12deg) scaleY(1); }
+            50% { transform: rotate(12deg) scaleY(1.3); }
+          }
+
+          @keyframes st-smug-bob {
+            0%, 100% { transform: translateY(0) rotate(2deg); }
+            50% { transform: translateY(-4px) rotate(-3deg); }
+          }
+          @keyframes st-finger-wag {
+            0%, 100% { transform: translate(66px, 64px) rotate(-18deg); }
+            50% { transform: translate(66px, 64px) rotate(18deg); }
+          }
+          @keyframes st-smug-sparkle {
+            0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.4; }
+            50% { transform: scale(1.3) rotate(45deg); opacity: 1; }
+          }
+
           /* --- Class mappings --- */
           .st-victory-actor { transform-origin: 50% 75%; animation: st-victory-jump 0.85s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
           .st-crown { transform-origin: 50% 100%; animation: st-crown-sway 0.85s ease-in-out infinite; }
@@ -361,6 +391,15 @@ export const StickerCharacter = memo(function StickerCharacter({
           .st-punch-r { transform-origin: 70% 65%; animation: st-punch-right 0.65s ease-in-out infinite; }
           .st-headband { transform-origin: 20% 45%; animation: st-headband-stream 0.65s ease-in-out infinite; }
           .st-swords { transform-origin: 50% 50%; animation: st-swords-glow 0.65s ease-in-out infinite; }
+
+          .st-mock-dance { transform-origin: 50% 75%; animation: st-mock-sway 0.55s ease-in-out infinite; }
+          .st-mock-hand-l { transform-origin: 100% 50%; animation: st-mock-wag-l 0.4s ease-in-out infinite; }
+          .st-mock-hand-r { transform-origin: 0% 50%; animation: st-mock-wag-r 0.4s ease-in-out infinite; }
+          .st-mock-tongue { transform-origin: 50% 0%; animation: st-mock-tongue 0.35s ease-in-out infinite; }
+
+          .st-smug-head { transform-origin: 50% 75%; animation: st-smug-bob 1.4s ease-in-out infinite; }
+          .st-finger-wag { transform-origin: 0 0; animation: st-finger-wag 0.55s ease-in-out infinite; }
+          .st-smug-sparkle { transform-origin: 72% 46%; animation: st-smug-sparkle 0.9s ease-in-out infinite; }
 
           /* Accessibility overrides */
           @media (prefers-reduced-motion: reduce) {
@@ -845,6 +884,86 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Right Boxing Glove (Blue) throwing snappy punches */}
             <g transform="translate(64, 62)" className="st-punch-r">
               <circle cx="6" cy="6" r="6.5" fill={`url(#${p}-glove-blue)`} stroke="#1D4ED8" strokeWidth="1" />
+            </g>
+          </g>
+        </g>
+      );
+
+    case 'mocking':
+      return (
+        <g>
+          {/* Playful Mocking Body with Dance Sway */}
+          <g className="st-mock-dance">
+            {/* Left ear hand wagging */}
+            <g transform="translate(14, 38)" className="st-mock-hand-l">
+              <path d="M6 10 C0 8 0 2 6 2 C8 2 10 4 10 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+              <circle cx="8" cy="8" r="4" fill="#93C5FD" />
+            </g>
+
+            {/* Right ear hand wagging */}
+            <g transform="translate(76, 38)" className="st-mock-hand-r">
+              <path d="M4 10 C10 8 10 2 4 2 C2 2 0 4 0 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+              <circle cx="2" cy="8" r="4" fill="#93C5FD" />
+            </g>
+
+            {/* Round Character Body */}
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Teasing Brows */}
+            <path d="M32 40 Q39 36 44 42" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+            <path d="M68 40 Q61 36 56 42" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+
+            {/* Cheeky Squint Eyes: > < */}
+            <path d="M33 46 L41 50 L33 54" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            <path d="M67 46 L59 50 L67 54" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+
+            {/* Rosy Cheek Blush */}
+            <ellipse cx="30" cy="56" rx="4.5" ry="3" fill="#F472B6" opacity="0.85" />
+            <ellipse cx="70" cy="56" rx="4.5" ry="3" fill="#F472B6" opacity="0.85" />
+
+            {/* Laughing Mouth with Wagging Tongue */}
+            <path d="M39 58 Q50 68 61 58 Z" fill="#0F172A" />
+            <g transform="translate(46, 59)" className="st-mock-tongue">
+              <path d="M0 0 L8 0 C8 9 0 9 0 0 Z" fill="#FB7185" stroke="#BE123C" strokeWidth="1" />
+              <line x1="4" y1="0" x2="4" y2="6" stroke="#BE123C" strokeWidth="0.8" />
+            </g>
+          </g>
+        </g>
+      );
+
+    case 'smug_tease':
+      return (
+        <g>
+          {/* Confident Head Tilt Body */}
+          <g className="st-smug-head">
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Left Brow: Arched High */}
+            <path d="M30 38 Q38 32 46 38" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" fill="none" />
+            {/* Right Brow: Relaxed Sassy */}
+            <path d="M56 43 Q62 40 68 44" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+
+            {/* Left Eye: Half-lidded with confident sideways glance */}
+            <path d="M32 46 Q40 42 46 47" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+            <ellipse cx="39" cy="49" rx="4" ry="3" fill="#0F172A" />
+            <circle cx="40.5" cy="48" r="1.5" fill="#FFFFFF" />
+
+            {/* Right Eye: Smug Wink Star */}
+            <path d="M57 49 Q63 46 69 49" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
+            <polygon points="72,42 73.5,45 77,45.5 74.5,47.5 75,51 72,49.5 69,51 69.5,47.5 67,45.5 70.5,45" fill="#FDE047" className="st-smug-sparkle" />
+
+            {/* Smug Diagonal Smile */}
+            <path d="M40 62 Q52 64 63 56" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
+            <circle cx="64" cy="55" r="1.5" fill="#FFFFFF" opacity="0.8" />
+
+            {/* Index Finger Wagging "No no no" */}
+            <g className="st-finger-wag">
+              {/* Hand Fist */}
+              <circle cx="0" cy="0" r="5" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+              {/* Pointing Index Finger */}
+              <path d="M-2 -1 L-2 -12 Q-1 -15 1 -15 Q3 -15 3 -12 L2 -1 Z" fill="#93C5FD" stroke="#1D4ED8" strokeWidth="1" />
             </g>
           </g>
         </g>

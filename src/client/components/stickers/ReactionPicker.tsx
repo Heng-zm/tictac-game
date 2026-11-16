@@ -12,6 +12,7 @@ import {
 import { StickerCharacter } from './StickerCharacter';
 import { hapticImpact } from '../../lib/telegram';
 import { isKhmer } from '../../lib/language';
+import { cn } from '../../lib/cn';
 import { CHAT_MESSAGE_MAX_LENGTH } from '../../../shared/events';
 
 interface ReactionPickerProps {
@@ -35,6 +36,11 @@ export function ReactionPicker({
   const [sendingId, setSendingId] = useState<StickerId | null>(null);
   const [draft, setDraft] = useState('');
   const trayRef = useRef<HTMLDivElement>(null);
+  const sendTimerRef = useRef<number | null>(null);
+  const onSelectRef = useRef(onSelect);
+  onSelectRef.current = onSelect;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   // Filter stickers by active tab
   const filteredStickers = useMemo(() => {
@@ -68,6 +74,25 @@ export function ReactionPicker({
     if (!isOpen) setDraft('');
   }, [isOpen]);
 
+  // A pick sends after a short feedback delay. Closing the picker (backdrop,
+  // Escape, Telegram back) must cancel that pending send instead of firing an
+  // action for a match the player has already dismissed.
+  useEffect(() => {
+    if (isOpen) return;
+    if (sendTimerRef.current !== null) {
+      window.clearTimeout(sendTimerRef.current);
+      sendTimerRef.current = null;
+    }
+    setSendingId(null);
+  }, [isOpen]);
+
+  useEffect(
+    () => () => {
+      if (sendTimerRef.current !== null) window.clearTimeout(sendTimerRef.current);
+    },
+    [],
+  );
+
   if (!isOpen) return null;
 
   const handlePick = (sticker: StickerDefinition) => {
@@ -76,10 +101,11 @@ export function ReactionPicker({
     setSendingId(sticker.id);
 
     // Brief tactile send feedback before closing
-    setTimeout(() => {
-      onSelect(sticker.id);
+    sendTimerRef.current = window.setTimeout(() => {
+      sendTimerRef.current = null;
+      onSelectRef.current(sticker.id);
       setSendingId(null);
-      onClose();
+      onCloseRef.current();
     }, 180);
   };
 
@@ -161,7 +187,7 @@ export function ReactionPicker({
               disabled={!canSendText}
               aria-label={isKm ? 'ផ្ញើសារ' : 'Send message'}
               title={isKm ? 'ផ្ញើសារ' : 'Send message'}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-accent-ink shadow-sm transition hover:opacity-90 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-accent/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
               <Send className="h-4 w-4" aria-hidden="true" />
             </button>
@@ -184,7 +210,7 @@ export function ReactionPicker({
                     onClick={() => handleQuickChatPreset(text)}
                     disabled={disabled}
                     aria-label={isKm ? `សាររហ័ស៖ ${text}` : `Quick message: ${text}`}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/70 bg-elevated/80 px-3 py-1 text-xs font-semibold text-ink shadow-sm transition hover:border-accent/40 hover:bg-elevated active:scale-95"
+                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/70 bg-elevated/80 px-3 py-1 text-xs font-semibold text-ink shadow-sm transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-xs active:scale-95"
                   >
                     <span aria-hidden="true">{preset.emoji}</span>
                     <span>{text}</span>
@@ -208,11 +234,12 @@ export function ReactionPicker({
                   hapticImpact('light');
                   setSelectedCategory(cat.id);
                 }}
-                className={`flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-colors active:scale-95 ${
+                className={cn(
+                  'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 active:scale-95',
                   active
-                    ? 'bg-accent text-accent-ink shadow-sm'
-                    : 'bg-elevated text-muted hover:bg-elevated/80 hover:text-ink'
-                }`}
+                    ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-accent/25 font-semibold'
+                    : 'bg-elevated/70 text-muted hover:bg-elevated hover:text-ink border border-line/50',
+                )}
               >
                 <Icon className="h-3 w-3" aria-hidden="true" />
                 <span>{cat.label}</span>
@@ -233,12 +260,13 @@ export function ReactionPicker({
                 type="button"
                 onClick={() => handlePick(sticker)}
                 disabled={disabled}
-                className={`group relative flex flex-col items-center justify-center rounded-2xl border border-line/60 bg-elevated/50 p-2 transition-all hover:bg-elevated hover:border-accent/40 active:scale-90 ${
-                  isSending ? 'ring-2 ring-accent scale-95 bg-accent/10' : ''
-                }`}
+                className={cn(
+                  'group relative flex flex-col items-center justify-center rounded-2xl border border-line/60 bg-elevated/50 p-2 transition-all duration-150 hover:bg-elevated hover:border-accent/40 hover:shadow-soft hover:-translate-y-0.5 active:scale-90',
+                  isSending && 'ring-2 ring-accent scale-95 bg-accent/10',
+                )}
                 title={label}
               >
-                <div className="h-12 w-12 flex items-center justify-center transition-transform group-hover:scale-110">
+                <div className="h-12 w-12 flex items-center justify-center transition-transform duration-200 group-hover:scale-115">
                   <StickerCharacter id={sticker.id} size={48} animate={true} />
                 </div>
                 <span className="mt-1 w-full text-center text-[10.5px] font-medium leading-tight text-ink/90 truncate">

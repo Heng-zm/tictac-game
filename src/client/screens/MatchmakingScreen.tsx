@@ -64,7 +64,13 @@ export function MatchmakingScreen({
     }
     if (autoJoined.current) return;
     if (busy || queue) {
-      if (queue) autoJoined.current = true;
+      if (queue) {
+        autoJoined.current = true;
+        // Re-entering /search while a search is already live used to render
+        // 0:00 and 0% progress. The server knows how long the queue has been
+        // waiting, so seed the local start time from it.
+        setStartedAt((current) => current ?? Date.now() - Math.max(0, queue.elapsedMs));
+      }
       return;
     }
     autoJoined.current = true;
@@ -226,8 +232,17 @@ export function MatchmakingScreen({
                 className="absolute inset-0 rounded-full border border-accent/10 bg-accent/5 animate-pulse-ring"
                 style={{ animationDelay: '1.4s' }}
               />
-              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/30 bg-accent/10 text-accent shadow-glow backdrop-blur-sm">
-                <Search className="h-7 w-7" aria-hidden />
+              {/* High-tech revolving radar beam */}
+              <div
+                className="pointer-events-none absolute inset-0 rounded-full animate-radar-sweep opacity-75"
+                style={{
+                  background:
+                    'conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 270deg, rgba(37,99,235,0.02) 300deg, rgba(37,99,235,0.25) 360deg)',
+                }}
+                aria-hidden
+              />
+              <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/40 bg-accent/15 text-accent shadow-glow backdrop-blur-md">
+                <Search className="h-7 w-7 text-accent animate-pulse-subtle drop-shadow-[0_0_8px_rgba(37,99,235,0.6)]" aria-hidden />
               </span>
             </div>
 
@@ -259,10 +274,10 @@ export function MatchmakingScreen({
                 aria-valuemax={100}
                 aria-valuenow={Math.round(searchProgress * 100)}
                 aria-valuetext={`${Math.round(searchProgress * 100)}% of the maximum wait used`}
-                className="mx-auto mt-3 h-2 max-w-[14rem] overflow-hidden rounded-full bg-elevated/80 p-0.5 border border-line/40"
+                className="mx-auto mt-3 h-2 max-w-[14rem] overflow-hidden rounded-full bg-elevated/80 p-0.5 border border-line/60"
               >
                 <div
-                  className="h-full rounded-full bg-accent shadow-glow transition-[width] duration-1000 ease-linear"
+                  className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500 shadow-glow transition-[width] duration-1000 ease-linear"
                   style={{ width: `${Math.round(searchProgress * 100)}%` }}
                 />
               </div>

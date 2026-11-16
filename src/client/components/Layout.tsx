@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type HTMLAttributes, type ReactNode } from 'react';
 import { Home, RefreshCw, Trophy, User, WifiOff } from 'lucide-react';
 import { cn } from '../lib/cn';
 import { hapticSelection } from '../lib/telegram';
@@ -49,16 +49,16 @@ export function ConnectionBanner({
       >
         <div
           className={cn(
-            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-xl border border-solid px-3 py-1.5 text-xs font-medium leading-snug shadow-soft',
+            'pointer-events-auto flex max-w-[calc(100vw-1.5rem)] items-center gap-2 rounded-2xl border px-3.5 py-1.5 text-xs font-semibold leading-snug shadow-soft backdrop-blur-xl animate-fade-down transition-all duration-200',
             shutdown || offline
-              ? 'border-danger bg-danger/10 text-danger'
+              ? 'border-danger/40 bg-danger/10 text-danger shadow-[0_0_16px_rgba(239,68,68,0.2)]'
               : connecting
-                ? 'border-accent bg-surface text-accent'
-                : 'border-line bg-surface text-ink',
+                ? 'border-accent/40 bg-surface/90 text-accent shadow-[0_0_16px_rgba(37,99,235,0.2)]'
+                : 'border-line/80 bg-surface/90 text-ink',
           )}
         >
           {shutdown || offline ? (
-            <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            <WifiOff className="h-3.5 w-3.5 shrink-0 text-danger" aria-hidden />
           ) : (
             <span className="relative flex h-2 w-2 shrink-0">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-current opacity-60" />
@@ -70,9 +70,9 @@ export function ConnectionBanner({
             <button
               type="button"
               onClick={onRetry}
-              className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50"
+              className="ml-1 inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold underline-offset-2 hover:underline hover:bg-danger/15 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current/50 transition-colors"
             >
-              <RefreshCw className="h-3 w-3" aria-hidden />
+              <RefreshCw className="h-3 w-3 transition-transform duration-300 hover:rotate-180" aria-hidden />
               Retry
             </button>
           )}
@@ -98,12 +98,13 @@ export function BottomNav({
     { name: 'leaderboard' as const, label: 'Ranks', icon: Trophy, path: '/leaderboard' },
     { name: 'profile' as const, label: 'Profile', icon: User, path: '/profile' },
   ];
+
   return (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-solid border-line bg-surface shadow-[0_-14px_32px_-28px_rgba(0,0,0,0.5)]"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-line/70 bg-surface/90 backdrop-blur-xl shadow-[0_-8px_30px_rgba(0,0,0,0.1)] dark:shadow-[0_-8px_30px_rgba(0,0,0,0.4)] md:bottom-4 md:inset-x-auto md:left-1/2 md:-translate-x-1/2 md:w-full md:max-w-[440px] md:rounded-full md:border md:shadow-2xl md:px-2 md:py-1.5 transition-all duration-200"
       aria-label="Main navigation"
     >
-      <div className="mx-auto flex max-w-[560px] items-stretch gap-1 px-2.5 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-1.5 sm:px-4 md:pb-[calc(env(safe-area-inset-bottom)+10px)]">
+      <div className="mx-auto flex max-w-[560px] items-stretch gap-1.5 px-3 pb-[calc(env(safe-area-inset-bottom)+8px)] pt-2 sm:px-4 md:p-0">
         {items.map((item) => {
           const selected = active === item.name;
           const Icon = item.icon;
@@ -119,22 +120,34 @@ export function BottomNav({
               aria-current={selected ? 'page' : undefined}
               aria-label={showActiveGame ? `${item.label} (game in progress)` : item.label}
               className={cn(
-                'flex flex-1 flex-col items-center gap-1 rounded-xl border border-solid border-transparent px-2 py-2 text-[10px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2.5 md:text-xs',
+                'group relative flex flex-1 flex-col items-center gap-1 rounded-2xl border border-transparent px-2 py-2 text-[10px] font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2 md:text-xs md:rounded-full',
                 selected
-                  ? 'border-accent/20 bg-accent/10 text-accent'
-                  : 'text-muted hover:bg-elevated hover:text-ink',
+                  ? 'border-accent/25 bg-accent/10 text-accent font-bold shadow-sm shadow-accent/10'
+                  : 'text-muted hover:bg-elevated/70 hover:text-ink',
               )}
             >
-              <span className="relative">
-                <Icon className="h-5 w-5" aria-hidden />
+              <span className="relative flex items-center justify-center">
+                <Icon
+                  className={cn(
+                    'h-5 w-5 transition-transform duration-200 group-hover:scale-115 group-active:scale-90',
+                    selected ? 'animate-icon-pop text-accent scale-110' : 'text-muted group-hover:text-ink',
+                  )}
+                  aria-hidden
+                />
                 {showActiveGame ? (
-                  <span
-                    className="absolute -right-1.5 -top-0.5 h-1.5 w-1.5 rounded-full bg-accent ring-2 ring-surface"
-                    aria-hidden
-                  />
+                  <span className="absolute -right-1 -top-0.5 flex h-2.5 w-2.5">
+                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                    <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-accent ring-2 ring-surface shadow-[0_0_8px_rgba(37,99,235,0.9)]" />
+                  </span>
                 ) : null}
               </span>
-              {item.label}
+              <span>{item.label}</span>
+              {selected ? (
+                <span
+                  className="absolute bottom-1 h-0.5 w-3 rounded-full bg-accent md:hidden"
+                  aria-hidden
+                />
+              ) : null}
             </button>
           );
         })}
@@ -156,22 +169,42 @@ export function Page({
   className,
   withNav = false,
   width = 'narrow',
+  ambient = false,
 }: {
   children: ReactNode;
   className?: string;
   withNav?: boolean;
   width?: PageWidth;
+  ambient?: boolean;
 }) {
   return (
     <div
       className={cn(
-        'mx-auto w-full px-4 pt-[calc(env(safe-area-inset-top)+16px)] sm:px-5 md:px-6 md:pt-7',
+        'relative mx-auto w-full px-4 pt-[calc(env(safe-area-inset-top)+16px)] sm:px-5 md:px-6 md:pt-7',
         pageWidths[width],
         withNav ? 'page-with-nav' : 'pb-[calc(env(safe-area-inset-bottom)+28px)] md:pb-10',
         className,
       )}
     >
+      {ambient ? (
+        <div
+          className="pointer-events-none absolute -top-12 left-1/2 -translate-x-1/2 h-36 w-72 rounded-full bg-accent/8 blur-3xl"
+          aria-hidden
+        />
+      ) : null}
       {children}
     </div>
+  );
+}
+
+export function PageSection({
+  children,
+  className,
+  ...rest
+}: HTMLAttributes<HTMLDivElement>) {
+  return (
+    <section className={cn('space-y-3 pt-2', className)} {...rest}>
+      {children}
+    </section>
   );
 }

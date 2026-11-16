@@ -24,10 +24,11 @@ import {
   modeLabel,
   opponentFor,
 } from '../lib/game';
-import { isSoundMuted, playStoneSound, playUrgentCountdownSound, toggleSound } from '../lib/sound';
+import { playStoneSound, playUrgentCountdownSound } from '../lib/sound';
 import { cn } from '../lib/cn';
 import { hapticImpact, hapticNotify, setVerticalSwipeLock } from '../lib/telegram';
 import { useTelegramBackHandler } from '../hooks/use-hash-route';
+import { useSoundSettings } from '../hooks/use-sound-settings';
 import { formatDuration, useCountdown } from '../hooks/use-time';
 import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spinner } from '../components/ui';
 import { Page } from '../components/Layout';
@@ -86,16 +87,8 @@ export function GameScreen({
     }
   }, [joinMatch, connection, match, matchId, otherActive]);
 
-  useEffect(() => {
-    if (match || otherActive) {
-      setLoading(false);
-      return;
-    }
-    if (connection !== 'online' || joinRequested.current) return;
-    joinRequested.current = true;
-    void loadJoin();
-  }, [connection, loadJoin, match, otherActive]);
-
+  // Reset per-match state before the join effect below runs, so the duplicate
+  // join guard is not cleared right after the first join is dispatched.
   useEffect(() => {
     joinRequested.current = false;
     setLoading(true);
@@ -106,6 +99,16 @@ export function GameScreen({
     setForfeitOpen(false);
     setReactionPickerOpen(false);
   }, [matchId]);
+
+  useEffect(() => {
+    if (match || otherActive) {
+      setLoading(false);
+      return;
+    }
+    if (connection !== 'online' || joinRequested.current) return;
+    joinRequested.current = true;
+    void loadJoin();
+  }, [connection, loadJoin, match, otherActive]);
 
   useEffect(() => {
     setPendingCell(null);
@@ -278,9 +281,21 @@ export function GameScreen({
     }
   }
 
-  // Intercept Telegram BackButton to dismiss forfeit confirmation modal if open
-  useTelegramBackHandler(forfeitOpen, () => setForfeitOpen(false));
-  useTelegramBackHandler(reactionPickerOpen, () => setReactionPickerOpen(false));
+  // Intercept Telegram BackButton to dismiss forfeit confirmation modal or reaction picker if open
+  useTelegramBackHandler(forfeitOpen, () => setForfeitOpen(false), 2);
+  useTelegramBackHandler(reactionPickerOpen, () => setReactionPickerOpen(false), 2);
+  // The hardware/Telegram Back button must follow the same path as the in-screen
+  // back arrow: confirm a forfeit while the match is live instead of quietly
+  // navigating away and leaving the game running. The priority keeps this above
+  // the app-level "go home" fallback.
+  useTelegramBackHandler(
+    !forfeitOpen && !reactionPickerOpen,
+    () => {
+      if (match?.status === 'ACTIVE') setForfeitOpen(true);
+      else navigate('/');
+    },
+    1,
+  );
 
   const youReaction = useMemo(
     () => client.reactions.filter((r) => r.isYou).slice(-1)[0] ?? null,
@@ -589,11 +604,11 @@ export function GameScreen({
             connection !== 'online' ||
             (match.status !== 'ACTIVE' && match.status !== 'FINISHED')
           }
-          className="pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition hover:border-accent/40 hover:bg-elevated active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="group pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-glow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
           title="Sticker reactions and quick chat"
           aria-label="Open sticker reactions and quick chat"
         >
-          <MessageCircle className="h-4 w-4" aria-hidden="true" />
+          <MessageCircle className="h-4 w-4 transition-transform duration-200 group-hover:scale-120 group-hover:rotate-6 group-active:scale-90" aria-hidden="true" />
         </button>
         <WalkieTalkieButton
           matchId={match.id}
@@ -712,6 +727,9 @@ function TurnClock({
   return (
     <div className="flex min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
       <div className="relative flex h-14 w-14 items-center justify-center">
+        {urgent && !muted ? (
+          <span className="pointer-events-none absolute inset-0.5 rounded-full border border-danger/60 animate-ping opacity-40" aria-hidden />
+        ) : null}
         <svg viewBox="0 0 64 64" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden>
           <circle
             cx="32"
@@ -729,28 +747,34 @@ function TurnClock({
               r={radius}
               fill="none"
               stroke="currentColor"
-              strokeWidth="3"
+              strokeWidth="3.5"
               strokeLinecap="round"
               strokeDasharray={circumference}
               strokeDashoffset={offset}
               className={cn(
                 'transition-[stroke-dashoffset,color] duration-500 ease-linear',
-                muted ? 'text-muted/60' : urgent ? 'text-danger' : 'text-accent',
+                muted
+                  ? 'text-muted/60'
+                  : urgent
+                    ? 'text-danger drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]'
+                    : 'text-accent drop-shadow-[0_0_6px_rgba(37,99,235,0.4)]',
               )}
             />
           ) : null}
         </svg>
         <span
           className={cn(
-            'font-bold tabular-nums tracking-tight transition-colors duration-200',
+            'font-bold tabular-nums tracking-tight transition-all duration-200',
             text.length > 5 ? 'text-[11px]' : 'text-base',
-            muted ? 'text-muted' : urgent ? 'text-danger' : 'text-ink',
+            muted ? 'text-muted' : urgent ? 'text-danger scale-110 animate-heartbeat-urgent font-extrabold drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]' : 'text-ink',
           )}
         >
           {text}
         </span>
       </div>
-      <span className="mt-0.5 text-[10px] font-medium text-muted">{label}</span>
+      <span className={cn('turn-status mt-0.5 text-[10px] font-semibold transition-colors', urgent && !muted ? 'text-danger font-bold' : 'text-muted')}>
+        {label}
+      </span>
     </div>
   );
 }
@@ -768,13 +792,7 @@ function GameHeader({
   connection?: string;
   onRetry?: () => void;
 }) {
-  const [muted, setMuted] = useState(isSoundMuted());
-
-  function handleToggleSound() {
-    const next = toggleSound();
-    setMuted(next);
-    hapticImpact('light');
-  }
+  const { soundOn, toggle: toggleSoundEffects } = useSoundSettings();
 
   return (
     <header className="flex items-center justify-between gap-3 pb-2.5 sm:pb-3.5 pt-0">
@@ -796,12 +814,17 @@ function GameHeader({
       <div className="flex items-center gap-1.5 shrink-0">
         <button
           type="button"
-          onClick={handleToggleSound}
-          className="flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95"
-          title={muted ? 'Unmute sound effects' : 'Mute sound effects'}
-          aria-label={muted ? 'Unmute sound effects' : 'Mute sound effects'}
+          onClick={toggleSoundEffects}
+          aria-pressed={!soundOn}
+          className="group flex h-8 w-8 items-center justify-center rounded-xl text-muted transition hover:bg-elevated hover:text-ink active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
+          title={soundOn ? 'Mute sound effects' : 'Unmute sound effects'}
+          aria-label={soundOn ? 'Mute sound effects' : 'Unmute sound effects'}
         >
-          {muted ? <VolumeX className="h-4 w-4 text-muted/60" aria-hidden /> : <Volume2 className="h-4 w-4 text-accent" aria-hidden />}
+          {soundOn ? (
+            <Volume2 className="h-4 w-4 text-accent transition-transform duration-200 group-hover:scale-120 group-active:scale-90" aria-hidden />
+          ) : (
+            <VolumeX className="h-4 w-4 text-muted/60 transition-transform duration-200 group-hover:scale-120 group-active:scale-90" aria-hidden />
+          )}
         </button>
 
         {connection && connection !== 'online' ? (
@@ -858,39 +881,67 @@ function PlayerBadge({
   return (
     <div
       className={cn(
-        'flex min-w-0 items-center gap-2.5',
+        'flex min-w-0 items-center gap-2.5 transition-all duration-200',
         align === 'right' && 'flex-row-reverse text-right',
       )}
     >
       <div className="relative shrink-0">
+        {active ? (
+          <span
+            className={cn(
+              'pointer-events-none absolute -inset-1 rounded-full border border-accent/40 animate-pulse-ring opacity-60',
+            )}
+            aria-hidden
+          />
+        ) : null}
         {isAi ? (
           <span
             className={cn(
               'flex h-9 w-9 items-center justify-center rounded-full transition-all duration-200',
-              active ? 'bg-accent/10 text-accent ring-2 ring-accent/30' : 'bg-elevated text-muted',
+              active
+                ? 'bg-accent/15 text-accent ring-2 ring-accent shadow-glow-sm scale-105'
+                : 'bg-elevated text-muted',
             )}
           >
             <Bot className="h-4 w-4" aria-hidden />
           </span>
         ) : (
-          <Avatar name={name} photoUrl={photoUrl} size="sm" ring={active} className="transition-shadow duration-200" />
+          <Avatar
+            name={name}
+            photoUrl={photoUrl}
+            size="sm"
+            ring={active}
+            className={cn(
+              'transition-all duration-200',
+              active && 'ring-2 ring-accent shadow-glow-sm scale-105',
+            )}
+          />
         )}
         {!isAi ? (
           <span
             className={cn(
               'absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border-2 border-app transition-colors duration-200',
-              connected ? 'bg-success' : 'bg-muted',
+              connected ? 'bg-success shadow-[0_0_6px_rgba(16,185,129,0.7)]' : 'bg-muted',
             )}
             aria-label={connected ? 'Connected' : 'Disconnected'}
           />
         ) : null}
+        {active ? (
+          <span
+            className={cn(
+              'absolute -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-app shadow-[0_0_8px_rgba(37,99,235,0.9)] animate-pulse',
+              align === 'right' ? '-left-0.5' : '-right-0.5',
+            )}
+            aria-hidden
+          />
+        ) : null}
       </div>
       <div className="min-w-0">
-        <p className={cn('truncate text-xs font-semibold transition-colors duration-200', active ? 'text-accent' : 'text-ink')}>
+        <p className={cn('truncate text-xs font-semibold transition-colors duration-200', active ? 'text-accent font-bold' : 'text-ink')}>
           {isYou ? 'You' : name}
         </p>
         <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-muted">
-          <span className={side === 'X' ? 'text-accent' : 'text-danger'}>{side}</span>
+          <span className={cn('font-bold', side === 'X' ? 'text-accent' : 'text-danger')}>{side}</span>
           <span>· {isAi ? 'Bot' : isYou ? 'You' : 'Opponent'}</span>
         </p>
       </div>

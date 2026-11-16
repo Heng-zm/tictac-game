@@ -125,7 +125,11 @@ export function useHashRoute(): {
 }
 
 type BackHandler = () => void;
-const backHandlerStack: BackHandler[] = [];
+interface BackHandlerEntry {
+  handler: BackHandler;
+  priority: number;
+}
+const backHandlerStack: BackHandlerEntry[] = [];
 
 function syncTelegramBackButton(): void {
   const backButton = window.Telegram?.WebApp?.BackButton;
@@ -145,36 +149,38 @@ function ensureBackButtonSubscription(): void {
   if (!backButton) return;
   backButtonInitialized = true;
   backButton.onClick(() => {
-    const handler = backHandlerStack[backHandlerStack.length - 1];
-    if (handler) {
-      handler();
-    }
+    const entry = backHandlerStack[backHandlerStack.length - 1];
+    entry?.handler();
   });
 }
 
 /**
  * Registers a priority back handler (e.g. Forfeit modal, HowToPlay guide, or screen back).
  * The most recently mounted active handler handles the BackButton press first.
+ * Higher `priority` handlers sit above lower ones, so a screen can intercept the
+ * press even when an app-level fallback handler was mounted earlier.
  */
-export function useTelegramBackHandler(active: boolean, onBack: () => void): void {
+export function useTelegramBackHandler(active: boolean, onBack: () => void, priority = 0): void {
   const callback = useRef(onBack);
   callback.current = onBack;
 
   useEffect(() => {
     if (!active) return;
     ensureBackButtonSubscription();
-    const handler = () => callback.current();
-    backHandlerStack.push(handler);
+    const entry: BackHandlerEntry = { handler: () => callback.current(), priority };
+    const firstHigher = backHandlerStack.findIndex((existing) => existing.priority > priority);
+    if (firstHigher === -1) backHandlerStack.push(entry);
+    else backHandlerStack.splice(firstHigher, 0, entry);
     syncTelegramBackButton();
     return () => {
-      const idx = backHandlerStack.lastIndexOf(handler);
+      const idx = backHandlerStack.lastIndexOf(entry);
       if (idx !== -1) backHandlerStack.splice(idx, 1);
       syncTelegramBackButton();
     };
-  }, [active]);
+  }, [active, priority]);
 }
 
 /** Adds the browser-back affordance used by the Telegram header. */
-export function useTelegramBackButton(visible: boolean, onBack: () => void): void {
-  useTelegramBackHandler(visible, onBack);
+export function useTelegramBackButton(visible: boolean, onBack: () => void, priority = 0): void {
+  useTelegramBackHandler(visible, onBack, priority);
 }

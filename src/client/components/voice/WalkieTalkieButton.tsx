@@ -316,7 +316,7 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
           <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-white" />
         </span>
       ) : (
-        <Mic className="h-4 w-4 text-accent" aria-hidden />
+        <Mic className="h-4 w-4 text-accent transition-transform duration-200 group-hover:scale-115 group-active:scale-90" aria-hidden />
       )}
 
       <span

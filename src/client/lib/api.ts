@@ -114,6 +114,7 @@ export interface UpdateProfileInput {
   lastName?: string | null;
   username?: string | null;
   photoUrl?: string | null;
+  languageCode?: string | null;
 }
 
 export function updateProfile(patch: UpdateProfileInput): Promise<{ user: UserProfile }> {

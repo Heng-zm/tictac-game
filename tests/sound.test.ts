@@ -12,6 +12,7 @@ import {
   playVictorySound,
   setSoundMuted,
   SOUND_STORAGE_KEY,
+  subscribeSoundChange,
   toggleSound,
 } from '../src/client/lib/sound';
 
@@ -59,6 +60,33 @@ describe('Sound System', () => {
     expect(isSoundMuted()).toBe(true);
     expect(toggleSound()).toBe(false);
     expect(isSoundMuted()).toBe(false);
+  });
+
+  it('notifies subscribers on every mute change and stops after unsubscribe', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeSoundChange(listener);
+
+    setSoundMuted(true);
+    setSoundMuted(false);
+    expect(listener.mock.calls).toEqual([[true], [false]]);
+
+    unsubscribe();
+    setSoundMuted(true);
+    expect(listener).toHaveBeenCalledTimes(2);
+  });
+
+  it('notifies subscribers even when localStorage rejects writes', () => {
+    const listener = vi.fn();
+    const unsubscribe = subscribeSoundChange(listener);
+    const setItem = vi.spyOn(localStorage, 'setItem').mockImplementation(() => {
+      throw new Error('QuotaExceededError');
+    });
+
+    expect(() => setSoundMuted(true)).not.toThrow();
+    expect(listener).toHaveBeenCalledWith(true);
+
+    setItem.mockRestore();
+    unsubscribe();
   });
 
   it('does not invoke audio synthesis when muted', () => {

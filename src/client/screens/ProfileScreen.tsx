@@ -28,6 +28,9 @@ import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { modeShortLabel } from '../lib/game';
 import { EditProfileModal } from '../components/EditProfileModal';
+import { LanguageButton } from '../components/LanguageButton';
+import { useSoundSettings } from '../hooks/use-sound-settings';
+import { useTelegramBackHandler } from '../hooks/use-hash-route';
 
 type ProfileTab = 'overview' | 'history' | 'settings';
 
@@ -79,12 +82,15 @@ export function ProfileScreen({
   return (
     <Page withNav width="wide">
       <ScreenHeader
-        title="Profile"
-        subtitle="Your stats and match history"
+        title={isKm ? 'ព័ត៌មានគណនី' : 'Profile'}
+        subtitle={isKm ? 'ស្ថិតិ និងប្រវត្តិការប្រកួត' : 'Your stats and match history'}
         action={
-          <IconButton label="Open leaderboard" onClick={() => navigate('/leaderboard')}>
-            <Trophy className="h-4 w-4" aria-hidden />
-          </IconButton>
+          <div className="flex items-center gap-1.5">
+            <LanguageButton client={client} variant="circle" />
+            <IconButton label="Open leaderboard" onClick={() => navigate('/leaderboard')}>
+              <Trophy className="h-4 w-4" aria-hidden />
+            </IconButton>
+          </div>
         }
       />
 
@@ -179,13 +185,13 @@ export function ProfileScreen({
                   onClick={() => selectTab(item.value)}
                   onKeyDown={(event) => handleTabKeyDown(event, index)}
                   className={cn(
-                    'relative flex flex-1 items-center justify-center gap-2 rounded-t-lg pb-3 pt-2.5 text-xs font-medium transition-colors hover:bg-elevated/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm',
-                    selected ? 'text-accent hover:bg-transparent' : 'text-muted hover:text-ink',
+                    'relative flex flex-1 items-center justify-center gap-2 rounded-t-lg pb-3 pt-2.5 text-xs font-semibold transition-all duration-150 hover:bg-elevated/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 sm:text-sm',
+                    selected ? 'text-accent font-bold hover:bg-transparent' : 'text-muted hover:text-ink',
                   )}
                 >
-                  <Icon className="h-3.5 w-3.5" aria-hidden />
+                  <Icon className={cn('h-3.5 w-3.5 transition-transform duration-200', selected ? 'scale-110 animate-icon-pop' : 'group-hover:scale-105')} aria-hidden />
                   {item.label}
-                  {selected ? <span className="absolute inset-x-3 -bottom-px h-0.5 rounded-full bg-accent" /> : null}
+                  {selected ? <span className="absolute inset-x-3 -bottom-px h-[2.5px] rounded-full bg-accent shadow-[0_0_8px_rgba(37,99,235,0.4)]" /> : null}
                 </button>
               );
             })}
@@ -446,6 +452,9 @@ function SettingsTab({
   const [sendingTestNotification, setSendingTestNotification] = useState(false);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [loggingOut, setLoggingOut] = useState(false);
+  const { soundOn, setSoundOn } = useSoundSettings();
+
+  useTelegramBackHandler(showLogoutModal, () => !loggingOut && setShowLogoutModal(false), 2);
   if (!profile) return null;
 
   const isKm = isKhmer(profile.languageCode);
@@ -545,6 +554,22 @@ function SettingsTab({
       <Card className="p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-ink">
+              {isKm ? 'ភាសាបង្ហាញ' : 'Language'}
+            </h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              {isKm
+                ? 'ជ្រើសរើសភាសាសម្រាប់ការបង្ហាញ និងសារ Taunts របស់ Bot'
+                : 'Choose your preferred language for the game interface.'}
+            </p>
+          </div>
+          <LanguageButton client={client} variant="segmented" />
+        </div>
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
             <h3 className="text-sm font-semibold text-ink">Auto-play a bot</h3>
             <p className="mt-1 text-[11px] leading-relaxed text-muted">
               If no human joins within the queue window, automatically start an unrated bot match instead of leaving
@@ -598,6 +623,24 @@ function SettingsTab({
             </Button>
           </div>
         ) : null}
+      </Card>
+
+      <Card className="p-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-semibold text-ink">{isKm ? 'សំឡេងប្រកប' : 'Sound effects'}</h3>
+            <p className="mt-1 text-[11px] leading-relaxed text-muted">
+              {isKm
+                ? 'សំឡេងដាក់គ្រាប់ វេនរបស់អ្នក និងលទ្ធផលហ្គេម។ ការកំណត់នេះរក្សាទុកលើឧបករណ៍នេះ។'
+                : 'Stone drops, your-turn chimes and match results. This setting is saved on this device.'}
+            </p>
+          </div>
+          <Toggle
+            checked={soundOn}
+            onChange={setSoundOn}
+            label={isKm ? 'បើកសំឡេងប្រកប' : 'Play sound effects'}
+          />
+        </div>
       </Card>
 
       <Card className="p-4">

@@ -50,27 +50,27 @@ export function ActiveGameBar({
         : `${opponentName} is thinking`;
 
   return (
-    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+88px)] z-30 px-3">
+    <div className="pointer-events-none fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+88px)] z-30 px-3 animate-fade-up">
       <button
         type="button"
         onClick={onResume}
         aria-label={`Resume active game. ${ariaStatus}. Playing ${opponentName}.`}
         className={cn(
-          'pointer-events-auto mx-auto flex w-full max-w-[560px] items-center gap-3 rounded-2xl border p-2.5 pl-3 text-left shadow-soft backdrop-blur-xl transition active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+          'group pointer-events-auto mx-auto flex w-full max-w-[560px] items-center gap-3 rounded-2xl border p-2.5 pl-3 text-left shadow-lg backdrop-blur-xl transition-all duration-200 active:scale-[0.99] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
           reconnecting || paused
-            ? 'border-amber-500/25 bg-surface/95'
+            ? 'border-amber-500/35 bg-surface/90 shadow-amber-500/10'
             : yourTurn
-              ? 'border-accent/30 bg-accent/[0.06]'
-              : 'border-line bg-surface/95',
+              ? 'border-accent/40 bg-surface/90 shadow-accent/15 ring-1 ring-accent/20 hover:border-accent/60'
+              : 'border-line/80 bg-surface/90 hover:border-line hover:bg-surface/95',
         )}
       >
         <span
           className={cn(
-            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl',
+            'flex h-9 w-9 shrink-0 items-center justify-center rounded-xl shadow-sm transition-transform duration-200 group-hover:scale-110',
             reconnecting || paused
-              ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+              ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400'
               : yourTurn
-                ? 'bg-accent text-accent-ink'
+                ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-accent/30'
                 : 'bg-elevated text-ink',
           )}
         >
@@ -89,8 +89,8 @@ export function ActiveGameBar({
             {showClock ? (
               <span
                 className={cn(
-                  'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] tracking-normal',
-                  urgent ? 'bg-danger/10 text-danger' : 'bg-accent/10 text-accent',
+                  'inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] tracking-normal font-bold tabular-nums',
+                  urgent ? 'bg-danger/10 text-danger animate-pulse' : 'bg-accent/10 text-accent',
                 )}
               >
                 <Clock3 className="h-2.5 w-2.5" aria-hidden />
@@ -101,9 +101,9 @@ export function ActiveGameBar({
           <span className="mt-0.5 block truncate text-sm font-semibold text-ink">{opponentName}</span>
         </span>
 
-        <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-accent">
+        <span className="flex shrink-0 items-center gap-0.5 text-xs font-semibold text-accent transition-transform duration-200 group-hover:translate-x-0.5">
           Resume
-          <ChevronRight className="h-4 w-4" aria-hidden />
+          <ChevronRight className="h-4 w-4 transition-transform duration-200 group-hover:translate-x-0.5" aria-hidden />
         </span>
       </button>
     </div>

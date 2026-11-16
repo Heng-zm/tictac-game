@@ -12,9 +12,9 @@ import { matchChatSchema, matchReactionSchema } from '../src/shared/schemas/payl
 import { CHAT_MESSAGE_MAX_LENGTH } from '../src/shared/events';
 
 describe('Sticker Registry & Metadata', () => {
-  it('contains exactly the 12 requested animated character reactions', () => {
-    expect(STICKER_IDS).toHaveLength(12);
-    expect(STICKER_LIST).toHaveLength(12);
+  it('contains exactly the 14 requested animated character reactions', () => {
+    expect(STICKER_IDS).toHaveLength(14);
+    expect(STICKER_LIST).toHaveLength(14);
     const expectedIds: StickerId[] = [
       'victory',
       'greeting',
@@ -28,6 +28,8 @@ describe('Sticker Registry & Metadata', () => {
       'teasing',
       'good_game',
       'rematch_invite',
+      'mocking',
+      'smug_tease',
     ];
     expect([...STICKER_IDS].sort()).toEqual([...expectedIds].sort());
   });

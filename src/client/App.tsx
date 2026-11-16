@@ -1,17 +1,42 @@
-import { useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useGameClient } from './hooks/use-game-client';
 import { useHashRoute, useTelegramBackButton } from './hooks/use-hash-route';
 import { AuthGate } from './screens/AuthGate';
 import { HomeScreen } from './screens/HomeScreen';
-import { MatchmakingScreen } from './screens/MatchmakingScreen';
-import { InviteAcceptScreen, InviteWaitingScreen } from './screens/InviteScreens';
-import { GameScreen } from './screens/GameScreen';
-import { ProfileScreen } from './screens/ProfileScreen';
-import { LeaderboardScreen } from './screens/LeaderboardScreen';
-import { NotFoundScreen } from './screens/NotFoundScreen';
 import { BottomNav, ConnectionBanner } from './components/Layout';
 import { ActiveGameBar } from './components/ActiveGameBar';
-import { ToastViewport } from './components/ui';
+import { Spinner, ToastViewport } from './components/ui';
+import { isKhmer } from './lib/language';
+
+const MatchmakingScreen = lazy(() =>
+  import('./screens/MatchmakingScreen').then((m) => ({ default: m.MatchmakingScreen })),
+);
+const InviteAcceptScreen = lazy(() =>
+  import('./screens/InviteScreens').then((m) => ({ default: m.InviteAcceptScreen })),
+);
+const InviteWaitingScreen = lazy(() =>
+  import('./screens/InviteScreens').then((m) => ({ default: m.InviteWaitingScreen })),
+);
+const GameScreen = lazy(() =>
+  import('./screens/GameScreen').then((m) => ({ default: m.GameScreen })),
+);
+const ProfileScreen = lazy(() =>
+  import('./screens/ProfileScreen').then((m) => ({ default: m.ProfileScreen })),
+);
+const LeaderboardScreen = lazy(() =>
+  import('./screens/LeaderboardScreen').then((m) => ({ default: m.LeaderboardScreen })),
+);
+const NotFoundScreen = lazy(() =>
+  import('./screens/NotFoundScreen').then((m) => ({ default: m.NotFoundScreen })),
+);
+
+function ScreenFallback() {
+  return (
+    <div className="flex min-h-[50vh] w-full items-center justify-center p-8">
+      <Spinner className="h-8 w-8 text-accent" />
+    </div>
+  );
+}
 
 export default function App() {
   const { route, navigate } = useHashRoute();
@@ -24,6 +49,12 @@ export default function App() {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [route]);
+
+  useEffect(() => {
+    const isKm = isKhmer(client.profile?.languageCode);
+    document.documentElement.lang = isKm ? 'km' : 'en';
+    document.documentElement.setAttribute('data-lang', isKm ? 'km' : 'en');
+  }, [client.profile?.languageCode]);
 
   useEffect(() => {
     if (client.phase !== 'ready' || inviteHandled.current) return;
@@ -139,7 +170,9 @@ export default function App() {
         <ConnectionBanner connection={client.connection} onRetry={client.reconnect} />
       ) : null}
       <main id="main-content" tabIndex={-1} className="outline-none">
-        {screen}
+        <Suspense fallback={<ScreenFallback />}>
+          {screen}
+        </Suspense>
       </main>
       {showActiveGameBar && activeMatch ? (
         <ActiveGameBar

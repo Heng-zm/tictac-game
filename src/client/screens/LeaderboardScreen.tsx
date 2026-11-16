@@ -19,6 +19,7 @@ import { isKhmer } from '../lib/language';
 import { Avatar, Button, Card, EmptyState, IconButton, Pill, ScreenHeader, Skeleton } from '../components/ui';
 import { RankBadge, RankLabel, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
+import { LanguageButton } from '../components/LanguageButton';
 
 type LeaderboardTab = 'all' | 'top10' | 'nearby';
 
@@ -134,14 +135,17 @@ export function LeaderboardScreen({
         title={isKm ? 'តារាងពិន្ទុ' : 'Leaderboard'}
         subtitle={isKm ? 'អ្នកលេងដែលមានចំណាត់ថ្នាក់ខ្ពស់បំផុត' : 'Top rated players'}
         action={
-          <IconButton
-            label={refreshing ? (isKm ? 'កំពុងផ្ទុកឡើងវិញ…' : 'Refreshing leaderboard') : (isKm ? 'ផ្ទុកឡើងវិញ' : 'Refresh leaderboard')}
-            onClick={() => void load('refresh')}
-            disabled={loading || refreshing}
-            aria-busy={refreshing || undefined}
-          >
-            <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} aria-hidden />
-          </IconButton>
+          <div className="flex items-center gap-1.5">
+            <LanguageButton client={client} variant="circle" />
+            <IconButton
+              label={refreshing ? (isKm ? 'កំពុងផ្ទុកឡើងវិញ…' : 'Refreshing leaderboard') : (isKm ? 'ផ្ទុកឡើងវិញ' : 'Refresh leaderboard')}
+              onClick={() => void load('refresh')}
+              disabled={loading || refreshing}
+              aria-busy={refreshing || undefined}
+            >
+              <RefreshCw className={cn('h-4 w-4', refreshing && 'animate-spin')} aria-hidden />
+            </IconButton>
+          </div>
         }
       />
 
@@ -228,16 +232,16 @@ export function LeaderboardScreen({
           {allEntries.length > 0 ? (
             <div className="mb-3 space-y-2.5">
               {/* Category Filter Pills */}
-              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+              <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
                 <button
                   type="button"
                   onClick={() => setActiveTab('all')}
                   aria-pressed={activeTab === 'all'}
                   className={cn(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
                     activeTab === 'all'
-                      ? 'bg-accent text-accent-ink shadow-sm'
-                      : 'bg-elevated text-muted hover:bg-elevated/80 hover:text-ink',
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-accent/25 border border-white/10'
+                      : 'border border-line/70 bg-elevated/80 text-muted hover:bg-elevated hover:text-ink',
                   )}
                 >
                   <Trophy className="h-3.5 w-3.5" aria-hidden />
@@ -249,10 +253,10 @@ export function LeaderboardScreen({
                   onClick={() => setActiveTab('top10')}
                   aria-pressed={activeTab === 'top10'}
                   className={cn(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
                     activeTab === 'top10'
-                      ? 'bg-accent text-accent-ink shadow-sm'
-                      : 'bg-elevated text-muted hover:bg-elevated/80 hover:text-ink',
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-accent/25 border border-white/10'
+                      : 'border border-line/70 bg-elevated/80 text-muted hover:bg-elevated hover:text-ink',
                   )}
                 >
                   <Crown className="h-3.5 w-3.5" aria-hidden />
@@ -264,10 +268,10 @@ export function LeaderboardScreen({
                   onClick={() => setActiveTab('nearby')}
                   aria-pressed={activeTab === 'nearby'}
                   className={cn(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition active:scale-95',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
                     activeTab === 'nearby'
-                      ? 'bg-accent text-accent-ink shadow-sm'
-                      : 'bg-elevated text-muted hover:bg-elevated/80 hover:text-ink',
+                      ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-accent/25 border border-white/10'
+                      : 'border border-line/70 bg-elevated/80 text-muted hover:bg-elevated hover:text-ink',
                   )}
                 >
                   <Users className="h-3.5 w-3.5" aria-hidden />
@@ -284,7 +288,7 @@ export function LeaderboardScreen({
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder={isKm ? 'ស្វែងរកអ្នកលេង…' : 'Search player…'}
                   aria-label={isKm ? 'ស្វែងរកអ្នកលេង' : 'Search player'}
-                  className="h-9 w-full rounded-full border border-line bg-elevated/60 pl-9 pr-10 text-xs text-ink placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20"
+                  className="h-9.5 w-full rounded-2xl border border-line/80 bg-elevated/60 pl-9 pr-10 text-xs text-ink placeholder:text-muted transition-all duration-150 focus:border-accent/60 focus:bg-surface focus:outline-none focus:ring-2 focus:ring-accent/25 shadow-sm"
                 />
                 {searchQuery ? (
                   <button
@@ -408,16 +412,16 @@ function PodiumCard({
     >
       {/* Crown / Trophy icon for champion */}
       {isRank1 ? (
-        <span className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 animate-bounce">
-          <Crown className="h-4 w-4" aria-hidden />
+        <span className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-float-gentle">
+          <Crown className="h-4 w-4 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" aria-hidden />
         </span>
       ) : isRank2 ? (
-        <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-400/20 text-slate-400">
-          <Medal className="h-3.5 w-3.5" aria-hidden />
+        <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-400/20 text-slate-400 animate-float-gentle" style={{ animationDelay: '0.4s' }}>
+          <Medal className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-115" aria-hidden />
         </span>
       ) : (
-        <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 dark:text-amber-400">
-          <Award className="h-3.5 w-3.5" aria-hidden />
+        <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 dark:text-amber-400 animate-float-gentle" style={{ animationDelay: '0.8s' }}>
+          <Award className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-115" aria-hidden />
         </span>
       )}
 
