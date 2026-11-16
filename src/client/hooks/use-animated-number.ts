@@ -5,26 +5,31 @@ import { useEffect, useRef, useState } from 'react';
  * Automatically respects prefers-reduced-motion.
  */
 export function useAnimatedNumber(target: number, durationMs = 900): number {
-  const [displayValue, setDisplayValue] = useState(target);
-  const currentValueRef = useRef(target);
-  const startValueRef = useRef(target);
-  const targetRef = useRef(target);
+  const safeTarget = Number.isFinite(target) ? target : 0;
+  const [displayValue, setDisplayValue] = useState(safeTarget);
+  const currentValueRef = useRef(safeTarget);
+  const startValueRef = useRef(safeTarget);
+  const targetRef = useRef(safeTarget);
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      currentValueRef.current = target;
-      setDisplayValue(target);
-      targetRef.current = target;
+    if (
+      typeof window !== 'undefined' &&
+      typeof window.matchMedia === 'function' &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    ) {
+      currentValueRef.current = safeTarget;
+      setDisplayValue(safeTarget);
+      targetRef.current = safeTarget;
       return;
     }
 
     startValueRef.current = currentValueRef.current;
-    targetRef.current = target;
+    targetRef.current = safeTarget;
     startTimeRef.current = null;
 
-    if (startValueRef.current === target) {
+    if (startValueRef.current === safeTarget) {
       return;
     }
 
@@ -57,7 +62,7 @@ export function useAnimatedNumber(target: number, durationMs = 900): number {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [target, durationMs]);
+  }, [safeTarget, durationMs]);
 
   return displayValue;
 }
