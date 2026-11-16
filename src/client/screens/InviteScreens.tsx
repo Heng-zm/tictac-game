@@ -15,7 +15,8 @@ import type { GameClient } from '../hooks/use-game-client';
 import { ApiRequestError, cancelInviteRest, errorMessage, fetchInvitePreview } from '../lib/api';
 import { SocketRequestError } from '../lib/socket';
 import { alignInviteLinkToCurrentOrigin, buildInviteDeepLink, isValidInviteToken } from '../lib/invites';
-import { shareInTelegram } from '../lib/telegram';
+import { hapticImpact, hapticSelection, shareInTelegram } from '../lib/telegram';
+import { isKhmer } from '../lib/language';
 import { cn } from '../lib/cn';
 import { formatLongDuration, useCountdown } from '../hooks/use-time';
 import { inviteLinkStorageKey } from '../hooks/use-game-client';
@@ -40,6 +41,7 @@ export function InviteWaitingScreen({
     clearPendingInvite,
     clearCreatedInvite,
   } = client;
+  const isKm = isKhmer(profile?.languageCode);
   const [creating, setCreating] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -130,23 +132,38 @@ export function InviteWaitingScreen({
 
   async function copyLink(): Promise<void> {
     if (!deepLink) return;
+    hapticImpact('light');
     const success = await copyText(deepLink);
     if (success) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
-      client.pushToast({ type: 'success', title: 'Invite link copied' });
+      client.pushToast({
+        type: 'success',
+        title: isKm ? 'បានចម្លងតំណអញ្ជើញ' : 'Invite link copied',
+      });
     } else {
-      client.pushToast({ type: 'error', title: 'Could not copy the link', message: 'Select the link and copy it manually.' });
+      client.pushToast({
+        type: 'error',
+        title: isKm ? 'មិនអាចចម្លងតំណបានទេ' : 'Could not copy the link',
+        message: isKm ? 'សូមជ្រើសរើសតំណ ហើយចម្លងដោយដៃ។' : 'Select the link and copy it manually.',
+      });
     }
   }
 
   async function shareLink(): Promise<void> {
     if (!deepLink) return;
-    const text = `${profile?.firstName ?? 'A friend'} invited you to Tic Tac Toe on Telegram.`;
+    hapticSelection();
+    const text = isKm
+      ? `${profile?.firstName ?? 'មិត្តភក្តិ'} បានអញ្ជើញអ្នកមកលេង Tic Tac Toe លើ Telegram។`
+      : `${profile?.firstName ?? 'A friend'} invited you to Tic Tac Toe on Telegram.`;
     if (shareInTelegram(deepLink, text)) return;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Tic Tac Toe invitation', text, url: deepLink });
+        await navigator.share({
+          title: isKm ? 'ការអញ្ជើញលេង Tic Tac Toe' : 'Tic Tac Toe invitation',
+          text,
+          url: deepLink,
+        });
         return;
       } catch {
         // The user dismissed the native share sheet.
@@ -157,6 +174,7 @@ export function InviteWaitingScreen({
   }
 
   async function cancel(): Promise<void> {
+    hapticSelection();
     if (!pendingInvite || expired || inviteUsed) {
       clearPendingInvite();
       clearCreatedInvite();
@@ -168,13 +186,18 @@ export function InviteWaitingScreen({
       await client.cancelInvite(pendingInvite.id);
       navigate('/');
     } catch (caught) {
-      client.pushToast({ type: 'error', title: 'Could not cancel invitation', message: errorMessage(caught) });
+      client.pushToast({
+        type: 'error',
+        title: isKm ? 'មិនអាចបោះបង់ការអញ្ជើញបានទេ' : 'Could not cancel invitation',
+        message: errorMessage(caught),
+      });
     } finally {
       setCancelling(false);
     }
   }
 
   async function regenerate(): Promise<void> {
+    hapticImpact('medium');
     attempted.current = true;
     setCreating(true);
     setError(null);
@@ -205,25 +228,29 @@ export function InviteWaitingScreen({
   return (
     <Page>
       <ScreenHeader
-        title="Invite a friend"
-        subtitle="One private link, one opponent"
+        title={isKm ? 'អញ្ជើញមិត្តភក្តិ' : 'Invite a friend'}
+        subtitle={isKm ? 'តំណភ្ជាប់ឯកជនមួយ គូប្រកួតមួយ' : 'One private link, one opponent'}
         onBack={() => navigate('/')}
-        action={<Pill tone="accent">Rated</Pill>}
+        action={<Pill tone="accent">{isKm ? 'គិតពិន្ទុ' : 'Rated'}</Pill>}
       />
 
       {activeMatch ? (
         <Card className="p-5 text-center">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">Game in progress</p>
+          <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
+            {isKm ? 'ការប្រកួតកំពុងដំណើរការ' : 'Game in progress'}
+          </p>
           <h2 className="mt-2 text-xl font-bold text-ink">
-            {activeFriendMatch ? 'Your friend already joined' : 'You already have a game'}
+            {activeFriendMatch
+              ? (isKm ? 'មិត្តភក្តិរបស់អ្នកបានចូលរួមហើយ' : 'Your friend already joined')
+              : (isKm ? 'អ្នកមានការប្រកួតមួយរួចហើយ' : 'You already have a game')}
           </h2>
           <p className="mt-1 text-sm text-muted">
             {activeFriendMatch
-              ? 'The invitation was accepted. Jump back into the board.'
-              : 'Only one game can be active at a time. Finish your current board before inviting a friend.'}
+              ? (isKm ? 'ការអញ្ជើញត្រូវបានទទួលយក។ ត្រឡប់ទៅក្ដារហ្គេមវិញ។' : 'The invitation was accepted. Jump back into the board.')
+              : (isKm ? 'អាចលេងបានតែមួយហ្គេមក្នុងពេលតែមួយ។ សូមបញ្ចប់ហ្គេមបច្ចុប្បន្នសិន មុនពេលអញ្ជើញមិត្តភក្តិ។' : 'Only one game can be active at a time. Finish your current board before inviting a friend.')}
           </p>
           <Button className="mt-4 w-full" onClick={() => navigate(`/game/${activeMatch.id}`)}>
-            {activeFriendMatch ? 'Open game' : 'Resume game'}
+            {activeFriendMatch ? (isKm ? 'បើកហ្គេម' : 'Open game') : (isKm ? 'បន្តហ្គេម' : 'Resume game')}
           </Button>
         </Card>
       ) : (
@@ -231,35 +258,35 @@ export function InviteWaitingScreen({
           <div className="flex flex-col items-center text-center">
             <div className="relative">
               <span className="absolute inset-0 rounded-full bg-accent/20 animate-pulse-ring" />
-              <Avatar name={profile?.firstName ?? 'You'} photoUrl={profile?.photoUrl} size="xl" ring />
+              <Avatar name={profile?.firstName ?? (isKm ? 'អ្នក' : 'You')} photoUrl={profile?.photoUrl} size="xl" ring />
               <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-accent text-accent-ink">
                 <UserPlus className="h-4 w-4" aria-hidden />
               </span>
             </div>
             <h2 className="mt-4 text-xl font-bold tracking-tight text-ink">
               {staleInvite
-                ? 'Refreshing your invitation…'
+                ? (isKm ? 'កំពុងបង្កើតការអញ្ជើញថ្មី…' : 'Refreshing your invitation…')
                 : creating
-                  ? 'Creating your link…'
-                  : 'Your board is waiting'}
+                  ? (isKm ? 'កំពុងបង្កើតតំណភ្ជាប់…' : 'Creating your link…')
+                  : (isKm ? 'ក្ដារហ្គេមកំពុងរង់ចាំ' : 'Your board is waiting')}
             </h2>
             <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">
               {staleInvite || creating
-                ? 'The previous link is closed. Preparing a new private invitation for your friend.'
+                ? (isKm ? 'តំណមុនត្រូវបានបិទ។ កំពុងរៀបចំការអញ្ជើញឯកជនថ្មីសម្រាប់មិត្តភក្តិរបស់អ្នក។' : 'The previous link is closed. Preparing a new private invitation for your friend.')
                 : expired
-                  ? 'Generate a fresh link and send it to your friend.'
-                  : 'Send the link below. As soon as your friend opens it, the game starts automatically.'}
+                  ? (isKm ? 'បង្កើតតំណថ្មី ហើយផ្ញើទៅកាន់មិត្តរបស់អ្នក។' : 'Generate a fresh link and send it to your friend.')
+                  : (isKm ? 'ផ្ញើតំណភ្ជាប់ខាងក្រោម។ ពេលមិត្តរបស់អ្នកបើកភ្លាម ការប្រកួតនឹងចាប់ផ្តើមភ្លាមៗ។' : 'Send the link below. As soon as your friend opens it, the game starts automatically.')}
             </p>
 
             {pendingInvite && !staleInvite ? (
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 <Pill tone={expired ? 'danger' : 'accent'}>
                   <Clock3 className="h-3 w-3" aria-hidden />
-                  {expired ? 'Expired' : `${formatLongDuration(remaining)} left`}
+                  {expired ? (isKm ? 'ផុតកំណត់' : 'Expired') : isKm ? `នៅសល់ ${formatLongDuration(remaining)}` : `${formatLongDuration(remaining)} left`}
                 </Pill>
                 <Pill tone="success">
                   <ShieldCheck className="h-3 w-3" aria-hidden />
-                  First to open joins
+                  {isKm ? 'អ្នកបើកមុនបានចូលលេង' : 'First to open joins'}
                 </Pill>
               </div>
             ) : null}
@@ -268,7 +295,9 @@ export function InviteWaitingScreen({
           {(creating || staleInvite) && !deepLink ? (
             <div className="mt-6 flex flex-col items-center gap-2">
               <Spinner />
-              <p className="text-xs text-muted">Preparing a secure invitation token…</p>
+              <p className="text-xs text-muted">
+                {isKm ? 'កំពុងរៀបចំកូដអញ្ជើញសុវត្ថិភាព…' : 'Preparing a secure invitation token…'}
+              </p>
             </div>
           ) : deepLink && !expired ? (
             <div className="mt-5">
@@ -278,7 +307,7 @@ export function InviteWaitingScreen({
                 <button
                   type="button"
                   onClick={() => void copyLink()}
-                  aria-label={copied ? 'Invitation link copied' : 'Copy invitation link'}
+                  aria-label={copied ? (isKm ? 'បានចម្លងតំណភ្ជាប់' : 'Invitation link copied') : (isKm ? 'ចម្លងតំណភ្ជាប់' : 'Copy invitation link')}
                   className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-elevated text-muted transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60"
                 >
                   {copied ? <Check className="h-4 w-4 text-success" aria-hidden /> : <Copy className="h-4 w-4" aria-hidden />}
@@ -287,21 +316,25 @@ export function InviteWaitingScreen({
 
               <div className="mt-3 grid grid-cols-2 gap-2">
                 <Button icon={Send} onClick={() => void shareLink()}>
-                  Share
+                  {isKm ? 'ចែករំលែក' : 'Share'}
                 </Button>
                 <Button variant="secondary" icon={Copy} onClick={() => void copyLink()}>
-                  {copied ? 'Copied' : 'Copy link'}
+                  {copied ? (isKm ? 'បានចម្លង' : 'Copied') : (isKm ? 'ចម្លងតំណ' : 'Copy link')}
                 </Button>
               </div>
             </div>
           ) : !expired && !staleInvite && !creating ? (
             <div className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-left">
-              <p className="text-xs font-semibold text-ink">Link unavailable on this device</p>
+              <p className="text-xs font-semibold text-ink">
+                {isKm ? 'មិនមានតំណនៅលើឧបករណ៍នេះទេ' : 'Link unavailable on this device'}
+              </p>
               <p className="mt-1 text-[11px] leading-relaxed text-muted">
-                Invitation tokens are only shown once for security. Generate a fresh link to share your game.
+                {isKm
+                  ? 'កូដអញ្ជើញត្រូវបានបង្ហាញតែម្តងប៉ុណ្ណោះសម្រាប់សុវត្ថិភាព។ បង្កើតតំណថ្មីដើម្បីចែករំលែកហ្គេមរបស់អ្នក។'
+                  : 'Invitation tokens are only shown once for security. Generate a fresh link to share your game.'}
               </p>
               <Button size="sm" className="mt-2" variant="secondary" onClick={() => void regenerate()}>
-                Generate a fresh link
+                {isKm ? 'បង្កើតតំណថ្មី' : 'Generate a fresh link'}
               </Button>
             </div>
           ) : null}
@@ -315,7 +348,7 @@ export function InviteWaitingScreen({
                   onClick={() => void create()}
                   className="mt-1 block text-[11px] font-semibold underline"
                 >
-                  Try again
+                  {isKm ? 'ព្យាយាមម្តងទៀត' : 'Try again'}
                 </button>
               ) : null}
             </div>
@@ -329,7 +362,9 @@ export function InviteWaitingScreen({
               loading={cancelling}
               onClick={() => void cancel()}
             >
-              {pendingInvite && !staleInvite ? 'Cancel invitation' : 'Back home'}
+              {pendingInvite && !staleInvite
+                ? (isKm ? 'បោះបង់ការអញ្ជើញ' : 'Cancel invitation')
+                : (isKm ? 'ត្រឡប់ទៅដើម' : 'Back home')}
             </Button>
           </div>
         </Card>
@@ -339,8 +374,9 @@ export function InviteWaitingScreen({
         <Card className="flex items-start gap-2.5 p-3.5">
           <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
           <p className="text-[11px] leading-relaxed text-muted">
-            Private invitations are single-use. The first person to open your link claims the O side; nobody else can
-            take their place.
+            {isKm
+              ? 'ការអញ្ជើញឯកជនអាចប្រើបានតែម្តងគត់។ អ្នកដំបូងដែលបើកតំណរបស់អ្នកនឹងលេងខាង O គ្មាននរណាផ្សេងអាចដណ្តើមបានឡើយ។'
+              : 'Private invitations are single-use. The first person to open your link claims the O side; nobody else can take their place.'}
           </p>
         </Card>
       </div>
@@ -357,6 +393,7 @@ export function InviteAcceptScreen({
   navigate: (path: string) => void;
   token: string;
 }) {
+  const isKm = isKhmer(client.profile?.languageCode);
   const [preview, setPreview] = useState<InvitePreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<{ code: string; message: string } | null>(null);
@@ -383,18 +420,22 @@ export function InviteAcceptScreen({
 
   useEffect(() => {
     if (!isValidInviteToken(token)) {
-      setError({ code: 'INVITATION_INVALID', message: 'This invitation link is not valid.' });
+      setError({
+        code: 'INVITATION_INVALID',
+        message: isKm ? 'តំណអញ្ជើញនេះមិនត្រឹមត្រូវឡើយ។' : 'This invitation link is not valid.',
+      });
       setLoading(false);
       return;
     }
     void load();
-  }, [load, token]);
+  }, [isKm, load, token]);
 
   const remaining = useCountdown(preview?.expiresAt ?? null, undefined, client.clockOffsetMs);
   const expired = preview?.status === 'EXPIRED' || (remaining !== null && remaining <= 0);
   const shareLink = buildInviteDeepLink(client.config, token);
 
   async function accept(): Promise<void> {
+    hapticImpact('medium');
     setAccepting(true);
     setError(null);
     try {
@@ -414,19 +455,31 @@ export function InviteAcceptScreen({
   }
 
   async function copyLink(): Promise<void> {
+    hapticImpact('light');
     const success = await copyText(shareLink);
     if (success) {
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
+      client.pushToast({
+        type: 'success',
+        title: isKm ? 'បានចម្លងតំណអញ្ជើញ' : 'Invite link copied',
+      });
     }
   }
 
   async function shareLinkPress(): Promise<void> {
-    const text = `${preview?.inviter.displayName ?? 'A friend'} invited you to Tic Tac Toe on Telegram.`;
+    hapticSelection();
+    const text = isKm
+      ? `${preview?.inviter.displayName ?? 'មិត្តភក្តិ'} បានអញ្ជើញអ្នកមកលេង Tic Tac Toe លើ Telegram។`
+      : `${preview?.inviter.displayName ?? 'A friend'} invited you to Tic Tac Toe on Telegram.`;
     if (shareInTelegram(shareLink, text)) return;
     if (navigator.share) {
       try {
-        await navigator.share({ title: 'Tic Tac Toe invitation', text, url: shareLink });
+        await navigator.share({
+          title: isKm ? 'ការអញ្ជើញលេង Tic Tac Toe' : 'Tic Tac Toe invitation',
+          text,
+          url: shareLink,
+        });
         return;
       } catch {
         return;
@@ -437,15 +490,23 @@ export function InviteAcceptScreen({
 
   async function cancelInvite(): Promise<void> {
     if (!preview) return;
+    hapticSelection();
     setCancelling(true);
     try {
       await cancelInviteRest(token);
       client.clearPendingInvite();
       client.clearCreatedInvite();
-      client.pushToast({ type: 'success', title: 'Invitation cancelled' });
+      client.pushToast({
+        type: 'success',
+        title: isKm ? 'បានបោះបង់ការអញ្ជើញ' : 'Invitation cancelled',
+      });
       navigate('/');
     } catch (caught) {
-      client.pushToast({ type: 'error', title: 'Could not cancel invitation', message: errorMessage(caught) });
+      client.pushToast({
+        type: 'error',
+        title: isKm ? 'មិនអាចបោះបង់ការអញ្ជើញបានទេ' : 'Could not cancel invitation',
+        message: errorMessage(caught),
+      });
     } finally {
       setCancelling(false);
     }
@@ -455,26 +516,32 @@ export function InviteAcceptScreen({
 
   return (
     <Page>
-      <ScreenHeader title="Game invitation" subtitle="A private match, just for two" onBack={() => navigate('/')} />
+      <ScreenHeader
+        title={isKm ? 'ការអញ្ជើញចូលរួមលេង' : 'Game invitation'}
+        subtitle={isKm ? 'ការប្រកួតឯកជន សម្រាប់តែពីរនាក់' : 'A private match, just for two'}
+        onBack={() => navigate('/')}
+      />
 
       {loading ? (
         <Card className="flex flex-col items-center gap-3 p-10">
           <Spinner className="h-7 w-7" />
-          <p className="text-sm text-muted">Opening the invitation…</p>
+          <p className="text-sm text-muted">
+            {isKm ? 'កំពុងបើកការអញ្ជើញ…' : 'Opening the invitation…'}
+          </p>
         </Card>
       ) : error && !preview ? (
         <Card>
           <EmptyState
             icon={Link2}
-            title="Invitation unavailable"
+            title={isKm ? 'មិនមានការអញ្ជើញនេះទេ' : 'Invitation unavailable'}
             description={error.message}
             action={
               <div className="flex gap-2">
                 <Button size="sm" variant="secondary" icon={RefreshCw} onClick={() => void load()}>
-                  Retry
+                  {isKm ? 'ព្យាយាមម្តងទៀត' : 'Retry'}
                 </Button>
                 <Button size="sm" onClick={() => navigate('/')}>
-                  Home
+                  {isKm ? 'ទំព័រដើម' : 'Home'}
                 </Button>
               </div>
             }
@@ -490,7 +557,9 @@ export function InviteAcceptScreen({
                 size="xl"
                 ring
               />
-              <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-muted">You are invited by</p>
+              <p className="mt-4 text-xs font-bold uppercase tracking-[0.14em] text-muted">
+                {isKm ? 'អ្នកត្រូវបានអញ្ជើញដោយ' : 'You are invited by'}
+              </p>
               <h2 className="mt-1 text-xl font-bold tracking-tight text-ink">{preview.inviter.displayName}</h2>
               {preview.inviter.username ? (
                 <p className="text-xs text-muted">@{preview.inviter.username}</p>
@@ -508,21 +577,31 @@ export function InviteAcceptScreen({
                       : 'bg-danger/10 text-danger',
                   )}
                 >
-                  You play {preview.yourSide}
+                  {isKm ? `អ្នកលេងខាង ${preview.yourSide}` : `You play ${preview.yourSide}`}
                 </span>
               </div>
 
               <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                 <Pill tone={expired ? 'danger' : preview.status === 'PENDING' ? 'accent' : 'neutral'}>
                   <Clock3 className="h-3 w-3" aria-hidden />
-                  {expired ? 'Expired' : preview.status === 'PENDING' ? `${formatLongDuration(remaining)} left` : preview.status.toLowerCase()}
+                  {expired
+                    ? (isKm ? 'ផុតកំណត់' : 'Expired')
+                    : preview.status === 'PENDING'
+                      ? (isKm ? `នៅសល់ ${formatLongDuration(remaining)}` : `${formatLongDuration(remaining)} left`)
+                      : preview.status.toLowerCase()}
                 </Pill>
-                <Pill>{preview.matchStatus === 'WAITING' ? 'Waiting for you' : preview.matchStatus.toLowerCase()}</Pill>
+                <Pill>
+                  {preview.matchStatus === 'WAITING'
+                    ? (isKm ? 'កំពុងរង់ចាំអ្នក' : 'Waiting for you')
+                    : preview.matchStatus.toLowerCase()}
+                </Pill>
               </div>
 
               {preview.youAreInviter ? (
                 <p className="mt-4 max-w-xs text-xs leading-relaxed text-muted">
-                  This is your own invitation. Share the link below and wait for a friend to join.
+                  {isKm
+                    ? 'នេះជាការអញ្ជើញរបស់អ្នកផ្ទាល់។ ចែករំលែកតំណខាងក្រោម ហើយរង់ចាំមិត្តភក្តិចូលរួម។'
+                    : 'This is your own invitation. Share the link below and wait for a friend to join.'}
                 </p>
               ) : null}
             </div>
@@ -536,7 +615,7 @@ export function InviteAcceptScreen({
                     onClick={() => void load()}
                     className="mt-1 block w-full text-[11px] font-semibold underline"
                   >
-                    Refresh invitation
+                    {isKm ? 'ផ្ទុកការអញ្ជើញឡើងវិញ' : 'Refresh invitation'}
                   </button>
                 ) : null}
               </div>
@@ -548,20 +627,23 @@ export function InviteAcceptScreen({
                   <Button
                     className="w-full"
                     onClick={() => {
-                      client.pushToast({ type: 'info', title: 'Opening your game' });
+                      client.pushToast({
+                        type: 'info',
+                        title: isKm ? 'កំពុងបើកហ្គេមរបស់អ្នក' : 'Opening your game',
+                      });
                       navigate(`/game/${preview.matchId}`);
                     }}
                   >
-                    Open game
+                    {isKm ? 'បើកហ្គេម' : 'Open game'}
                   </Button>
                 ) : (
                   <>
                     <div className="grid grid-cols-2 gap-2">
                       <Button icon={Send} onClick={() => void shareLinkPress()}>
-                        Share link
+                        {isKm ? 'ចែករំលែកតំណ' : 'Share link'}
                       </Button>
                       <Button variant="secondary" icon={Copy} onClick={() => void copyLink()}>
-                        {copied ? 'Copied' : 'Copy link'}
+                        {copied ? (isKm ? 'បានចម្លង' : 'Copied') : (isKm ? 'ចម្លងតំណ' : 'Copy link')}
                       </Button>
                     </div>
                     {preview.status === 'PENDING' || preview.matchStatus === 'WAITING' ? (
@@ -572,39 +654,47 @@ export function InviteAcceptScreen({
                         loading={cancelling}
                         onClick={() => void cancelInvite()}
                       >
-                        Cancel invitation
+                        {isKm ? 'បោះបង់ការអញ្ជើញ' : 'Cancel invitation'}
                       </Button>
                     ) : null}
                   </>
                 )
               ) : expired || preview.status === 'EXPIRED' ? (
                 <div className="space-y-2">
-                  <p className="text-center text-xs text-muted">This invitation has expired.</p>
+                  <p className="text-center text-xs text-muted">
+                    {isKm ? 'ការអញ្ជើញនេះបានផុតកំណត់ហើយ។' : 'This invitation has expired.'}
+                  </p>
                   <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
-                    Back to Home
+                    {isKm ? 'ត្រឡប់ទៅទំព័រដើម' : 'Back to Home'}
                   </Button>
                 </div>
               ) : preview.status === 'CANCELLED' ? (
                 <div className="space-y-2">
-                  <p className="text-center text-xs text-muted">This invitation was cancelled by the host.</p>
+                  <p className="text-center text-xs text-muted">
+                    {isKm ? 'ការអញ្ជើញនេះត្រូវបានបោះបង់ដោយម្ចាស់បន្ទប់។' : 'This invitation was cancelled by the host.'}
+                  </p>
                   <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
-                    Back to Home
+                    {isKm ? 'ត្រឡប់ទៅទំព័រដើម' : 'Back to Home'}
                   </Button>
                 </div>
               ) : preview.status === 'ACCEPTED' || preview.matchStatus !== 'WAITING' ? (
                 <div className="space-y-2">
-                  <p className="text-center text-xs text-muted">This invitation was already accepted.</p>
+                  <p className="text-center text-xs text-muted">
+                    {isKm ? 'ការអញ្ជើញនេះត្រូវបានទទួលយកមុនរួចហើយ។' : 'This invitation was already accepted.'}
+                  </p>
                   <Button variant="secondary" className="w-full" onClick={() => navigate('/')}>
-                    Back to Home
+                    {isKm ? 'ត្រឡប់ទៅទំព័រដើម' : 'Back to Home'}
                   </Button>
                 </div>
               ) : (
                 <>
                   <Button size="lg" className="w-full" loading={accepting} disabled={busy} onClick={() => void accept()}>
-                    {busy ? 'Reconnecting…' : `Accept as ${preview.yourSide}`}
+                    {busy
+                      ? (isKm ? 'កំពុងភ្ជាប់ឡើងវិញ…' : 'Reconnecting…')
+                      : isKm ? `ទទួលយកលេងខាង ${preview.yourSide}` : `Accept as ${preview.yourSide}`}
                   </Button>
                   <Button variant="ghost" className="w-full" onClick={() => navigate('/')}>
-                    Not now
+                    {isKm ? 'មិនមែនឥឡូវនេះទេ' : 'Not now'}
                   </Button>
                 </>
               )}
@@ -614,8 +704,9 @@ export function InviteAcceptScreen({
           <Card className="mt-3 flex items-start gap-2.5 p-3.5">
             <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" aria-hidden />
             <p className="text-[11px] leading-relaxed text-muted">
-              Invitations are single-use and expire automatically. Accepting reserves your seat — the server validates
-              every move from there.
+              {isKm
+                ? 'ការអញ្ជើញអាចប្រើបានតែម្តងគត់ និងផុតកំណត់ដោយស្វ័យប្រវត្តិ។ ការទទួលយកនឹងរក្សាកន្លែងរបស់អ្នក — ម៉ាស៊ីនបម្រើនឹងផ្ទៀងផ្ទាត់រាល់ជំហានលេងបន្ទាប់ពីនោះ។'
+                : 'Invitations are single-use and expire automatically. Accepting reserves your seat — the server validates every move from there.'}
             </p>
           </Card>
         </>
