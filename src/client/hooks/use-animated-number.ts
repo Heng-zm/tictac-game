@@ -1,17 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 
+export interface AnimatedNumberOptions {
+  durationMs?: number;
+  initial?: number;
+  animateOnMount?: boolean;
+}
+
 /**
  * Smoothly animates a numeric value to a target value using quartic ease-out.
  * Automatically respects prefers-reduced-motion.
  */
-export function useAnimatedNumber(target: number, durationMs = 900): number {
+export function useAnimatedNumber(
+  target: number,
+  optionsOrDuration?: number | AnimatedNumberOptions,
+): number {
   const safeTarget = Number.isFinite(target) ? target : 0;
-  const [displayValue, setDisplayValue] = useState(safeTarget);
-  const currentValueRef = useRef(safeTarget);
-  const startValueRef = useRef(safeTarget);
+  const durationMs =
+    typeof optionsOrDuration === 'number'
+      ? optionsOrDuration
+      : optionsOrDuration?.durationMs ?? 900;
+  const animateOnMount =
+    typeof optionsOrDuration === 'object' && optionsOrDuration.animateOnMount !== undefined
+      ? optionsOrDuration.animateOnMount
+      : false;
+  const initial =
+    typeof optionsOrDuration === 'object' && optionsOrDuration.initial !== undefined
+      ? optionsOrDuration.initial
+      : animateOnMount
+        ? 0
+        : safeTarget;
+
+  const [displayValue, setDisplayValue] = useState(initial);
+  const currentValueRef = useRef(initial);
+  const startValueRef = useRef(initial);
   const targetRef = useRef(safeTarget);
   const startTimeRef = useRef<number | null>(null);
   const rafRef = useRef<number | null>(null);
+  const isFirstRender = useRef(true);
 
   useEffect(() => {
     if (
@@ -22,6 +47,15 @@ export function useAnimatedNumber(target: number, durationMs = 900): number {
       currentValueRef.current = safeTarget;
       setDisplayValue(safeTarget);
       targetRef.current = safeTarget;
+      return;
+    }
+
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      if (!animateOnMount && currentValueRef.current === safeTarget) {
+        return;
+      }
+    } else if (currentValueRef.current === safeTarget) {
       return;
     }
 
@@ -62,7 +96,7 @@ export function useAnimatedNumber(target: number, durationMs = 900): number {
         cancelAnimationFrame(rafRef.current);
       }
     };
-  }, [safeTarget, durationMs]);
+  }, [safeTarget, durationMs, animateOnMount]);
 
   return displayValue;
 }

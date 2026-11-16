@@ -60,10 +60,10 @@ export function HomeScreen({
     }
   }, [profile, match?.status, pendingInvite]);
 
-  const animatedRating = useAnimatedNumber(profile?.stats.rating ?? 0);
-  const animatedGames = useAnimatedNumber(profile?.stats.gamesPlayed ?? 0);
-  const animatedWins = useAnimatedNumber(profile?.stats.wins ?? 0);
-  const animatedWinRate = useAnimatedNumber(profile?.stats.winRate ?? 0);
+  const animatedRating = useAnimatedNumber(profile?.stats.rating ?? 0, { animateOnMount: true, durationMs: 950 });
+  const animatedGames = useAnimatedNumber(profile?.stats.gamesPlayed ?? 0, { animateOnMount: true, durationMs: 750 });
+  const animatedWins = useAnimatedNumber(profile?.stats.wins ?? 0, { animateOnMount: true, durationMs: 750 });
+  const animatedWinRate = useAnimatedNumber(profile?.stats.winRate ?? 0, { animateOnMount: true, durationMs: 850 });
 
   if (!profile) return null;
   const isKhmer = checkKhmer(profile.languageCode);

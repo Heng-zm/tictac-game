@@ -29,6 +29,7 @@ import { Page } from '../components/Layout';
 import { modeShortLabel } from '../lib/game';
 import { EditProfileModal } from '../components/EditProfileModal';
 import { LanguageButton } from '../components/LanguageButton';
+import { useAnimatedNumber } from '../hooks/use-animated-number';
 import { useSoundSettings } from '../hooks/use-sound-settings';
 import { useTelegramBackHandler } from '../hooks/use-hash-route';
 
@@ -52,6 +53,11 @@ export function ProfileScreen({
   const { profile, config } = client;
   const tabListRef = useRef<HTMLDivElement>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+  const animatedRating = useAnimatedNumber(profile?.stats.rating ?? 0, { animateOnMount: true, durationMs: 900 });
+  const animatedGames = useAnimatedNumber(profile?.stats.gamesPlayed ?? 0, { animateOnMount: true, durationMs: 750 });
+  const animatedWins = useAnimatedNumber(profile?.stats.wins ?? 0, { animateOnMount: true, durationMs: 750 });
+  const animatedWinRate = useAnimatedNumber(profile?.stats.winRate ?? 0, { animateOnMount: true, durationMs: 850 });
 
   if (!profile) return null;
   const stats = profile.stats;
@@ -130,25 +136,25 @@ export function ProfileScreen({
                 <RankBadge rating={stats.rating} />
                 <Pill tone="accent">
                   <Trophy className="h-3 w-3" aria-hidden />
-                  {stats.rating}
+                  {animatedRating}
                 </Pill>
-                <Pill>{stats.ratingGames} rated</Pill>
+                <Pill>{stats.ratingGames} {isKm ? 'ប្រកួតគិតពិន្ទុ' : 'rated'}</Pill>
               </div>
             </div>
           </div>
           <RankProgress rating={stats.rating} className="mt-4" />
           <div className="mt-4 grid grid-cols-3 divide-x divide-line/70 border-t border-line/70 pt-3 text-center">
             <div>
-              <p className="text-base font-bold tabular-nums text-ink">{stats.gamesPlayed}</p>
-              <p className="mt-0.5 text-[10px] font-medium text-muted">Games</p>
+              <p className="text-base font-bold tabular-nums text-ink">{animatedGames}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">{isKm ? 'ប្រកួត' : 'Games'}</p>
             </div>
             <div>
-              <p className="text-base font-bold tabular-nums text-success">{stats.wins}</p>
-              <p className="mt-0.5 text-[10px] font-medium text-muted">Wins</p>
+              <p className="text-base font-bold tabular-nums text-success">{animatedWins}</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">{isKm ? 'ឈ្នះ' : 'Wins'}</p>
             </div>
             <div>
-              <p className="text-base font-bold tabular-nums text-accent">{stats.winRate}%</p>
-              <p className="mt-0.5 text-[10px] font-medium text-muted">Win rate</p>
+              <p className="text-base font-bold tabular-nums text-accent">{animatedWinRate}%</p>
+              <p className="mt-0.5 text-[10px] font-medium text-muted">{isKm ? 'អត្រាឈ្នះ' : 'Win rate'}</p>
             </div>
           </div>
           <Button

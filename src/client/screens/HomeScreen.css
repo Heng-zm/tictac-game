@@ -4,8 +4,8 @@
 
 .home-screen {
   --home-border: rgb(var(--app-border-rgb) / 0.85);
-  --home-surface: rgb(var(--app-surface-rgb));
-  --home-elevated: rgb(var(--app-elevated-rgb));
+  --home-surface: rgb(var(--app-surface-rgb) / 0.86);
+  --home-elevated: rgb(var(--app-elevated-rgb) / 0.82);
   --home-ink: rgb(var(--app-text-rgb));
   --home-muted: rgb(var(--app-muted-rgb));
   --home-accent: rgb(var(--app-accent-rgb));
@@ -30,7 +30,9 @@
 }
 
 :root[data-theme='dark'] .home-screen {
-  --home-border: rgb(var(--app-border-rgb) / 0.9);
+  --home-border: rgb(var(--app-border-rgb) / 0.85);
+  --home-surface: rgb(var(--app-surface-rgb) / 0.78);
+  --home-elevated: rgb(var(--app-elevated-rgb) / 0.75);
   --home-accent-soft: rgb(var(--app-accent-rgb) / 0.14);
   --home-accent-border: rgb(var(--app-accent-rgb) / 0.35);
   --home-success-soft: rgb(var(--app-success-rgb) / 0.13);
@@ -252,6 +254,8 @@
   border: 1px solid var(--home-border);
   border-radius: 18px;
   background: var(--home-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -429,7 +433,8 @@
   border-radius: 24px;
   background: linear-gradient(140deg, var(--home-accent-soft), var(--home-surface) 52%, var(--home-surface));
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset, var(--home-shadow);
-  backdrop-filter: blur(12px);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
 }
 
 .home-scoreboard-glow {
@@ -604,6 +609,8 @@
   border: 1px solid var(--home-border);
   border-radius: 20px;
   background: var(--home-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -620,21 +627,22 @@
   background: linear-gradient(
     115deg,
     transparent 30%,
-    rgba(255, 255, 255, 0.06) 48%,
-    rgba(255, 255, 255, 0.16) 50%,
-    rgba(255, 255, 255, 0.06) 52%,
+    rgba(255, 255, 255, 0.05) 47%,
+    rgba(255, 255, 255, 0.18) 50%,
+    rgba(255, 255, 255, 0.05) 53%,
     transparent 70%
   );
   transform: translateX(-120%);
   pointer-events: none;
-  opacity: 0;
+  opacity: 0.5;
+  animation: shimmer-sweep 4.2s ease-in-out infinite;
   transition: opacity 200ms ease;
 }
 
 .home-mode:hover:not(:disabled) .home-mode-shimmer,
 .home-mode:focus-visible:not(:disabled) .home-mode-shimmer {
   opacity: 1;
-  animation: shimmer-sweep 2.4s ease-in-out infinite;
+  animation-duration: 2s;
 }
 
 .home-mode--accent {
@@ -782,6 +790,8 @@
   border: 1px solid var(--home-border);
   border-radius: 22px;
   background: var(--home-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   box-shadow: var(--home-shadow);
 }
 
