@@ -752,7 +752,7 @@ function TurnClock({
               strokeDasharray={circumference}
               strokeDashoffset={offset}
               className={cn(
-                'transition-[stroke-dashoffset,color] duration-500 ease-linear',
+                'transition-[stroke-dashoffset,color] duration-1000 ease-linear',
                 muted
                   ? 'text-muted/60'
                   : urgent
@@ -881,18 +881,24 @@ function PlayerBadge({
   return (
     <div
       className={cn(
-        'flex min-w-0 items-center gap-2.5 transition-all duration-200',
+        'flex min-w-0 items-center gap-2.5 transition-all duration-300 ease-out',
         align === 'right' && 'flex-row-reverse text-right',
       )}
     >
       <div className="relative shrink-0">
         {active ? (
-          <span
-            className={cn(
-              'pointer-events-none absolute -inset-1 rounded-full border border-accent/40 animate-pulse-ring opacity-60',
-            )}
-            aria-hidden
-          />
+          <>
+            <span
+              className="pointer-events-none absolute -inset-1.5 rounded-full bg-accent/20 blur-xs animate-pulse"
+              aria-hidden
+            />
+            <span
+              className={cn(
+                'pointer-events-none absolute -inset-1 rounded-full border border-accent/40 animate-pulse-ring opacity-60',
+              )}
+              aria-hidden
+            />
+          </>
         ) : null}
         {isAi ? (
           <span

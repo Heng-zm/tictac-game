@@ -171,7 +171,9 @@ export default function App() {
       ) : null}
       <main id="main-content" tabIndex={-1} className="outline-none">
         <Suspense fallback={<ScreenFallback />}>
-          {screen}
+          <div key={route.name} className="screen-transition">
+            {screen}
+          </div>
         </Suspense>
       </main>
       {showActiveGameBar && activeMatch ? (

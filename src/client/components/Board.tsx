@@ -114,8 +114,8 @@ const StoneCell = memo(function StoneCell({
   return (
     <div
       className={cn(
-        'pointer-events-none absolute flex items-center justify-center transition-opacity duration-150 [contain:layout_style]',
-        isPending && 'opacity-90',
+        'pointer-events-none absolute flex items-center justify-center transition-all duration-200 ease-out [contain:layout_style]',
+        isPending && 'opacity-85 scale-95',
       )}
       style={{
         left: `${x * CELL_SIZE}px`,
@@ -314,7 +314,8 @@ export const Board = memo(function Board({
       const startedAt = performance.now();
       const tick = (now: number) => {
         const progress = Math.min(1, (now - startedAt) / duration);
-        const eased = 1 - Math.pow(1 - progress, 3);
+        // Quartic ease-out for silky smooth camera glide
+        const eased = 1 - Math.pow(1 - progress, 4);
         panRef.current = {
           x: startX + (targetX - startX) * eased,
           y: startY + (targetY - startY) * eased,
@@ -863,15 +864,15 @@ export const Board = memo(function Board({
             {hovered && canHover ? (
               <div
                 aria-hidden
-                className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border border-dashed border-accent/50 bg-accent/5 text-lg font-semibold text-accent/40"
+                className="pointer-events-none absolute flex -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border border-dashed border-accent/60 bg-accent/10 text-accent/70 shadow-[0_0_12px_rgba(59,130,246,0.25)] transition-all duration-150 ease-out"
                 style={{
                   left: `${hovered.x * CELL_SIZE}px`,
                   top: `${hovered.y * CELL_SIZE}px`,
-                  width: `${CELL_SIZE - 8}px`,
-                  height: `${CELL_SIZE - 8}px`,
+                  width: `${CELL_SIZE - 6}px`,
+                  height: `${CELL_SIZE - 6}px`,
                 }}
               >
-                +
+                <span className="text-sm font-semibold opacity-60">+</span>
               </div>
             ) : null}
           </div>

@@ -174,7 +174,7 @@
 .mark-stroke {
   stroke-dasharray: 100;
   stroke-dashoffset: 100;
-  animation: mark-draw 240ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: mark-draw 220ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 @keyframes mark-draw {
@@ -186,21 +186,38 @@
 /* Tactile bouncy spring pop when stone is placed */
 .mark-enter {
   transform-origin: center;
-  animation: mark-enter 260ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: mark-enter 240ms cubic-bezier(0.34, 1.45, 0.64, 1) both;
 }
 
 @keyframes mark-enter {
   0% {
     opacity: 0;
-    transform: scale(0.4) rotate(-6deg);
+    transform: scale(0.35) rotate(-6deg);
   }
   65% {
     opacity: 1;
-    transform: scale(1.08) rotate(1deg);
+    transform: scale(1.06) rotate(1deg);
   }
   100% {
     opacity: 1;
     transform: scale(1) rotate(0deg);
+  }
+}
+
+/* Silky-smooth screen transition */
+.screen-transition {
+  animation: screen-slide-fade 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: opacity, transform;
+}
+
+@keyframes screen-slide-fade {
+  0% {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 
