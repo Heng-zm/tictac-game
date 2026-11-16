@@ -169,4 +169,50 @@ describe('AuthGate browser sign-in', () => {
 
     expect(screen.queryByRole('button', { name: /Continue as Guest/i })).toBeNull();
   });
+
+  it('toggles language between English and Khmer using circular flag', async () => {
+    renderGate();
+
+    expect(screen.getByRole('heading', { name: 'Sign in with Telegram' })).toBeTruthy();
+    const langBtn = screen.getByRole('button', { name: /switch language to khmer/i });
+    expect(langBtn).toBeTruthy();
+
+    fireEvent.click(langBtn);
+
+    expect(await screen.findByRole('heading', { name: 'ចូលលេងតាម Telegram' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: /switch language to english/i })).toBeTruthy();
+  });
+
+  it('allows entering a custom guest nickname for demo login', async () => {
+    const onRetry = vi.fn();
+    authenticateDevMock.mockResolvedValue({ user: USER });
+
+    renderGate(onRetry, { ...CONFIG, devAuthEnabled: true, demoMode: true });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Customize nickname' }));
+    const input = screen.getByLabelText(/Your guest nickname/i);
+    expect(input).toBeTruthy();
+
+    fireEvent.change(input, { target: { value: 'ProChamp' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Continue as Guest (Demo)' }));
+
+    await waitFor(() => expect(authenticateDevMock).toHaveBeenCalledWith('device-key-abc', 'ProChamp', 'en'));
+    expect(onRetry).toHaveBeenCalledTimes(1);
+  });
+
+  it('copies Telegram bot verification link to clipboard', async () => {
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.assign(navigator, {
+      clipboard: { writeText },
+    });
+    fetchStatus.mockResolvedValue({ status: 'pending', url: LOGIN_URL, expiresAt: EXPIRES_AT });
+
+    renderGate();
+
+    const copyBtn = await screen.findByRole('button', { name: 'Copy link' });
+    fireEvent.click(copyBtn);
+
+    expect(writeText).toHaveBeenCalledWith(LOGIN_URL);
+    expect(await screen.findByText('Link copied!')).toBeTruthy();
+  });
 });

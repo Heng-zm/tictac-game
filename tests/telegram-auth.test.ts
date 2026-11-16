@@ -247,3 +247,17 @@ describe('Telegram initData verification', () => {
     expect(verified.languageCode).toBeNull();
   });
 });
+
+describe('deriveDevProfile', () => {
+  it('derives guest profile with deterministic ID and optional languageCode', async () => {
+    const { deriveDevProfile } = await import('../src/server/auth/dev');
+    const profileEn = deriveDevProfile('test-device-123', 'Hero', 'en');
+    expect(profileEn.firstName).toBe('Hero');
+    expect(profileEn.languageCode).toBe('en');
+    expect(profileEn.telegramId < 0n).toBe(true);
+
+    const profileKm = deriveDevProfile('test-device-123', undefined, 'km-KH');
+    expect(profileKm.firstName).toMatch(/^Guest [A-F0-9]{4}$/);
+    expect(profileKm.languageCode).toBe('km');
+  });
+});

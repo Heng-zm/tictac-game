@@ -369,11 +369,19 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
               // bot token. Keep those usable inside Telegram by falling back
               // to the guest session when guest auth is enabled.
               if (!loadedConfig.devAuthEnabled) throw telegramError;
-              const auth = await authenticateDev(getDeviceKey());
+              const preferredLang =
+                (typeof window !== 'undefined' ? window.localStorage.getItem('ttt_preferred_lang') : null) ||
+                getWebApp()?.initDataUnsafe?.user?.language_code ||
+                null;
+              const auth = await authenticateDev(getDeviceKey(), undefined, preferredLang);
               user = auth.user;
             }
           } else if (loadedConfig.devAuthEnabled) {
-            const auth = await authenticateDev(getDeviceKey());
+            const preferredLang =
+              (typeof window !== 'undefined' ? window.localStorage.getItem('ttt_preferred_lang') : null) ||
+              getWebApp()?.initDataUnsafe?.user?.language_code ||
+              null;
+            const auth = await authenticateDev(getDeviceKey(), undefined, preferredLang);
             user = auth.user;
           } else {
             setBootError(null);

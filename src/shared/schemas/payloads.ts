@@ -97,6 +97,7 @@ export const devAuthSchema = z
   .object({
     deviceKey: z.string().min(8).max(128),
     displayName: displayNameSchema.optional(),
+    languageCode: z.string().trim().max(16).optional().nullable(),
   })
   .strict();
 

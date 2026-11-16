@@ -458,7 +458,7 @@ export function createApp(deps: AppDependencies): express.Express {
       throw new AppError(403, 'DEV_AUTH_DISABLED', 'Development authentication is disabled');
     }
     const parsed = devAuthSchema.parse(req.body);
-    const profile = deriveDevProfile(parsed.deviceKey, parsed.displayName);
+    const profile = deriveDevProfile(parsed.deviceKey, parsed.displayName, parsed.languageCode);
     const user = await repository.upsertTelegramUser(profile);
     const token = createSessionToken(user, config.sessionSecret);
     setSessionCookie(res, token, { secure: config.isProduction });

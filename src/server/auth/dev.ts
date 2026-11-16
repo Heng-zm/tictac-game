@@ -6,7 +6,11 @@ import type { TelegramProfileInput } from '../database/types';
  * Development identities are deliberately negative and only valid when
  * DEV_AUTH_ENABLED is true while NODE_ENV is not production.
  */
-export function deriveDevProfile(deviceKey: string, displayName?: string): TelegramProfileInput {
+export function deriveDevProfile(
+  deviceKey: string,
+  displayName?: string,
+  languageCode?: string | null,
+): TelegramProfileInput {
   const digest = createHash('sha256').update(`ttt-dev:${deviceKey}`).digest();
   // 48 bits keeps the value well inside PostgreSQL BIGINT and Telegram's range.
   const numeric = digest.readUIntBE(0, 6);
@@ -18,6 +22,6 @@ export function deriveDevProfile(deviceKey: string, displayName?: string): Teleg
     lastName: null,
     username: null,
     photoUrl: null,
-    languageCode: 'en',
+    languageCode: languageCode ? (languageCode.toLowerCase().startsWith('km') ? 'km' : 'en') : 'en',
   };
 }

@@ -76,10 +76,18 @@ export function authenticateTelegram(initData: string): Promise<{ user: UserProf
   });
 }
 
-export function authenticateDev(deviceKey: string, displayName?: string): Promise<{ user: UserProfile }> {
+export function authenticateDev(
+  deviceKey: string,
+  displayName?: string,
+  languageCode?: string | null,
+): Promise<{ user: UserProfile }> {
   return request<{ user: UserProfile }>('/api/auth/dev', {
     method: 'POST',
-    body: JSON.stringify({ deviceKey, ...(displayName ? { displayName } : {}) }),
+    body: JSON.stringify({
+      deviceKey,
+      ...(displayName ? { displayName } : {}),
+      ...(languageCode ? { languageCode } : {}),
+    }),
   });
 }
 
