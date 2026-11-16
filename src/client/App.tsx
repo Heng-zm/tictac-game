@@ -5,6 +5,7 @@ import { AuthGate } from './screens/AuthGate';
 import { HomeScreen } from './screens/HomeScreen';
 import { BottomNav, ConnectionBanner } from './components/Layout';
 import { ActiveGameBar } from './components/ActiveGameBar';
+import { DynamicBackground } from './components/DynamicBackground';
 import { Spinner, ToastViewport } from './components/ui';
 import { isKhmer } from './lib/language';
 
@@ -151,9 +152,10 @@ export default function App() {
 
   return (
     <div
-      className="min-h-[var(--app-vh)]"
+      className="relative min-h-[var(--app-vh)] overflow-x-hidden"
       style={{ '--nav-clearance': showActiveGameBar ? '76px' : '0px' } as CSSProperties}
     >
+      <DynamicBackground />
       <a
         href="#main-content"
         onClick={(event) => {

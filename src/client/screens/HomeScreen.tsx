@@ -23,18 +23,14 @@ import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { LanguageButton } from '../components/LanguageButton';
 import { formatDuration } from '../hooks/use-time';
+import { useAnimatedNumber } from '../hooks/use-animated-number';
 import { isKhmer as checkKhmer } from '../lib/language';
+import { hapticImpact, hapticSelection } from '../lib/telegram';
 import './HomeScreen.css';
 
 const HowToPlayModal = lazy(() =>
   import('../components/HowToPlayModal').then((m) => ({ default: m.HowToPlayModal })),
 );
-
-const DIFFICULTIES: Array<{ value: AiDifficulty; label: string }> = [
-  { value: 'EASY', label: 'Easy' },
-  { value: 'MEDIUM', label: 'Medium' },
-  { value: 'HARD', label: 'Hard' },
-];
 
 export function HomeScreen({
   client,
@@ -64,16 +60,29 @@ export function HomeScreen({
     }
   }, [profile, match?.status, pendingInvite]);
 
+  const animatedRating = useAnimatedNumber(profile?.stats.rating ?? 0);
+  const animatedGames = useAnimatedNumber(profile?.stats.gamesPlayed ?? 0);
+  const animatedWins = useAnimatedNumber(profile?.stats.wins ?? 0);
+  const animatedWinRate = useAnimatedNumber(profile?.stats.winRate ?? 0);
+
   if (!profile) return null;
   const isKhmer = checkKhmer(profile.languageCode);
   const stats = profile.stats;
+
   const activeMatch = match?.status === 'ACTIVE' ? match : null;
   const activeOpponent = activeMatch ? opponentFor(activeMatch) : null;
   const yourTurn = activeMatch ? activeMatch.currentTurn === activeMatch.youSide : false;
   const busy = Boolean(activeMatch || pendingInvite);
-  const busyLabel = pendingInvite && !activeMatch ? 'invitation' : 'game';
+  const busyLabel = pendingInvite && !activeMatch ? (isKhmer ? 'ការអញ្ជើញ' : 'invitation') : (isKhmer ? 'ការប្រកួត' : 'game');
+
+  const difficulties: Array<{ value: AiDifficulty; label: string }> = [
+    { value: 'EASY', label: isKhmer ? 'ងាយ' : 'Easy' },
+    { value: 'MEDIUM', label: isKhmer ? 'មធ្យម' : 'Medium' },
+    { value: 'HARD', label: isKhmer ? 'ពិបាក' : 'Hard' },
+  ];
 
   async function startBot(): Promise<void> {
+    hapticImpact('medium');
     setStartingBot(true);
     try {
       const matchId = await client.startAi(difficulty, side);
@@ -94,7 +103,9 @@ export function HomeScreen({
           </span>
           <div className="home-brand-copy">
             <h1 className="home-brand-title">Tic Tac Toe</h1>
-            <p className="home-brand-subtitle">Hey, {profile.firstName}</p>
+            <p className="home-brand-subtitle">
+              {isKhmer ? `សួស្តី, ${profile.firstName}` : `Hey, ${profile.firstName}`}
+            </p>
           </div>
         </div>
         <div className="home-header-actions">
@@ -136,7 +147,10 @@ export function HomeScreen({
             <button
               type="button"
               className="home-current-card home-current-card--live"
-              onClick={() => navigate(`/game/${activeMatch.id}`)}
+              onClick={() => {
+                hapticImpact('light');
+                navigate(`/game/${activeMatch.id}`);
+              }}
             >
               <span className="home-current-icon">
                 <Play aria-hidden="true" fill="currentColor" />
@@ -145,15 +159,25 @@ export function HomeScreen({
               <span className="home-current-copy">
                 <span className="home-current-kicker">
                   <span className="home-pulse-dot" aria-hidden="true" />
-                  Game in progress
+                  {isKhmer ? 'កំពុងប្រកួត' : 'Game in progress'}
                 </span>
                 <span className="home-current-title">
-                  {modeLabel(activeMatch.mode)}{' '}
-                  <span className="home-current-versus">vs {activeOpponent?.displayName ?? 'Opponent'}</span>
+                  {isKhmer
+                    ? activeMatch.mode === 'RANDOM'
+                      ? 'ការប្រកួតចៃដន្យ'
+                      : activeMatch.mode === 'FRIEND'
+                        ? 'ការប្រកួតមិត្តភក្តិ'
+                        : 'ការប្រកួតជាមួយ Bot'
+                    : modeLabel(activeMatch.mode)}{' '}
+                  <span className="home-current-versus">
+                    {isKhmer
+                      ? `ទល់នឹង ${activeOpponent?.displayName ?? 'គូប្រកួត'}`
+                      : `vs ${activeOpponent?.displayName ?? 'Opponent'}`}
+                  </span>
                 </span>
               </span>
               <span className="home-current-badge" data-tone={yourTurn ? 'turn' : 'resume'}>
-                {yourTurn ? 'Your turn' : 'Resume'}
+                {yourTurn ? (isKhmer ? 'ដល់វេនអ្នក' : 'Your turn') : (isKhmer ? 'បន្តលេង' : 'Resume')}
               </span>
               <ChevronRight className="home-current-arrow" aria-hidden="true" />
             </button>
@@ -163,14 +187,17 @@ export function HomeScreen({
             <button
               type="button"
               className="home-current-card"
-              onClick={() => navigate('/invite/waiting')}
+              onClick={() => {
+                hapticImpact('light');
+                navigate('/invite/waiting');
+              }}
             >
               <span className="home-current-icon">
                 <Clock3 aria-hidden="true" />
               </span>
               <span className="home-current-copy">
-                <span className="home-current-kicker">Invitation pending</span>
-                <span className="home-current-title">Waiting for a friend</span>
+                <span className="home-current-kicker">{isKhmer ? 'ការអញ្ជើញកំពុងរង់ចាំ' : 'Invitation pending'}</span>
+                <span className="home-current-title">{isKhmer ? 'រង់ចាំមិត្តភក្តិ' : 'Waiting for a friend'}</span>
               </span>
               <ChevronRight className="home-current-arrow" aria-hidden="true" />
             </button>
@@ -179,16 +206,19 @@ export function HomeScreen({
       ) : null}
 
       <section className="home-scoreboard" aria-labelledby="home-rating-label">
+        <div className="home-scoreboard-glow" aria-hidden="true" />
         <div className="home-scoreboard-top">
           <div className="home-score-main">
             <p className="home-kicker" id="home-rating-label">
-              Ladder rating
+              {isKhmer ? 'ពិន្ទុចំណាត់ថ្នាក់' : 'Ladder rating'}
             </p>
             <div className="home-score-value-row">
-              <strong className="home-score-value">{stats.rating}</strong>
+              <strong className="home-score-value">{animatedRating}</strong>
               <RankBadge rating={stats.rating} />
             </div>
-            <p className="home-score-footnote">{stats.ratingGames} rated</p>
+            <p className="home-score-footnote">
+              {isKhmer ? `${stats.ratingGames} ប្រកួតគិតពិន្ទុ` : `${stats.ratingGames} rated`}
+            </p>
           </div>
           <div className="home-score-progress">
             <RankProgress rating={stats.rating} />
@@ -196,16 +226,16 @@ export function HomeScreen({
         </div>
         <div className="home-score-stats">
           <div className="home-score-stat">
-            <span className="home-score-stat-value">{stats.gamesPlayed}</span>
-            <span className="home-score-stat-label">Games</span>
+            <span className="home-score-stat-value">{animatedGames}</span>
+            <span className="home-score-stat-label">{isKhmer ? 'ប្រកួត' : 'Games'}</span>
           </div>
           <div className="home-score-stat">
-            <span className="home-score-stat-value">{stats.wins}</span>
-            <span className="home-score-stat-label">Wins</span>
+            <span className="home-score-stat-value">{animatedWins}</span>
+            <span className="home-score-stat-label">{isKhmer ? 'ឈ្នះ' : 'Wins'}</span>
           </div>
           <div className="home-score-stat">
-            <span className="home-score-stat-value">{stats.winRate}%</span>
-            <span className="home-score-stat-label">Win rate</span>
+            <span className="home-score-stat-value">{animatedWinRate}%</span>
+            <span className="home-score-stat-label">{isKhmer ? 'អត្រាឈ្នះ' : 'Win rate'}</span>
           </div>
         </div>
       </section>
@@ -213,15 +243,15 @@ export function HomeScreen({
       <div className="home-grid">
         <section className="home-play" aria-labelledby="home-play-title">
           <div className="home-section-heading">
-            <h2 id="home-play-title">Play</h2>
-            <span>Choose a board</span>
+            <h2 id="home-play-title">{isKhmer ? 'លេង' : 'Play'}</h2>
+            <span>{isKhmer ? 'ជ្រើសរើសរបៀបលេង' : 'Choose a board'}</span>
           </div>
           <div className="home-modes">
             <ModeTile
               icon={Swords}
               index="01"
-              title="Quick match"
-              description="Random player · rated"
+              title={isKhmer ? 'លេងរហ័ស' : 'Quick match'}
+              description={isKhmer ? 'ផ្គូផ្គងអ្នកលេងចៃដន្យ · គិតពិន្ទុ' : 'Random player · rated'}
               tone="accent"
               onClick={() => navigate('/search')}
               disabled={busy}
@@ -229,8 +259,8 @@ export function HomeScreen({
             <ModeTile
               icon={Link2}
               index="02"
-              title="Invite a friend"
-              description="Private link · rated"
+              title={isKhmer ? 'អញ្ជើញមិត្តភក្តិ' : 'Invite a friend'}
+              description={isKhmer ? 'តំណភ្ជាប់ផ្ទាល់ខ្លួន · គិតពិន្ទុ' : 'Private link · rated'}
               tone="emerald"
               onClick={() => navigate('/invite/waiting')}
               disabled={busy}
@@ -238,7 +268,9 @@ export function HomeScreen({
           </div>
           {busy ? (
             <p className="home-hint">
-              Finish or leave your current {busyLabel} to start another.
+              {isKhmer
+                ? `សូមបញ្ចប់ ឬចាកចេញពី${busyLabel}បច្ចុប្បន្នដើម្បីចាប់ផ្តើមថ្មី។`
+                : `Finish or leave your current ${busyLabel} to start another.`}
             </p>
           ) : null}
         </section>
@@ -250,26 +282,26 @@ export function HomeScreen({
             </span>
             <div className="home-card-copy">
               <div className="home-card-title-row">
-                <h2 id="home-practice-title">Practice vs bot</h2>
-                <span className="home-chip">Unrated</span>
+                <h2 id="home-practice-title">{isKhmer ? 'ហាត់ជាមួយ Bot' : 'Practice vs bot'}</h2>
+                <span className="home-chip">{isKhmer ? 'មិនគិតពិន្ទុ' : 'Unrated'}</span>
               </div>
-              <p>Choose a difficulty and take the first move.</p>
+              <p>{isKhmer ? 'ជ្រើសរើសកម្រិត និងដើរមុន។' : 'Choose a difficulty and take the first move.'}</p>
             </div>
           </header>
 
           <div className="home-field">
-            <span className="home-field-label">Difficulty</span>
+            <span className="home-field-label">{isKhmer ? 'កម្រិតពិបាក' : 'Difficulty'}</span>
             <ChoiceGroup
               value={difficulty}
-              options={DIFFICULTIES}
+              options={difficulties}
               onChange={setDifficulty}
-              ariaLabel="Bot difficulty"
+              ariaLabel={isKhmer ? 'កម្រិតពិបាករបស់ bot' : 'Bot difficulty'}
             />
           </div>
 
           <div className="home-practice-footer">
             <div className="home-field home-field--side">
-              <span className="home-field-label">Play as</span>
+              <span className="home-field-label">{isKhmer ? 'ដើរមុនជា' : 'Play as'}</span>
               <ChoiceGroup
                 value={side}
                 options={[
@@ -277,7 +309,7 @@ export function HomeScreen({
                   { value: 'O', label: 'O', mark: 'o' },
                 ]}
                 onChange={setSide}
-                ariaLabel="Your side against the bot"
+                ariaLabel={isKhmer ? 'ខាងរបស់អ្នកទល់នឹង bot' : 'Your side against the bot'}
               />
             </div>
             <button
@@ -292,7 +324,7 @@ export function HomeScreen({
               ) : (
                 <Play aria-hidden="true" fill="currentColor" />
               )}
-              {startingBot ? 'Starting…' : 'Start game'}
+              {startingBot ? (isKhmer ? 'កំពុងចាប់ផ្តើម…' : 'Starting…') : (isKhmer ? 'ចាប់ផ្តើមលេង' : 'Start game')}
             </button>
           </div>
         </section>
@@ -330,8 +362,8 @@ export function HomeScreen({
                 <ShieldCheck aria-hidden="true" />
               </span>
               <div className="home-card-copy">
-                <h2 id="home-fairplay-title">Fair play</h2>
-                <p>Every move is checked by the server.</p>
+                <h2 id="home-fairplay-title">{isKhmer ? 'ការលេងដោយយុត្តិធម៌' : 'Fair play'}</h2>
+                <p>{isKhmer ? 'គ្រប់ជំហានត្រូវបានផ្ទៀងផ្ទាត់ដោយម៉ាស៊ីនមេ' : 'Every move is checked by the server.'}</p>
               </div>
             </header>
             <ul className="home-fairplay-list">
@@ -339,17 +371,29 @@ export function HomeScreen({
                 <Timer aria-hidden="true" />
                 <span>
                   {(config?.turnTimeoutMs ?? 0) > 0
-                    ? `Each turn gets ${formatDuration(config?.turnTimeoutMs ?? 0)} on the clock.`
-                    : 'Turn timers are off, so take your time.'}
+                    ? isKhmer
+                      ? `វេននីមួយៗមានពេល ${formatDuration(config?.turnTimeoutMs ?? 0)} នៅលើនាឡិកា។`
+                      : `Each turn gets ${formatDuration(config?.turnTimeoutMs ?? 0)} on the clock.`
+                    : isKhmer
+                      ? 'នាឡិកាកំណត់ពេលត្រូវបានបិទ ដូច្នេះអ្នកអាចគិតបានស្រួល។'
+                      : 'Turn timers are off, so take your time.'}
                 </span>
               </li>
               <li>
                 <Clock3 aria-hidden="true" />
-                <span>Disconnects pause the clock for {formatDuration(config?.disconnectGraceMs ?? 0)}.</span>
+                <span>
+                  {isKhmer
+                    ? `ការដាច់អ៊ីនធឺណិតផ្អាកនាឡិកាសម្រាប់ ${formatDuration(config?.disconnectGraceMs ?? 0)}។`
+                    : `Disconnects pause the clock for ${formatDuration(config?.disconnectGraceMs ?? 0)}.`}
+                </span>
               </li>
               <li>
                 <Sparkles aria-hidden="true" />
-                <span>Line up five in a row to win. Four hundred moves without a winner is a draw.</span>
+                <span>
+                  {isKhmer
+                    ? 'តម្រៀប ៥ គ្រាប់ជាប់គ្នាដើម្បីឈ្នះ។ បើ ៤០០ ជំហានគ្មានអ្នកឈ្នះ នោះស្មើគ្នា។'
+                    : 'Line up five in a row to win. Four hundred moves without a winner is a draw.'}
+                </span>
               </li>
             </ul>
           </section>
@@ -389,10 +433,14 @@ function ModeTile({
   return (
     <button
       type="button"
-      onClick={onClick}
+      onClick={() => {
+        hapticImpact('light');
+        onClick();
+      }}
       disabled={disabled}
       className={`home-mode home-mode--${tone}`}
     >
+      <div className="home-mode-shimmer" aria-hidden="true" />
       <span className="home-mode-top">
         <span className="home-mode-icon">
           <Icon aria-hidden="true" />
@@ -436,7 +484,10 @@ function ChoiceGroup<T extends string>({
           aria-checked={value === option.value}
           data-active={value === option.value ? 'true' : undefined}
           className="home-choice"
-          onClick={() => onChange(option.value)}
+          onClick={() => {
+            hapticSelection();
+            onChange(option.value);
+          }}
         >
           {option.mark ? (
             <span className={`home-choice-mark home-choice-mark--${option.mark}`}>{option.label}</span>

@@ -103,13 +103,13 @@ export function RankBadge({ rating, className }: { rating: number; className?: s
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 rounded-md border px-2 py-0.5 text-[10px] font-semibold tracking-wide backdrop-blur-sm',
+        'group relative inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-0.5 text-[10px] font-bold tracking-wide backdrop-blur-sm transition-transform duration-200 hover:scale-105 active:scale-95 select-none shadow-xs',
         badgeStyles[rank.tier],
         className,
       )}
     >
-      <Icon className="h-3 w-3" aria-hidden />
-      {rank.name}
+      <Icon className="h-3 w-3 shrink-0 transition-transform duration-200 group-hover:rotate-12" aria-hidden />
+      <span>{rank.name}</span>
     </span>
   );
 }
@@ -161,9 +161,11 @@ export function RankProgress({ rating, className }: { rating: number; className?
         }
       >
         <div
-          className={cn('h-full rounded-full transition-[width] duration-500 ease-out', barStyles[rank.tier])}
+          className={cn('relative h-full overflow-hidden rounded-full transition-[width] duration-700 ease-out', barStyles[rank.tier])}
           style={{ width: `${percent}%` }}
-        />
+        >
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer-sweep pointer-events-none" />
+        </div>
       </div>
     </div>
   );

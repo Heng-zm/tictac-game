@@ -120,9 +120,9 @@ export function BottomNav({
               aria-current={selected ? 'page' : undefined}
               aria-label={showActiveGame ? `${item.label} (game in progress)` : item.label}
               className={cn(
-                'group relative flex flex-1 flex-col items-center gap-1 rounded-2xl border border-transparent px-2 py-2 text-[10px] font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2 md:text-xs md:rounded-full',
+                'group relative flex flex-1 flex-col items-center gap-1 rounded-2xl border border-transparent px-2 py-2 text-[10px] font-semibold transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60 md:flex-row md:justify-center md:gap-2 md:py-2 md:text-xs md:rounded-full',
                 selected
-                  ? 'border-accent/25 bg-accent/10 text-accent font-bold shadow-sm shadow-accent/10'
+                  ? 'border-accent/25 bg-accent/10 text-accent font-bold shadow-sm shadow-accent/10 ring-1 ring-accent/20'
                   : 'text-muted hover:bg-elevated/70 hover:text-ink',
               )}
             >
@@ -144,7 +144,7 @@ export function BottomNav({
               <span>{item.label}</span>
               {selected ? (
                 <span
-                  className="absolute bottom-1 h-0.5 w-3 rounded-full bg-accent md:hidden"
+                  className="absolute bottom-1 h-0.5 w-3.5 rounded-full bg-accent shadow-[0_0_6px_rgba(37,99,235,0.7)] md:hidden transition-all duration-200"
                   aria-hidden
                 />
               ) : null}
