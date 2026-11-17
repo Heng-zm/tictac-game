@@ -503,7 +503,7 @@ export function GameScreen({
       />
 
       <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
-        <div className="pointer-events-auto border-b border-line/70 bg-app px-3 pb-2.5 pt-[calc(env(safe-area-inset-top)+6px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4">
+        <div className="pointer-events-auto border-b border-line/70 bg-app px-2.5 pb-2 pt-[calc(env(safe-area-inset-top)+4px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4 sm:pb-2.5 sm:pt-[calc(env(safe-area-inset-top)+6px)]">
           <div className="mx-auto w-full max-w-[720px] lg:max-w-[840px]">
             <GameHeader
               onBack={() => {
@@ -519,7 +519,7 @@ export function GameScreen({
               onRetry={client.reconnect}
             />
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 px-0.5">
+            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-2 px-0.5">
               <div className="relative">
                 <PlayerBadge
                   name={you?.displayName ?? 'You'}
@@ -593,7 +593,7 @@ export function GameScreen({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center justify-end gap-2 px-3 sm:px-4">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+12px)] sm:bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center justify-end gap-1.5 sm:gap-2 px-2.5 sm:px-4">
         <button
           type="button"
           onClick={() => {
@@ -604,7 +604,7 @@ export function GameScreen({
             connection !== 'online' ||
             (match.status !== 'ACTIVE' && match.status !== 'FINISHED')
           }
-          className="group pointer-events-auto flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-glow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="group pointer-events-auto flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-glow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
           title="Sticker reactions and quick chat"
           aria-label="Open sticker reactions and quick chat"
         >
@@ -725,8 +725,8 @@ function TurnClock({
   const offset = progress === null ? circumference : circumference * (1 - progress);
 
   return (
-    <div className="flex min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
-      <div className="relative flex h-14 w-14 items-center justify-center">
+    <div className="flex min-w-[62px] sm:min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
+      <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center">
         {urgent && !muted ? (
           <span className="pointer-events-none absolute inset-0.5 rounded-full border border-danger/60 animate-ping opacity-40" aria-hidden />
         ) : null}
@@ -765,14 +765,14 @@ function TurnClock({
         <span
           className={cn(
             'font-bold tabular-nums tracking-tight transition-all duration-200',
-            text.length > 5 ? 'text-[11px]' : 'text-base',
+            text.length > 5 ? 'text-[10px] sm:text-[11px]' : 'text-sm sm:text-base',
             muted ? 'text-muted' : urgent ? 'text-danger scale-110 animate-heartbeat-urgent font-extrabold drop-shadow-[0_0_8px_rgba(239,68,68,0.7)]' : 'text-ink',
           )}
         >
           {text}
         </span>
       </div>
-      <span className={cn('turn-status mt-0.5 text-[10px] font-semibold transition-colors', urgent && !muted ? 'text-danger font-bold' : 'text-muted')}>
+      <span className={cn('turn-status mt-0.5 text-[9px] sm:text-[10px] font-semibold transition-colors', urgent && !muted ? 'text-danger font-bold' : 'text-muted')}>
         {label}
       </span>
     </div>
@@ -795,17 +795,17 @@ function GameHeader({
   const { soundOn, toggle: toggleSoundEffects } = useSoundSettings();
 
   return (
-    <header className="flex items-center justify-between gap-3 pb-2.5 sm:pb-3.5 pt-0">
-      <div className="flex min-w-0 items-center gap-2.5">
+    <header className="flex items-center justify-between gap-2 sm:gap-3 pb-2 sm:pb-3.5 pt-0">
+      <div className="flex min-w-0 items-center gap-1.5 sm:gap-2.5">
         <IconButton label="Leave game screen" onClick={onBack}>
           <ArrowLeft className="h-5 w-5" aria-hidden />
         </IconButton>
         <div className="min-w-0">
-          <h1 className="truncate text-base font-semibold leading-tight tracking-tight text-ink">
+          <h1 className="truncate text-sm sm:text-base font-semibold leading-tight tracking-tight text-ink">
             {mode ?? 'Tic Tac Toe'}
           </h1>
           {mode ? (
-            <p className="mt-0.5 text-[10px] font-medium text-muted">
+            <p className="mt-0.5 text-[9px] sm:text-[10px] font-medium text-muted">
               {rated ? 'Rated match' : 'Casual match'}
             </p>
           ) : null}
@@ -881,7 +881,7 @@ function PlayerBadge({
   return (
     <div
       className={cn(
-        'flex min-w-0 items-center gap-2.5 transition-all duration-300 ease-out',
+        'flex min-w-0 items-center gap-1.5 sm:gap-2.5 transition-all duration-300 ease-out',
         align === 'right' && 'flex-row-reverse text-right',
       )}
     >
@@ -943,10 +943,10 @@ function PlayerBadge({
         ) : null}
       </div>
       <div className="min-w-0">
-        <p className={cn('truncate text-xs font-semibold transition-colors duration-200', active ? 'text-accent font-bold' : 'text-ink')}>
+        <p className={cn('truncate text-[11px] sm:text-xs font-semibold transition-colors duration-200', active ? 'text-accent font-bold' : 'text-ink')}>
           {isYou ? 'You' : name}
         </p>
-        <p className="mt-0.5 flex items-center gap-1 text-[10px] font-medium text-muted">
+        <p className="mt-0.5 flex items-center gap-0.5 sm:gap-1 text-[9px] sm:text-[10px] font-medium text-muted">
           <span className={cn('font-bold', side === 'X' ? 'text-accent' : 'text-danger')}>{side}</span>
           <span>· {isAi ? 'Bot' : isYou ? 'You' : 'Opponent'}</span>
         </p>

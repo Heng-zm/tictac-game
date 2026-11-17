@@ -294,8 +294,8 @@ export const WalkieTalkieButton: React.FC<WalkieTalkieButtonProps> = ({
       aria-label="Hold to record voice, release to send, slide to cancel"
       title="Hold to talk (Icom Walkie-Talkie)"
       style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
-      className={`pointer-events-auto relative flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-2xl border font-bold text-xs shadow-soft transition-all duration-150 select-none touch-none ${
-        status === 'idle' ? 'w-10 px-0 sm:w-auto sm:px-3' : 'px-3'
+      className={`pointer-events-auto relative flex h-9 sm:h-10 shrink-0 items-center justify-center gap-1.5 rounded-2xl border font-bold text-xs shadow-soft transition-all duration-150 select-none touch-none ${
+        status === 'idle' ? 'w-9 px-0 sm:w-auto sm:px-3' : 'px-2.5 sm:px-3'
       } ${
         status === 'recording'
           ? 'scale-105 border-emerald-500/80 bg-emerald-600 text-white shadow-emerald-500/40 ring-4 ring-emerald-500/20'

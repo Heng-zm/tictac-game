@@ -207,7 +207,7 @@ export function GameResult({
         {/* Outcome Emblem Badge */}
         <div
           className={cn(
-            'relative mx-auto flex h-16 w-16 animate-pop-in items-center justify-center rounded-3xl border shadow-md transition-transform',
+            'relative mx-auto flex h-14 w-14 sm:h-16 sm:w-16 animate-pop-in items-center justify-center rounded-3xl border shadow-md transition-transform',
             outcome === 'win'
               ? 'border-amber-400/40 bg-gradient-to-br from-amber-400/20 via-yellow-400/10 to-amber-500/25 text-amber-400 shadow-[0_0_24px_rgba(251,191,36,0.35)]'
               : outcome === 'draw'
@@ -220,37 +220,37 @@ export function GameResult({
           {outcome === 'win' ? (
             <>
               <span className="pointer-events-none absolute -inset-2 rounded-full border border-amber-400/35 animate-pulse-ring" aria-hidden />
-              <Trophy className="h-9 w-9 animate-celebration-burst drop-shadow-[0_0_12px_rgba(251,191,36,0.7)]" aria-hidden />
+              <Trophy className="h-8 w-8 sm:h-9 sm:w-9 animate-celebration-burst drop-shadow-[0_0_12px_rgba(251,191,36,0.7)]" aria-hidden />
             </>
           ) : outcome === 'draw' ? (
-            <Minus className="h-8 w-8" aria-hidden />
+            <Minus className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden />
           ) : outcome === 'abandoned' ? (
-            <Flag className="h-8 w-8" aria-hidden />
+            <Flag className="h-7 w-7 sm:h-8 sm:w-8" aria-hidden />
           ) : (
             <>
               <span
                 className="result-defeat-ring pointer-events-none absolute -inset-2 rounded-full border border-danger/45"
                 aria-hidden
               />
-              <X className="result-defeat-mark h-8 w-8" aria-hidden />
+              <X className="result-defeat-mark h-7 w-7 sm:h-8 sm:w-8" aria-hidden />
             </>
           )}
         </div>
 
         {/* Mode & Rating Pills */}
-        <div className="mt-4 flex items-center justify-center gap-2">
+        <div className="mt-3 sm:mt-4 flex items-center justify-center gap-2">
           <Pill>{modeLabel(match.mode)}</Pill>
           <Pill tone={impactTone}>{impactLabel}</Pill>
         </div>
 
         {/* Title & Finish Reason */}
-        <h2 className="mt-2.5 text-2xl font-bold tracking-tight text-ink sm:text-3xl">{title}</h2>
+        <h2 className="mt-2 text-xl font-bold tracking-tight text-ink sm:mt-2.5 sm:text-2xl md:text-3xl">{title}</h2>
         <p className="mx-auto mt-1 max-w-[20rem] text-xs sm:text-sm leading-relaxed text-muted">
           {finishReasonCopy(match)}
         </p>
 
         {/* Versus Matchup Card */}
-        <div className="mx-auto mt-3.5 flex max-w-[20rem] items-center justify-between rounded-2xl border border-line/70 bg-elevated/40 px-3.5 py-2 backdrop-blur-xs">
+        <div className="mx-auto mt-2.5 sm:mt-3.5 flex max-w-[20rem] items-center justify-between rounded-2xl border border-line/70 bg-elevated/40 px-2.5 py-1.5 sm:px-3.5 sm:py-2 backdrop-blur-xs">
           {/* You */}
           <div className="flex items-center gap-2 min-w-0">
             <Avatar name={youName} photoUrl={you?.photoUrl} size="sm" />
@@ -291,20 +291,20 @@ export function GameResult({
         </div>
 
         {/* Quick Match Metrics Tiles */}
-        <div className="mx-auto mt-3 grid max-w-[20rem] grid-cols-3 gap-2">
-          <div className="rounded-xl border border-line/60 bg-elevated/30 p-2 text-center">
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted">Moves</span>
-            <p className="mt-0.5 text-sm font-extrabold tabular-nums text-ink">{movesCount}</p>
+        <div className="mx-auto mt-2.5 sm:mt-3 grid max-w-[20rem] grid-cols-3 gap-1.5 sm:gap-2">
+          <div className="rounded-xl border border-line/60 bg-elevated/30 p-1.5 sm:p-2 text-center">
+            <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-muted">Moves</span>
+            <p className="mt-0.5 text-xs sm:text-sm font-extrabold tabular-nums text-ink">{movesCount}</p>
           </div>
-          <div className="rounded-xl border border-line/60 bg-elevated/30 p-2 text-center">
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted">Duration</span>
-            <p className="mt-0.5 text-sm font-extrabold tabular-nums text-ink">{durationText ?? '<1m'}</p>
+          <div className="rounded-xl border border-line/60 bg-elevated/30 p-1.5 sm:p-2 text-center">
+            <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-muted">Duration</span>
+            <p className="mt-0.5 text-xs sm:text-sm font-extrabold tabular-nums text-ink">{durationText ?? '<1m'}</p>
           </div>
-          <div className="rounded-xl border border-line/60 bg-elevated/30 p-2 text-center">
-            <span className="text-[9.5px] font-bold uppercase tracking-wider text-muted">Rating</span>
+          <div className="rounded-xl border border-line/60 bg-elevated/30 p-1.5 sm:p-2 text-center">
+            <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-muted">Rating</span>
             <p
               className={cn(
-                'mt-0.5 text-sm font-extrabold tabular-nums',
+                'mt-0.5 text-xs sm:text-sm font-extrabold tabular-nums',
                 impact && impact > 0
                   ? 'text-emerald-500'
                   : impact && impact < 0

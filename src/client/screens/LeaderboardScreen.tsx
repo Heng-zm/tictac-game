@@ -404,24 +404,24 @@ function PodiumCard({
   return (
     <div
       className={cn(
-        'relative flex flex-col items-center rounded-2xl border p-2.5 text-center transition-transform hover:-translate-y-0.5',
+        'relative flex flex-col items-center rounded-2xl border p-1.5 xs:p-2 sm:p-2.5 text-center transition-transform hover:-translate-y-0.5',
         cardStyle,
-        isRank1 ? 'pb-3.5 pt-3' : 'pb-2.5 pt-2',
+        isRank1 ? 'pb-2.5 sm:pb-3.5 pt-2 sm:pt-3' : 'pb-2 sm:pb-2.5 pt-1.5 sm:pt-2',
         className,
       )}
     >
       {/* Crown / Trophy icon for champion */}
       {isRank1 ? (
-        <span className="mb-1 flex h-6 w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-float-gentle">
-          <Crown className="h-4 w-4 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" aria-hidden />
+        <span className="mb-1 flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-amber-500/20 text-amber-500 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-float-gentle">
+          <Crown className="h-3.5 w-3.5 sm:h-4 sm:w-4 drop-shadow-[0_0_6px_rgba(245,158,11,0.8)]" aria-hidden />
         </span>
       ) : isRank2 ? (
-        <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-slate-400/20 text-slate-400 animate-float-gentle" style={{ animationDelay: '0.4s' }}>
-          <Medal className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-115" aria-hidden />
+        <span className="mb-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-slate-400/20 text-slate-400 animate-float-gentle" style={{ animationDelay: '0.4s' }}>
+          <Medal className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-transform duration-200 hover:scale-115" aria-hidden />
         </span>
       ) : (
-        <span className="mb-1 flex h-5 w-5 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 dark:text-amber-400 animate-float-gentle" style={{ animationDelay: '0.8s' }}>
-          <Award className="h-3.5 w-3.5 transition-transform duration-200 hover:scale-115" aria-hidden />
+        <span className="mb-1 flex h-4 w-4 sm:h-5 sm:w-5 items-center justify-center rounded-full bg-amber-700/20 text-amber-600 dark:text-amber-400 animate-float-gentle" style={{ animationDelay: '0.8s' }}>
+          <Award className="h-3 w-3 sm:h-3.5 sm:w-3.5 transition-transform duration-200 hover:scale-115" aria-hidden />
         </span>
       )}
 
@@ -436,22 +436,22 @@ function PodiumCard({
       </div>
 
       {/* Display name */}
-      <p className="mt-1.5 w-full truncate text-xs font-bold text-ink">
+      <p className="mt-1 sm:mt-1.5 w-full truncate text-[11px] sm:text-xs font-bold text-ink">
         {entry.displayName}
       </p>
 
       {/* Rating */}
-      <p className="mt-0.5 tabular-nums text-xs font-extrabold text-ink">
+      <p className="mt-0.5 tabular-nums text-[11px] sm:text-xs font-extrabold text-ink">
         {entry.rating}
       </p>
 
       {/* Win rate pill */}
-      <span className="mt-0.5 text-[9.5px] font-medium text-muted">
+      <span className="mt-0.5 text-[8.5px] sm:text-[9.5px] font-medium text-muted">
         {winRate}% {isKm ? 'ឈ្នះ' : 'win'}
       </span>
 
       {/* Place Pedestal Tag — the server's rank, so ties stay consistent with the rows. */}
-      <div className={cn('mt-2 flex h-6 w-full items-center justify-center rounded-lg text-[10.5px] font-black', badgeColor)}>
+      <div className={cn('mt-1.5 sm:mt-2 flex h-5 sm:h-6 w-full items-center justify-center rounded-lg text-[9.5px] sm:text-[10.5px] font-black', badgeColor)}>
         #{entry.rank}
       </div>
     </div>
@@ -494,13 +494,13 @@ function LeaderboardRow({
   return (
     <div
       className={cn(
-        'flex items-center gap-3 border-l-2 border-l-transparent px-3.5 py-3 transition-colors hover:bg-elevated/40 sm:px-5 sm:py-3.5',
+        'flex items-center gap-2 sm:gap-3 border-l-2 border-l-transparent px-2.5 py-2.5 transition-colors hover:bg-elevated/40 sm:px-5 sm:py-3.5',
         rowHighlight,
       )}
     >
       <span
         className={cn(
-          'flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-bold tabular-nums',
+          'flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl border text-xs font-bold tabular-nums',
           rankBadgeStyle,
         )}
         aria-label={isKm ? `ចំណាត់ថ្នាក់ ${entry.rank}` : `Rank ${entry.rank}`}
@@ -518,10 +518,10 @@ function LeaderboardRow({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
-          <p className="truncate text-sm font-semibold text-ink">{entry.displayName}</p>
+          <p className="truncate text-xs sm:text-sm font-semibold text-ink">{entry.displayName}</p>
           {entry.isYou ? <Pill tone="accent">{isKm ? 'អ្នក' : 'You'}</Pill> : null}
         </div>
-        <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[10px] text-muted">
+        <div className="mt-0.5 flex flex-wrap items-center gap-x-1.5 sm:gap-x-2 gap-y-0.5 text-[9px] sm:text-[10px] text-muted">
           <span className="truncate">
             {entry.username ? `@${entry.username}` : (isKm ? 'អ្នកលេង' : 'Player')}
           </span>
@@ -539,8 +539,8 @@ function LeaderboardRow({
       </div>
 
       <div className="shrink-0 text-right">
-        <p className="text-sm font-bold tabular-nums text-ink">{entry.rating}</p>
-        <p className="mt-0.5 whitespace-nowrap text-[10px] text-muted">
+        <p className="text-xs sm:text-sm font-bold tabular-nums text-ink">{entry.rating}</p>
+        <p className="mt-0.5 whitespace-nowrap text-[9px] sm:text-[10px] text-muted">
           <RankLabel rating={entry.rating} /> · {entry.ratedGames} {isKm ? 'ប្រកួត' : 'rated'}
         </p>
       </div>

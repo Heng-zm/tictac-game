@@ -142,7 +142,7 @@ export function ReactionPicker({
       {/* Floating Tray Bottom Sheet */}
       <div
         ref={trayRef}
-        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-4 pb-[calc(env(safe-area-inset-bottom)+16px)] pt-3 shadow-2xl backdrop-blur-md transition-transform animate-sheet-up sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:pb-5"
+        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 shadow-2xl backdrop-blur-md transition-transform animate-sheet-up sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:px-4 sm:pb-5 sm:pt-3"
       >
         {/* Grab Handle */}
         <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted/30 sm:hidden" />
@@ -169,7 +169,7 @@ export function ReactionPicker({
 
         {/* Custom chat composer */}
         {onSendText ? (
-          <form onSubmit={handleSendText} className="flex items-center gap-2 pt-2.5">
+          <form onSubmit={handleSendText} className="flex items-center gap-2 pt-2 sm:pt-2.5">
             <input
               type="text"
               value={draft}
@@ -180,23 +180,23 @@ export function ReactionPicker({
               autoComplete="off"
               placeholder={isKm ? 'សរសេរសាររហ័ស…' : 'Write a quick message…'}
               aria-label={isKm ? 'សារជជែក' : 'Chat message'}
-              className="min-w-0 flex-1 rounded-full border border-line bg-elevated/60 px-3.5 py-2 text-sm text-ink placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:opacity-60"
+              className="min-w-0 flex-1 rounded-full border border-line bg-elevated/60 px-3 py-1.5 text-xs sm:px-3.5 sm:py-2 sm:text-sm text-ink placeholder:text-muted transition focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/20 disabled:cursor-not-allowed disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={!canSendText}
               aria-label={isKm ? 'ផ្ញើសារ' : 'Send message'}
               title={isKm ? 'ផ្ញើសារ' : 'Send message'}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-accent/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
+              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-accent/25 transition-all duration-150 hover:from-blue-500 hover:to-indigo-500 active:scale-90 disabled:cursor-not-allowed disabled:opacity-40"
             >
-              <Send className="h-4 w-4" aria-hidden="true" />
+              <Send className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden="true" />
             </button>
           </form>
         ) : null}
 
         {/* Quick Chat Presets (One-tap messages) */}
         {onSendText ? (
-          <div className="pt-2">
+          <div className="pt-1.5 sm:pt-2">
             <div
               className="flex items-center gap-1.5 overflow-x-auto py-0.5 no-scrollbar"
               aria-label={isKm ? 'ឃ្លាជជែករហ័ស' : 'Quick chat phrases'}
@@ -210,7 +210,7 @@ export function ReactionPicker({
                     onClick={() => handleQuickChatPreset(text)}
                     disabled={disabled}
                     aria-label={isKm ? `សាររហ័ស៖ ${text}` : `Quick message: ${text}`}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full border border-line/70 bg-elevated/80 px-3 py-1 text-xs font-semibold text-ink shadow-sm transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-xs active:scale-95"
+                    className="flex shrink-0 items-center gap-1 rounded-full border border-line/70 bg-elevated/80 px-2.5 py-1 text-[11px] sm:gap-1.5 sm:px-3 sm:text-xs font-semibold text-ink shadow-sm transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-xs active:scale-95"
                   >
                     <span aria-hidden="true">{preset.emoji}</span>
                     <span>{text}</span>
@@ -222,7 +222,7 @@ export function ReactionPicker({
         ) : null}
 
         {/* Category Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 no-scrollbar">
+        <div className="flex items-center gap-1.5 overflow-x-auto py-2 sm:py-2.5 no-scrollbar">
           {categories.map((cat) => {
             const Icon = cat.icon;
             const active = selectedCategory === cat.id;
@@ -235,7 +235,7 @@ export function ReactionPicker({
                   setSelectedCategory(cat.id);
                 }}
                 className={cn(
-                  'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium transition-all duration-150 active:scale-95',
+                  'flex items-center gap-1 sm:gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[11px] sm:px-3 sm:py-1.5 sm:text-xs font-medium transition-all duration-150 active:scale-95',
                   active
                     ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-sm shadow-accent/25 font-semibold'
                     : 'bg-elevated/70 text-muted hover:bg-elevated hover:text-ink border border-line/50',
@@ -249,7 +249,7 @@ export function ReactionPicker({
         </div>
 
         {/* Sticker Grid (4 columns on mobile, 6 on wider sheets) */}
-        <div className="no-scrollbar grid max-h-[46vh] grid-cols-4 gap-2 overflow-y-auto overscroll-contain py-1 pr-0.5 sm:max-h-[52vh] sm:grid-cols-6 sm:gap-2.5">
+        <div className="no-scrollbar grid max-h-[42dvh] grid-cols-4 gap-1.5 xs:gap-2 overflow-y-auto overscroll-contain py-1 pr-0.5 sm:max-h-[52vh] sm:grid-cols-6 sm:gap-2.5">
           {filteredStickers.map((sticker) => {
             const isSending = sendingId === sticker.id;
             const label = getStickerLabel(sticker.id, languageCode);
@@ -261,15 +261,15 @@ export function ReactionPicker({
                 onClick={() => handlePick(sticker)}
                 disabled={disabled}
                 className={cn(
-                  'group relative flex flex-col items-center justify-center rounded-2xl border border-line/60 bg-elevated/50 p-2 transition-all duration-150 hover:bg-elevated hover:border-accent/40 hover:shadow-soft hover:-translate-y-0.5 active:scale-90',
+                  'group relative flex flex-col items-center justify-center rounded-xl sm:rounded-2xl border border-line/60 bg-elevated/50 p-1.5 xs:p-2 transition-all duration-150 hover:bg-elevated hover:border-accent/40 hover:shadow-soft hover:-translate-y-0.5 active:scale-90',
                   isSending && 'ring-2 ring-accent scale-95 bg-accent/10',
                 )}
                 title={label}
               >
-                <div className="h-12 w-12 flex items-center justify-center transition-transform duration-200 group-hover:scale-115">
-                  <StickerCharacter id={sticker.id} size={48} animate={true} />
+                <div className="h-10 w-10 xs:h-12 xs:w-12 flex items-center justify-center transition-transform duration-200 group-hover:scale-115">
+                  <StickerCharacter id={sticker.id} size={44} animate={true} />
                 </div>
-                <span className="mt-1 w-full text-center text-[10.5px] font-medium leading-tight text-ink/90 truncate">
+                <span className="mt-0.5 sm:mt-1 w-full text-center text-[9.5px] xs:text-[10px] sm:text-[10.5px] font-medium leading-tight text-ink/90 truncate">
                   {label}
                 </span>
               </button>

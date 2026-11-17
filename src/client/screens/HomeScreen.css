@@ -1221,8 +1221,58 @@
 }
 
 @media (max-width: 369px) {
+  .home-screen {
+    gap: 12px;
+  }
+
+  .home-header {
+    gap: 8px;
+    padding: 0 0 2px;
+  }
+
+  .home-brand {
+    gap: 8px;
+  }
+
+  .home-brand-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+  }
+
+  .home-brand-title {
+    font-size: 16px;
+  }
+
   .home-modes {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .home-scoreboard {
+    padding: 12px;
+    border-radius: 20px;
+  }
+
+  .home-score-value {
+    font-size: 32px;
+  }
+
+  .home-score-stat + .home-score-stat {
+    padding-left: 8px;
+  }
+
+  .home-score-stat-value {
+    font-size: 13.5px;
+  }
+
+  .home-current-card {
+    padding: 10px 11px;
+    gap: 9px;
+  }
+
+  .home-current-icon {
+    width: 36px;
+    height: 36px;
   }
 }
 
