@@ -162,6 +162,32 @@ const config: Config = {
           '30%': { transform: 'scale(1)' },
           '45%': { transform: 'scale(1.08)' },
         },
+        'flag-flip': {
+          '0%': {
+            transform: 'perspective(280px) rotateY(0deg) scale(1)',
+            filter: 'brightness(1)',
+          },
+          '48%': {
+            transform: 'perspective(280px) rotateY(90deg) scale(0.92)',
+            filter: 'brightness(1.12)',
+          },
+          '52%': {
+            transform: 'perspective(280px) rotateY(-90deg) scale(0.92)',
+            filter: 'brightness(1.12)',
+          },
+          '78%': {
+            transform: 'perspective(280px) rotateY(8deg) scale(1.03)',
+            filter: 'brightness(1.02)',
+          },
+          '90%': {
+            transform: 'perspective(280px) rotateY(-2.5deg) scale(0.99)',
+            filter: 'brightness(1)',
+          },
+          '100%': {
+            transform: 'perspective(280px) rotateY(0deg) scale(1)',
+            filter: 'brightness(1)',
+          },
+        },
       },
       animation: {
         'fade-in': 'fade-in 160ms ease-out both',
@@ -184,6 +210,7 @@ const config: Config = {
         'scale-bounce': 'scale-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
         'radar-sweep': 'radar-sweep 2.8s linear infinite',
         'heartbeat-urgent': 'heartbeat-urgent 1.2s ease-in-out infinite',
+        'flag-flip': 'flag-flip 420ms cubic-bezier(0.25, 1, 0.5, 1) both',
       },
     },
   },

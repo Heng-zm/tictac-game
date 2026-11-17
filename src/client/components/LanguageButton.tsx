@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { cn } from '../lib/cn';
 import { getNextLanguage, isKhmer, normalizeLanguage, LANGUAGE_OPTIONS, type SupportedLanguage } from '../lib/language';
 import { CircularFlag } from './CircularFlag';
@@ -27,11 +27,40 @@ export function LanguageButton({
   const isKm = isKhmer(currentRaw);
   const [switching, setSwitching] = useState(false);
   const [flipping, setFlipping] = useState(false);
+  const [displayedLang, setDisplayedLang] = useState<SupportedLanguage>(currentLang);
+  const flipTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const swapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!flipping) {
+      setDisplayedLang(currentLang);
+    }
+  }, [currentLang, flipping]);
+
+  useEffect(() => {
+    return () => {
+      if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+      if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
+    };
+  }, []);
 
   async function handleSelectLanguage(targetLang: SupportedLanguage) {
     if (targetLang === currentLang || switching) return;
     setSwitching(true);
     setFlipping(true);
+
+    if (flipTimerRef.current) clearTimeout(flipTimerRef.current);
+    if (swapTimerRef.current) clearTimeout(swapTimerRef.current);
+
+    // Swap the flag face smoothly at the 90deg edge-on midpoint (200ms into 420ms flip)
+    swapTimerRef.current = setTimeout(() => {
+      setDisplayedLang(targetLang);
+    }, 200);
+
+    flipTimerRef.current = setTimeout(() => {
+      setFlipping(false);
+    }, 420);
+
     try {
       hapticSelection();
     } catch {
@@ -45,6 +74,8 @@ export function LanguageButton({
         await client.updateProfile({ languageCode: targetLang });
       }
     } catch {
+      setDisplayedLang(currentLang);
+      setFlipping(false);
       if (client) {
         client.pushToast({
           type: 'error',
@@ -53,7 +84,6 @@ export function LanguageButton({
       }
     } finally {
       setSwitching(false);
-      setTimeout(() => setFlipping(false), 350);
     }
   }
 
@@ -79,7 +109,7 @@ export function LanguageButton({
         )}
       >
         {LANGUAGE_OPTIONS.map((opt) => {
-          const isSelected = opt.code === currentLang;
+          const isSelected = opt.code === displayedLang;
           return (
             <button
               key={opt.code}
@@ -97,9 +127,11 @@ export function LanguageButton({
               <CircularFlag
                 code={opt.code}
                 size={size === 'sm' ? 'xs' : 'sm'}
+                style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
                 className={cn(
-                  'transition-transform duration-200',
-                  isSelected ? 'scale-105 ring-1 ring-accent/40' : 'opacity-80 group-hover:opacity-100 group-hover:scale-105',
+                  'transition-transform duration-200 will-change-transform',
+                  isSelected && flipping && 'animate-flag-flip',
+                  isSelected && !flipping ? 'scale-105 ring-1 ring-accent/40' : 'opacity-80 group-hover:opacity-100 group-hover:scale-105',
                 )}
               />
               <span>{opt.nativeLabel}</span>
@@ -126,15 +158,17 @@ export function LanguageButton({
         )}
       >
         <span
+          style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
           className={cn(
-            'inline-flex transition-transform duration-300 ease-out',
-            flipping && 'rotate-[360deg] scale-110',
+            'inline-flex items-center justify-center will-change-transform',
+            flipping && 'animate-flag-flip',
+            !flipping && 'transition-transform duration-200 group-hover:scale-105',
           )}
         >
-          <CircularFlag code={currentLang} size={size === 'sm' ? 'xs' : 'sm'} />
+          <CircularFlag code={displayedLang} size={size === 'sm' ? 'xs' : 'sm'} />
         </span>
         <span className="tracking-wide uppercase text-[11px] font-extrabold text-muted group-hover:text-ink">
-          {currentLang.toUpperCase()}
+          {displayedLang.toUpperCase()}
         </span>
       </button>
     );
@@ -158,26 +192,32 @@ export function LanguageButton({
       )}
     >
       <span
+        style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
         className={cn(
-          'inline-flex items-center justify-center transition-all duration-300 ease-out',
-          flipping && 'rotate-[360deg] scale-110',
-          'group-hover:scale-105',
+          'inline-flex items-center justify-center will-change-transform',
+          flipping && 'animate-flag-flip',
+          !flipping && 'transition-transform duration-200 group-hover:scale-105',
         )}
       >
         <CircularFlag
-          code={currentLang}
+          code={displayedLang}
           size={flagSize}
           ring
-          className="shadow-sm transition-transform duration-200"
+          className="shadow-sm"
         />
       </span>
 
       {/* Tiny active locale badge indicator */}
       <span
         aria-hidden="true"
-        className="pointer-events-none absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-surface text-[8px] font-black uppercase tracking-tighter text-muted ring-1 ring-line shadow-xs group-hover:text-accent group-hover:ring-accent/50"
+        className={cn(
+          'pointer-events-none absolute -bottom-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-surface text-[8px] font-black uppercase tracking-tighter ring-1 shadow-xs transition-all duration-200',
+          flipping
+            ? 'scale-110 text-accent ring-accent/60 font-black'
+            : 'text-muted ring-line group-hover:text-accent group-hover:ring-accent/50',
+        )}
       >
-        {currentLang.toUpperCase()}
+        {displayedLang.toUpperCase()}
       </span>
     </button>
   );
