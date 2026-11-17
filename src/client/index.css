@@ -192,11 +192,14 @@
 @keyframes mark-enter {
   0% {
     opacity: 0;
-    transform: scale(0.35) rotate(-6deg);
+    transform: scale(0.3) rotate(-8deg);
   }
-  65% {
+  60% {
     opacity: 1;
-    transform: scale(1.06) rotate(1deg);
+    transform: scale(1.08) rotate(1.5deg);
+  }
+  80% {
+    transform: scale(0.97) rotate(-0.5deg);
   }
   100% {
     opacity: 1;
@@ -271,11 +274,14 @@
 @keyframes win-cell-in {
   0% {
     opacity: 0;
-    transform: scale(0.5);
+    transform: scale(0.45);
   }
-  65% {
+  60% {
     opacity: 1;
-    transform: scale(1.15);
+    transform: scale(1.18);
+  }
+  80% {
+    transform: scale(0.96);
   }
   100% {
     opacity: 1;
@@ -797,11 +803,14 @@
 @keyframes result-card-win {
   0% {
     opacity: 0;
-    transform: translateY(18px) scale(0.94);
+    transform: translateY(22px) scale(0.92);
   }
-  60% {
+  55% {
     opacity: 1;
-    transform: translateY(-3px) scale(1.012);
+    transform: translateY(-5px) scale(1.02);
+  }
+  80% {
+    transform: translateY(1.5px) scale(0.995);
   }
   100% {
     opacity: 1;

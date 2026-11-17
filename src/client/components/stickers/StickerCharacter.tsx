@@ -183,6 +183,7 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <path d="M4 4 Q-1 7 4 12" stroke="#B45309" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             <path d="M20 4 Q25 7 20 12" stroke="#B45309" strokeWidth="1.5" fill="none" strokeLinecap="round" />
             <polygon points="12,5 13.5,8 17,8.5 14.5,10.5 15,14 12,12.5 9,14 9.5,10.5 7,8.5 10.5,8" fill="#FFFFFF" opacity="0.9" />
+            </g>
           </g>
         </g>
       );
@@ -262,8 +263,9 @@ function renderStickerGraphics(id: StickerId, p: string) {
           {/* Exclamation marks above with bounce */}
           <g transform="translate(44, 2)">
             <g className="st-exclamation">
-            <rect x="5" y="0" width="3.5" height="11" rx="1.5" fill="#EF4444" />
-            <circle cx="6.75" cy="14" r="2" fill="#EF4444" />
+              <rect x="5" y="0" width="3.5" height="11" rx="1.5" fill="#EF4444" />
+              <circle cx="6.75" cy="14" r="2" fill="#EF4444" />
+            </g>
           </g>
 
           {/* Main Shuddering Body */}
@@ -365,7 +367,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Pulsing Comic Anger Mark on Forehead */}
             <g transform="translate(50, 20)">
               <g className="st-anger-mark">
-              <path d="M-4 -3 L2 1 M2 -3 L-4 1 M-6 -1 L4 -1 M-1 -5 L-1 3" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
+                <path d="M-4 -3 L2 1 M2 -3 L-4 1 M-6 -1 L4 -1 M-1 -5 L-1 3" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
+              </g>
             </g>
           </g>
         </g>
@@ -405,8 +408,9 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Tapping Hand on Chin */}
             <g transform="translate(42, 66)">
               <g className="st-chin-hand">
-              <ellipse cx="6" cy="4" rx="5" ry="3.5" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
-              <circle cx="3" cy="2" r="1.5" fill="#FDBA74" />
+                <ellipse cx="6" cy="4" rx="5" ry="3.5" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+                <circle cx="3" cy="2" r="1.5" fill="#FDBA74" />
+              </g>
             </g>
           </g>
         </g>
@@ -517,8 +521,9 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <path d="M42 58 Q50 63 58 58" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
             <g transform="translate(47, 59)">
               <g className="st-tease-tongue">
-              <path d="M1 0 L7 0 C7 6 1 6 1 0 Z" fill="#F472B6" stroke="#BE185D" strokeWidth="1" />
-              <line x1="4" y1="0" x2="4" y2="4" stroke="#BE185D" strokeWidth="0.8" />
+                <path d="M1 0 L7 0 C7 6 1 6 1 0 Z" fill="#F472B6" stroke="#BE185D" strokeWidth="1" />
+                <line x1="4" y1="0" x2="4" y2="4" stroke="#BE185D" strokeWidth="0.8" />
+              </g>
             </g>
           </g>
         </g>
@@ -530,8 +535,9 @@ function renderStickerGraphics(id: StickerId, p: string) {
           {/* Confident Winner Ribbon or Gold Star */}
           <g transform="translate(70, 16)">
             <g className="st-gg-medal">
-            <polygon points="12,2 15,9 22,10 17,15 18,22 12,19 6,22 7,15 2,10 9,9" fill={`url(#${p}-gold)`} stroke="#B45309" strokeWidth="1" />
-            <circle cx="12" cy="12" r="3.5" fill="#FFFFFF" />
+              <polygon points="12,2 15,9 22,10 17,15 18,22 12,19 6,22 7,15 2,10 9,9" fill={`url(#${p}-gold)`} stroke="#B45309" strokeWidth="1" />
+              <circle cx="12" cy="12" r="3.5" fill="#FFFFFF" />
+            </g>
           </g>
 
           {/* Proud Approving Nod Body */}
@@ -556,10 +562,11 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Proud Pumping Thumbs-Up Hand in Front */}
             <g transform="translate(62, 54)">
               <g className="st-thumb">
-              {/* Thumb */}
-              <path d="M5 2 Q7 -4 10 2 L10 10 L4 10 Z" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
-              {/* Fist */}
-              <rect x="2" y="8" width="10" height="9" rx="3" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+                {/* Thumb */}
+                <path d="M5 2 Q7 -4 10 2 L10 10 L4 10 Z" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+                {/* Fist */}
+                <rect x="2" y="8" width="10" height="9" rx="3" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+              </g>
             </g>
           </g>
         </g>
@@ -620,15 +627,17 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Left ear hand wagging */}
             <g transform="translate(14, 38)">
               <g className="st-mock-hand-l">
-              <path d="M6 10 C0 8 0 2 6 2 C8 2 10 4 10 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
-              <circle cx="8" cy="8" r="4" fill="#93C5FD" />
+                <path d="M6 10 C0 8 0 2 6 2 C8 2 10 4 10 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+                <circle cx="8" cy="8" r="4" fill="#93C5FD" />
+              </g>
             </g>
 
             {/* Right ear hand wagging */}
             <g transform="translate(76, 38)">
               <g className="st-mock-hand-r">
-              <path d="M4 10 C10 8 10 2 4 2 C2 2 0 4 0 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
-              <circle cx="2" cy="8" r="4" fill="#93C5FD" />
+                <path d="M4 10 C10 8 10 2 4 2 C2 2 0 4 0 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+                <circle cx="2" cy="8" r="4" fill="#93C5FD" />
+              </g>
             </g>
 
             {/* Round Character Body */}
@@ -651,8 +660,9 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <path d="M39 58 Q50 68 61 58 Z" fill="#0F172A" />
             <g transform="translate(46, 59)">
               <g className="st-mock-tongue">
-              <path d="M0 0 L8 0 C8 9 0 9 0 0 Z" fill="#FB7185" stroke="#BE123C" strokeWidth="1" />
-              <line x1="4" y1="0" x2="4" y2="6" stroke="#BE123C" strokeWidth="0.8" />
+                <path d="M0 0 L8 0 C8 9 0 9 0 0 Z" fill="#FB7185" stroke="#BE123C" strokeWidth="1" />
+                <line x1="4" y1="0" x2="4" y2="6" stroke="#BE123C" strokeWidth="0.8" />
+              </g>
             </g>
           </g>
         </g>
@@ -687,10 +697,11 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Index Finger Wagging "No no no" */}
             <g transform="translate(66, 64)">
               <g className="st-finger-wag">
-              {/* Hand Fist */}
-              <circle cx="0" cy="0" r="5" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
-              {/* Pointing Index Finger */}
-              <path d="M-2 -1 L-2 -12 Q-1 -15 1 -15 Q3 -15 3 -12 L2 -1 Z" fill="#93C5FD" stroke="#1D4ED8" strokeWidth="1" />
+                {/* Hand Fist */}
+                <circle cx="0" cy="0" r="5" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
+                {/* Pointing Index Finger */}
+                <path d="M-2 -1 L-2 -12 Q-1 -15 1 -15 Q3 -15 3 -12 L2 -1 Z" fill="#93C5FD" stroke="#1D4ED8" strokeWidth="1" />
+              </g>
             </g>
           </g>
         </g>
@@ -702,24 +713,27 @@ function renderStickerGraphics(id: StickerId, p: string) {
           {/* Floating mini hearts */}
           <g transform="translate(26, 32)">
             <g className="st-float-heart-1">
-            <path
-              d="M0 -3 C-2 -6 -6 -6 -6 -2.5 C-6 1.2 -1.5 4 0 6 C1.5 4 6 1.2 6 -2.5 C6 -6 2 -6 0 -3 Z"
-              fill={`url(#${p}-heart-red)`}
-            />
+              <path
+                d="M0 -3 C-2 -6 -6 -6 -6 -2.5 C-6 1.2 -1.5 4 0 6 C1.5 4 6 1.2 6 -2.5 C6 -6 2 -6 0 -3 Z"
+                fill={`url(#${p}-heart-red)`}
+              />
+            </g>
           </g>
           <g transform="translate(74, 28)">
             <g className="st-float-heart-2">
-            <path
-              d="M0 -3.5 C-2.5 -7 -7 -7 -7 -3 C-7 1.5 -2 5 0 7 C2 5 7 1.5 7 -3 C7 -7 2.5 -7 0 -3.5 Z"
-              fill={`url(#${p}-heart-red)`}
-            />
+              <path
+                d="M0 -3.5 C-2.5 -7 -7 -7 -7 -3 C-7 1.5 -2 5 0 7 C2 5 7 1.5 7 -3 C7 -7 2.5 -7 0 -3.5 Z"
+                fill={`url(#${p}-heart-red)`}
+              />
+            </g>
           </g>
           <g transform="translate(50, 18)">
             <g className="st-float-heart-3">
-            <path
-              d="M0 -2.5 C-1.8 -5 -5 -5 -5 -2 C-5 1 -1 3.5 0 5 C1 3.5 5 1 5 -2 C5 -5 1.8 -5 0 -2.5 Z"
-              fill={`url(#${p}-cute-pink)`}
-            />
+              <path
+                d="M0 -2.5 C-1.8 -5 -5 -5 -5 -2 C-5 1 -1 3.5 0 5 C1 3.5 5 1 5 -2 C5 -5 1.8 -5 0 -2.5 Z"
+                fill={`url(#${p}-cute-pink)`}
+              />
+            </g>
           </g>
 
           {/* Main mascot body with loving sway */}
@@ -730,23 +744,25 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Glowing Heart Eyes */}
             <g transform="translate(39, 49)">
               <g className="st-heart-eye-l">
-              <path
-                d="M0 -4 C-2.5 -8 -8 -8 -8 -3.5 C-8 1.5 -2 5 0 8 C2 5 8 1.5 8 -3.5 C8 -8 2.5 -8 0 -4 Z"
-                fill={`url(#${p}-heart-red)`}
-                stroke="#BE123C"
-                strokeWidth="1"
-              />
-              <ellipse cx="-2.5" cy="-3.5" rx="1.8" ry="1.2" fill="#FFFFFF" opacity="0.85" />
+                <path
+                  d="M0 -4 C-2.5 -8 -8 -8 -8 -3.5 C-8 1.5 -2 5 0 8 C2 5 8 1.5 8 -3.5 C8 -8 2.5 -8 0 -4 Z"
+                  fill={`url(#${p}-heart-red)`}
+                  stroke="#BE123C"
+                  strokeWidth="1"
+                />
+                <ellipse cx="-2.5" cy="-3.5" rx="1.8" ry="1.2" fill="#FFFFFF" opacity="0.85" />
+              </g>
             </g>
             <g transform="translate(61, 49)">
               <g className="st-heart-eye-r">
-              <path
-                d="M0 -4 C-2.5 -8 -8 -8 -8 -3.5 C-8 1.5 -2 5 0 8 C2 5 8 1.5 8 -3.5 C8 -8 2.5 -8 0 -4 Z"
-                fill={`url(#${p}-heart-red)`}
-                stroke="#BE123C"
-                strokeWidth="1"
-              />
-              <ellipse cx="-2.5" cy="-3.5" rx="1.8" ry="1.2" fill="#FFFFFF" opacity="0.85" />
+                <path
+                  d="M0 -4 C-2.5 -8 -8 -8 -8 -3.5 C-8 1.5 -2 5 0 8 C2 5 8 1.5 8 -3.5 C8 -8 2.5 -8 0 -4 Z"
+                  fill={`url(#${p}-heart-red)`}
+                  stroke="#BE123C"
+                  strokeWidth="1"
+                />
+                <ellipse cx="-2.5" cy="-3.5" rx="1.8" ry="1.2" fill="#FFFFFF" opacity="0.85" />
+              </g>
             </g>
 
             {/* Radiant Rosy Blushing Cheeks */}
@@ -904,19 +920,21 @@ function renderStickerGraphics(id: StickerId, p: string) {
             {/* Cheering Paws */}
             <g transform="translate(30, 68)">
               <g className="st-cat-paw-l">
-              <circle cx="0" cy="0" r="6" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
-              <circle cx="0" cy="0" r="2.8" fill="#F472B6" />
-              <circle cx="-2.5" cy="-3.5" r="1.1" fill="#F472B6" />
-              <circle cx="0" cy="-4.2" r="1.1" fill="#F472B6" />
-              <circle cx="2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+                <circle cx="0" cy="0" r="6" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+                <circle cx="0" cy="0" r="2.8" fill="#F472B6" />
+                <circle cx="-2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+                <circle cx="0" cy="-4.2" r="1.1" fill="#F472B6" />
+                <circle cx="2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+              </g>
             </g>
             <g transform="translate(70, 68)">
               <g className="st-cat-paw-r">
-              <circle cx="0" cy="0" r="6" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
-              <circle cx="0" cy="0" r="2.8" fill="#F472B6" />
-              <circle cx="-2.5" cy="-3.5" r="1.1" fill="#F472B6" />
-              <circle cx="0" cy="-4.2" r="1.1" fill="#F472B6" />
-              <circle cx="2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+                <circle cx="0" cy="0" r="6" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+                <circle cx="0" cy="0" r="2.8" fill="#F472B6" />
+                <circle cx="-2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+                <circle cx="0" cy="-4.2" r="1.1" fill="#F472B6" />
+                <circle cx="2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+              </g>
             </g>
           </g>
         </g>
