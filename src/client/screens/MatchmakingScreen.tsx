@@ -216,20 +216,20 @@ export function MatchmakingScreen({
       />
 
       {activeMatch ? (
-        <Card className="p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-glow-sm">
-            <Swords className="h-7 w-7" aria-hidden />
+        <Card className="p-4 sm:p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
+          <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-glow-sm">
+            <Swords className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden />
           </div>
-          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent">
+          <p className="mt-2.5 sm:mt-3 text-xs font-bold uppercase tracking-wider text-accent">
             {isKm ? 'អ្នកកំពុងមានការប្រកួតស្រាប់' : 'You are already playing'}
           </p>
-          <h2 className="mt-2 text-xl font-black text-ink">
+          <h2 className="mt-1.5 sm:mt-2 text-lg sm:text-xl font-black text-ink">
             {isKm ? 'សូមបញ្ចប់ការប្រកួតបច្ចុប្បន្នជាមុនសិន' : 'Finish your current game first'}
           </h2>
-          <p className="mt-1.5 text-xs text-muted max-w-xs mx-auto">
+          <p className="mt-1 sm:mt-1.5 text-xs text-muted max-w-xs mx-auto">
             {isKm ? 'អនុញ្ញាតឱ្យមានការប្រកួតសកម្មតែម្តងប៉ុណ្ណោះក្នុងពេលតែមួយ។' : 'Only one active game is allowed at a time.'}
           </p>
-          <div className="mt-5 grid gap-2.5 max-w-xs mx-auto">
+          <div className="mt-4 sm:mt-5 grid gap-2 sm:gap-2.5 max-w-xs mx-auto">
             <Button size="lg" className="w-full font-bold shadow-md" onClick={() => navigate(`/game/${activeMatch.id}`)}>
               {isKm ? 'បន្តការប្រកួត' : 'Resume game'}
             </Button>
@@ -239,20 +239,20 @@ export function MatchmakingScreen({
           </div>
         </Card>
       ) : pendingInvite ? (
-        <Card className="p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-glow-sm">
-            <UserPlus className="h-7 w-7" aria-hidden />
+        <Card className="p-4 sm:p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
+          <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-glow-sm">
+            <UserPlus className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden />
           </div>
-          <p className="mt-3 text-xs font-bold uppercase tracking-wider text-accent">
+          <p className="mt-2.5 sm:mt-3 text-xs font-bold uppercase tracking-wider text-accent">
             {isKm ? 'ការអញ្ជើញកំពុងរង់ចាំ' : 'Invitation pending'}
           </p>
-          <h2 className="mt-2 text-xl font-black text-ink">
+          <h2 className="mt-1.5 sm:mt-2 text-lg sm:text-xl font-black text-ink">
             {isKm ? 'មិត្តភក្តិកំពុងចូលរួម' : 'A friend is on the way'}
           </h2>
-          <p className="mt-1.5 text-xs text-muted max-w-xs mx-auto">
+          <p className="mt-1 sm:mt-1.5 text-xs text-muted max-w-xs mx-auto">
             {isKm ? 'សូមបោះបង់ការអញ្ជើញរបស់អ្នក មុនពេលស្វែងរកការប្រកួតចៃដន្យ។' : 'Cancel your invitation before searching for a random game.'}
           </p>
-          <div className="mt-5 grid gap-2.5 max-w-xs mx-auto">
+          <div className="mt-4 sm:mt-5 grid gap-2 sm:gap-2.5 max-w-xs mx-auto">
             <Button size="lg" className="w-full font-bold shadow-md" onClick={() => navigate('/invite/waiting')}>
               {isKm ? 'មើលការអញ្ជើញ' : 'View invitation'}
             </Button>
@@ -262,22 +262,22 @@ export function MatchmakingScreen({
           </div>
         </Card>
       ) : expired ? (
-        <Card className="overflow-hidden p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500 shadow-glow-gold">
-            <Clock3 className="h-7 w-7" aria-hidden />
+        <Card className="overflow-hidden p-4 sm:p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
+          <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-amber-500/15 text-amber-500 shadow-glow-gold">
+            <Clock3 className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden />
           </div>
-          <h2 className="mt-3 text-xl font-black tracking-tight text-ink">
+          <h2 className="mt-2.5 sm:mt-3 text-lg sm:text-xl font-black tracking-tight text-ink">
             {queue?.state === 'error'
               ? isKm ? 'ការស្វែងរកត្រូវបានរំខាន' : 'Search interrupted'
               : isKm ? 'គ្មានអ្នកលេងក្នុងជួរទេ' : 'No one in the queue'}
           </h2>
-          <p className="mx-auto mt-1.5 max-w-xs text-xs leading-relaxed text-muted">
+          <p className="mx-auto mt-1 sm:mt-1.5 max-w-xs text-xs leading-relaxed text-muted">
             {queue?.message ??
               (isKm
                 ? 'គ្មានអ្នកលេងបង្ហាញខ្លួនទាន់ពេលទេ។ សាកល្បងស្វែងរកម្តងទៀត ឬលេងជាមួយ Bot។'
                 : 'Nobody showed up in time. Try the queue again or play the bot.')}
           </p>
-          <div className="mt-5 grid gap-2.5 max-w-xs mx-auto">
+          <div className="mt-4 sm:mt-5 grid gap-2 sm:gap-2.5 max-w-xs mx-auto">
             <Button icon={RefreshCw} loading={joining} size="lg" className="w-full font-bold shadow-md" onClick={() => void retry()}>
               {isKm ? 'ស្វែងរកម្តងទៀត' : 'Search again'}
             </Button>
@@ -292,19 +292,19 @@ export function MatchmakingScreen({
           </div>
         </Card>
       ) : connectionLost ? (
-        <Card className="p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-danger/15 text-danger shadow-glow-danger">
-            <WifiOff className="h-7 w-7" aria-hidden />
+        <Card className="p-4 sm:p-6 text-center shadow-glass backdrop-blur-xl animate-fade-up">
+          <div className="mx-auto flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl bg-danger/15 text-danger shadow-glow-danger">
+            <WifiOff className="h-6 w-6 sm:h-7 sm:w-7" aria-hidden />
           </div>
-          <h2 className="mt-3 text-xl font-black text-ink">
+          <h2 className="mt-2.5 sm:mt-3 text-lg sm:text-xl font-black text-ink">
             {isKm ? 'ការតភ្ជាប់ត្រូវបានកាត់ផ្តាច់' : 'Connection lost'}
           </h2>
-          <p className="mt-1.5 text-xs text-muted max-w-xs mx-auto leading-relaxed">
+          <p className="mt-1 sm:mt-1.5 text-xs text-muted max-w-xs mx-auto leading-relaxed">
             {isKm
               ? 'កន្លែងក្នុងជួររបស់អ្នកត្រូវបានបញ្ចេញ។ សូមភ្ជាប់ឡើងវិញដើម្បីស្វែងរកថ្មី — ពិន្ទុរបស់អ្នកនៅមានសុវត្ថិភាព។'
               : 'Your queue spot was released. Reconnect and start a fresh search — your rating is safe.'}
           </p>
-          <div className="mt-5 grid gap-2.5 max-w-xs mx-auto">
+          <div className="mt-4 sm:mt-5 grid gap-2 sm:gap-2.5 max-w-xs mx-auto">
             <Button icon={RefreshCw} size="lg" className="w-full font-bold shadow-md" onClick={client.reconnect}>
               {isKm ? 'ភ្ជាប់ឡើងវិញ' : 'Reconnect'}
             </Button>
@@ -317,18 +317,18 @@ export function MatchmakingScreen({
         <div className="md:flex md:min-h-[calc(var(--app-vh)-11rem)] md:flex-col md:justify-center">
           <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)] md:items-start md:gap-4">
             {/* Tactical Radar Card */}
-            <Card className="relative overflow-hidden p-5 sm:p-7 shadow-glass backdrop-blur-2xl border-line/80">
+            <Card className="relative overflow-hidden p-4 xs:p-5 sm:p-7 shadow-glass backdrop-blur-2xl border-line/80">
               {/* Background ambient radial aura */}
-              <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-accent/15 blur-3xl" aria-hidden />
-              <div className="pointer-events-none absolute -left-12 -bottom-12 h-44 w-44 rounded-full bg-[#24A1DE]/15 blur-3xl" aria-hidden />
+              <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 xs:h-44 xs:w-44 rounded-full bg-accent/15 blur-3xl" aria-hidden />
+              <div className="pointer-events-none absolute -left-8 -bottom-8 h-32 w-32 xs:h-44 xs:w-44 rounded-full bg-[#24A1DE]/15 blur-3xl" aria-hidden />
 
               {/* High-Tech Tactical Radar Scope */}
-              <div className="relative mx-auto flex h-36 w-36 items-center justify-center sm:h-40 sm:w-40 lg:h-44 lg:w-44">
+              <div className="relative mx-auto flex h-32 w-32 xs:h-36 xs:w-36 sm:h-40 sm:w-40 lg:h-44 lg:w-44 items-center justify-center">
                 {/* Concentric Range Rings */}
                 <span className="absolute inset-0 rounded-full border border-accent/25 bg-accent/5 shadow-inner" />
-                <span className="absolute inset-4 rounded-full border border-dashed border-accent/20" />
-                <span className="absolute inset-8 rounded-full border border-accent/15" />
-                <span className="absolute inset-12 rounded-full border border-accent/10" />
+                <span className="absolute inset-2.5 xs:inset-3 sm:inset-4 rounded-full border border-dashed border-accent/20" />
+                <span className="absolute inset-5 xs:inset-6 sm:inset-8 rounded-full border border-accent/15" />
+                <span className="absolute inset-7.5 xs:inset-9 sm:inset-12 rounded-full border border-accent/10" />
 
                 {/* Reticle Crosshairs */}
                 <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-accent/20" aria-hidden />
@@ -353,33 +353,33 @@ export function MatchmakingScreen({
 
                 {/* Searching Opponent Radar Blip */}
                 <div
-                  className="pointer-events-none absolute top-7 right-7 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(37,99,235,0.9)] animate-ping"
+                  className="pointer-events-none absolute top-5 right-5 sm:top-7 sm:right-7 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(37,99,235,0.9)] animate-ping"
                   style={{ animationDuration: '2.4s' }}
                   aria-hidden
                 />
                 <div
-                  className="pointer-events-none absolute bottom-9 left-8 h-2 w-2 rounded-full bg-[#e11d48] shadow-[0_0_8px_rgba(225,29,72,0.8)] animate-pulse"
+                  className="pointer-events-none absolute bottom-6 left-6 sm:bottom-9 sm:left-8 h-2 w-2 rounded-full bg-[#e11d48] shadow-[0_0_8px_rgba(225,29,72,0.8)] animate-pulse"
                   aria-hidden
                 />
 
                 {/* Center Core Scope Icon */}
-                <div className="relative flex h-16 w-16 items-center justify-center rounded-2xl border border-accent/50 bg-surface/90 text-accent shadow-glow backdrop-blur-md">
-                  <Search className="h-7 w-7 text-accent animate-pulse-subtle drop-shadow-[0_0_8px_rgba(37,99,235,0.6)]" aria-hidden />
-                  <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                <div className="relative flex h-13 w-13 xs:h-14 xs:w-14 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl border border-accent/50 bg-surface/90 text-accent shadow-glow backdrop-blur-md">
+                  <Search className="h-5 w-5 sm:h-7 sm:w-7 text-accent animate-pulse-subtle drop-shadow-[0_0_8px_rgba(37,99,235,0.6)]" aria-hidden />
+                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                    <span className="relative inline-flex h-3 w-3 rounded-full bg-accent ring-2 ring-surface" />
+                    <span className="relative inline-flex h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-accent ring-2 ring-surface" />
                   </span>
                 </div>
               </div>
 
               {/* Status Header & Elapsed Timer */}
-              <div className="mt-4 text-center sm:mt-5">
-                <h2 aria-live="polite" className="text-xl font-black tracking-tight text-ink sm:text-2xl">
+              <div className="mt-3.5 sm:mt-5 text-center">
+                <h2 aria-live="polite" className="text-lg sm:text-2xl font-black tracking-tight text-ink">
                   {queue
                     ? isKm ? 'កំពុងស្វែងរកគូប្រកួត' : 'Finding an opponent'
                     : isKm ? 'កំពុងចូលរួមជួររង់ចាំ' : 'Joining the queue'}
                 </h2>
-                <div className="mt-1.5 flex items-center justify-center gap-2 text-xs text-muted font-medium">
+                <div className="mt-1 sm:mt-1.5 flex items-center justify-center gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-muted font-medium">
                   <span className="relative flex h-2 w-2">
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
@@ -392,12 +392,12 @@ export function MatchmakingScreen({
                 </div>
 
                 {/* Status Badges */}
-                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                  <Pill tone="accent" className="shadow-xs">
+                <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                  <Pill tone="accent" className="text-[10.5px] sm:text-xs py-0.5 sm:py-1 shadow-xs">
                     <Users className="h-3 w-3" aria-hidden />
                     {isKm ? `${queue?.waitingPlayers ?? 1} នាក់ក្នុងជួរ` : `${queue?.waitingPlayers ?? 1} in queue`}
                   </Pill>
-                  <Pill className="tabular-nums shadow-xs">
+                  <Pill className="text-[10.5px] sm:text-xs py-0.5 sm:py-1 tabular-nums shadow-xs">
                     <Clock3 className="h-3 w-3" aria-hidden />
                     {timeLeftLabel}
                   </Pill>
@@ -415,7 +415,7 @@ export function MatchmakingScreen({
                   aria-valuemax={100}
                   aria-valuenow={Math.round(searchProgress * 100)}
                   aria-valuetext={`${Math.round(searchProgress * 100)}% of the wait completed`}
-                  className="mx-auto mt-3 h-2.5 max-w-[15rem] overflow-hidden rounded-full bg-elevated p-0.5 border border-line/70 shadow-inner"
+                  className="mx-auto mt-2.5 sm:mt-3 h-2 sm:h-2.5 max-w-[13rem] sm:max-w-[15rem] overflow-hidden rounded-full bg-elevated p-0.5 border border-line/70 shadow-inner"
                 >
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-accent shadow-glow transition-[width] duration-1000 ease-linear"
@@ -424,7 +424,7 @@ export function MatchmakingScreen({
                 </div>
 
                 {/* Quick Secondary Actions */}
-                <div className="mx-auto mt-4 max-w-xs border-t border-line/60 pt-3">
+                <div className="mx-auto mt-3 sm:mt-4 max-w-xs border-t border-line/60 pt-2.5 sm:pt-3">
                   <div className="grid grid-cols-2 gap-2">
                     <Button
                       size="sm"
@@ -432,7 +432,7 @@ export function MatchmakingScreen({
                       variant="secondary"
                       disabled={joining}
                       onClick={() => void playBot()}
-                      className="font-semibold shadow-xs hover:border-accent/40"
+                      className="font-semibold shadow-xs hover:border-accent/40 text-xs"
                     >
                       {isKm ? 'លេង Bot' : 'Play Bot'}
                     </Button>
@@ -442,7 +442,7 @@ export function MatchmakingScreen({
                       variant="secondary"
                       disabled={joining}
                       onClick={inviteFriend}
-                      className="font-semibold shadow-xs hover:border-accent/40"
+                      className="font-semibold shadow-xs hover:border-accent/40 text-xs"
                     >
                       {isKm ? 'អញ្ជើញមិត្តភក្តិ' : 'Invite friend'}
                     </Button>
@@ -461,13 +461,13 @@ export function MatchmakingScreen({
             </Card>
 
             {/* Sidebar Cards */}
-            <div className="mt-3.5 space-y-3 md:mt-0">
+            <div className="mt-3 sm:mt-3.5 space-y-2.5 sm:space-y-3 md:mt-0">
               {/* Auto Bot Fallback Card */}
-              <Card className="p-4 sm:p-5 shadow-glass backdrop-blur-xl border-line/80">
+              <Card className="p-3.5 sm:p-5 shadow-glass backdrop-blur-xl border-line/80">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="text-sm font-bold text-ink">
+                    <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                      <p className="text-xs sm:text-sm font-bold text-ink">
                         {isKm ? 'លេងជាមួយ Bot ស្វ័យប្រវត្តិ' : 'Auto-play a bot'}
                       </p>
                       {autoFallback ? (
@@ -476,7 +476,7 @@ export function MatchmakingScreen({
                         </Pill>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted tabular-nums">
+                    <p className="mt-0.5 sm:mt-1 text-[10px] sm:text-[11px] leading-relaxed text-muted tabular-nums">
                       {isKm
                         ? `ប្រសិនគ្មានអ្នកលេងបន្ទាប់ពី ${formatDuration(config?.queueAiTimeoutMs ?? 0)} នឹងចាប់ផ្តើមជាមួយ Bot ស្វ័យប្រវត្តិ។`
                         : `After ${formatDuration(config?.queueAiTimeoutMs ?? 0)}, start a bot game automatically.`}
@@ -492,23 +492,23 @@ export function MatchmakingScreen({
 
               {/* Bot Fallback Ready Card */}
               {fallbackReady ? (
-                <Card className="border-accent/30 bg-accent/[0.04] p-4 sm:p-5 shadow-glass backdrop-blur-xl animate-fade-up">
-                  <div className="flex items-start gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-xs">
-                      <Bot className="h-5 w-5" aria-hidden />
+                <Card className="border-accent/30 bg-accent/[0.04] p-3.5 sm:p-5 shadow-glass backdrop-blur-xl animate-fade-up">
+                  <div className="flex items-start gap-2.5 sm:gap-3">
+                    <span className="flex h-8 w-8 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-xl sm:rounded-2xl bg-accent/15 text-accent shadow-xs">
+                      <Bot className="h-4 w-4 sm:h-5 sm:w-5" aria-hidden />
                     </span>
                     <div className="min-w-0 flex-1">
-                      <p className="text-sm font-bold text-ink">
+                      <p className="text-xs sm:text-sm font-bold text-ink">
                         {isKm ? 'មិនទាន់មានអ្នកលេង?' : 'No human yet?'}
                       </p>
-                      <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
+                      <p className="mt-0.5 text-[10px] sm:text-[11px] leading-relaxed text-muted">
                         {isKm
                           ? `លេងការប្រកួតមិនគិតពិន្ទុជាមួយ Bot កម្រិត ${config?.aiFallbackDifficulty.toLowerCase() ?? 'មធ្យម'} ជំនួសវិញ។`
                           : `Play an unrated ${config?.aiFallbackDifficulty.toLowerCase() ?? 'medium'} bot game instead. This leaves the queue.`}
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2">
+                  <div className="mt-2.5 sm:mt-3 grid grid-cols-2 gap-2">
                     <Button size="sm" icon={Bot} className="font-bold shadow-sm" onClick={() => void playBot()}>
                       {isKm ? 'លេងជាមួយ Bot' : 'Play bot'}
                     </Button>
@@ -541,7 +541,7 @@ export function MatchmakingScreen({
           </div>
 
           {/* Cancel Search Footer */}
-          <div className="mt-5 flex flex-col items-center gap-2 md:mt-7">
+          <div className="mt-4 sm:mt-5 md:mt-7 flex flex-col items-center gap-1.5 sm:gap-2">
             <Button
               variant="ghost"
               icon={X}
@@ -551,7 +551,7 @@ export function MatchmakingScreen({
             >
               {isKm ? 'បោះបង់ការស្វែងរក' : 'Cancel search'}
             </Button>
-            <p className="max-w-xs text-center text-[10.5px] leading-relaxed text-muted md:hidden">
+            <p className="max-w-xs text-center text-[9.5px] sm:text-[10.5px] leading-relaxed text-muted md:hidden">
               {isKm
                 ? 'ការចាកចេញពីជួរគឺឥតគិតថ្លៃ។ ពិន្ទុនឹងត្រូវគិតលុះត្រាតែការប្រកួតចាប់ផ្តើម។'
                 : 'Leaving the queue is free. You are only rated once a game actually begins.'}

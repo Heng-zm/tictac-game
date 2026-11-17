@@ -235,16 +235,16 @@ export function InviteWaitingScreen({
       />
 
       {activeMatch ? (
-        <Card className="p-5 text-center">
+        <Card className="p-4 sm:p-5 text-center">
           <p className="text-[10px] font-semibold uppercase tracking-[0.1em] text-accent">
             {isKm ? 'ការប្រកួតកំពុងដំណើរការ' : 'Game in progress'}
           </p>
-          <h2 className="mt-2 text-xl font-bold text-ink">
+          <h2 className="mt-1.5 sm:mt-2 text-lg sm:text-xl font-bold text-ink">
             {activeFriendMatch
               ? (isKm ? 'មិត្តភក្តិរបស់អ្នកបានចូលរួមហើយ' : 'Your friend already joined')
               : (isKm ? 'អ្នកមានការប្រកួតមួយរួចហើយ' : 'You already have a game')}
           </h2>
-          <p className="mt-1 text-sm text-muted">
+          <p className="mt-1 text-xs sm:text-sm text-muted">
             {activeFriendMatch
               ? (isKm ? 'ការអញ្ជើញត្រូវបានទទួលយក។ ត្រឡប់ទៅក្ដារហ្គេមវិញ។' : 'The invitation was accepted. Jump back into the board.')
               : (isKm ? 'អាចលេងបានតែមួយហ្គេមក្នុងពេលតែមួយ។ សូមបញ្ចប់ហ្គេមបច្ចុប្បន្នសិន មុនពេលអញ្ជើញមិត្តភក្តិ។' : 'Only one game can be active at a time. Finish your current board before inviting a friend.')}
@@ -254,23 +254,23 @@ export function InviteWaitingScreen({
           </Button>
         </Card>
       ) : (
-        <Card className="p-5">
+        <Card className="p-4 sm:p-5">
           <div className="flex flex-col items-center text-center">
             <div className="relative">
               <span className="absolute inset-0 rounded-full bg-accent/20 animate-pulse-ring" />
-              <Avatar name={profile?.firstName ?? (isKm ? 'អ្នក' : 'You')} photoUrl={profile?.photoUrl} size="xl" ring />
-              <span className="absolute -bottom-1 -right-1 flex h-8 w-8 items-center justify-center rounded-full border-2 border-surface bg-accent text-accent-ink">
-                <UserPlus className="h-4 w-4" aria-hidden />
+              <Avatar name={profile?.firstName ?? (isKm ? 'អ្នក' : 'You')} photoUrl={profile?.photoUrl} size="lg" ring />
+              <span className="absolute -bottom-1 -right-1 flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full border-2 border-surface bg-accent text-accent-ink">
+                <UserPlus className="h-3.5 w-3.5 sm:h-4 sm:w-4" aria-hidden />
               </span>
             </div>
-            <h2 className="mt-4 text-xl font-bold tracking-tight text-ink">
+            <h2 className="mt-3 sm:mt-4 text-lg sm:text-xl font-bold tracking-tight text-ink">
               {staleInvite
                 ? (isKm ? 'កំពុងបង្កើតការអញ្ជើញថ្មី…' : 'Refreshing your invitation…')
                 : creating
                   ? (isKm ? 'កំពុងបង្កើតតំណភ្ជាប់…' : 'Creating your link…')
                   : (isKm ? 'ក្ដារហ្គេមកំពុងរង់ចាំ' : 'Your board is waiting')}
             </h2>
-            <p className="mt-1 max-w-xs text-sm leading-relaxed text-muted">
+            <p className="mt-1 max-w-xs text-xs sm:text-sm leading-relaxed text-muted">
               {staleInvite || creating
                 ? (isKm ? 'តំណមុនត្រូវបានបិទ។ កំពុងរៀបចំការអញ្ជើញឯកជនថ្មីសម្រាប់មិត្តភក្តិរបស់អ្នក។' : 'The previous link is closed. Preparing a new private invitation for your friend.')
                 : expired
@@ -279,12 +279,12 @@ export function InviteWaitingScreen({
             </p>
 
             {pendingInvite && !staleInvite ? (
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                <Pill tone={expired ? 'danger' : 'accent'}>
+              <div className="mt-2.5 sm:mt-3 flex flex-wrap items-center justify-center gap-1.5 sm:gap-2">
+                <Pill tone={expired ? 'danger' : 'accent'} className="text-[10px] sm:text-xs py-0.5 sm:py-1">
                   <Clock3 className="h-3 w-3" aria-hidden />
                   {expired ? (isKm ? 'ផុតកំណត់' : 'Expired') : isKm ? `នៅសល់ ${formatLongDuration(remaining)}` : `${formatLongDuration(remaining)} left`}
                 </Pill>
-                <Pill tone="success">
+                <Pill tone="success" className="text-[10px] sm:text-xs py-0.5 sm:py-1">
                   <ShieldCheck className="h-3 w-3" aria-hidden />
                   {isKm ? 'អ្នកបើកមុនបានចូលលេង' : 'First to open joins'}
                 </Pill>
@@ -293,14 +293,14 @@ export function InviteWaitingScreen({
           </div>
 
           {(creating || staleInvite) && !deepLink ? (
-            <div className="mt-6 flex flex-col items-center gap-2">
+            <div className="mt-5 sm:mt-6 flex flex-col items-center gap-2">
               <Spinner />
               <p className="text-xs text-muted">
                 {isKm ? 'កំពុងរៀបចំកូដអញ្ជើញសុវត្ថិភាព…' : 'Preparing a secure invitation token…'}
               </p>
             </div>
           ) : deepLink && !expired ? (
-            <div className="mt-5">
+            <div className="mt-4 sm:mt-5">
               <div className="flex items-center gap-2 rounded-2xl border border-line bg-app/60 p-2 pl-3">
                 <Link2 className="h-4 w-4 shrink-0 text-accent" aria-hidden />
                 <p className="min-w-0 flex-1 break-all text-[11px] leading-relaxed text-muted">{deepLink}</p>
@@ -324,7 +324,7 @@ export function InviteWaitingScreen({
               </div>
             </div>
           ) : !expired && !staleInvite && !creating ? (
-            <div className="mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-left">
+            <div className="mt-4 sm:mt-5 rounded-2xl border border-amber-500/25 bg-amber-500/10 p-3 text-left">
               <p className="text-xs font-semibold text-ink">
                 {isKm ? 'មិនមានតំណនៅលើឧបករណ៍នេះទេ' : 'Link unavailable on this device'}
               </p>
