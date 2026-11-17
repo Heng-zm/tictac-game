@@ -110,10 +110,8 @@ describe('GameResult Component', () => {
     expect(screen.getByText('Playing X')).toBeTruthy();
     expect(screen.getByText('Playing O')).toBeTruthy();
 
-    // Quick metrics
-    expect(screen.getByText('9')).toBeTruthy(); // 9 moves
-    expect(screen.getByText('2:15')).toBeTruthy(); // 2m 15s duration
-    expect(screen.getByText('+20')).toBeTruthy(); // estimated rating impact (+20 for rated win)
+    // Rating pill
+    expect(screen.getByText(/Rating \+20/i)).toBeTruthy();
   });
 
   it('renders defeat screen properly for lost game', () => {
@@ -190,7 +188,7 @@ describe('GameResult Component', () => {
     expect(document.querySelector('.result-confetti')).toBeNull();
   });
 
-  it('renders quick match metrics tiles without deciding area mini-board', () => {
+  it('renders clean modal layout without clutter tiles', () => {
     const match = createSampleMatch();
     render(
       <GameResult
@@ -202,11 +200,10 @@ describe('GameResult Component', () => {
       />,
     );
 
-    expect(screen.getByText('Moves')).toBeTruthy();
-    expect(screen.getByText('Duration')).toBeTruthy();
-    expect(screen.getByText('Rating')).toBeTruthy();
+    expect(screen.queryByText('Moves')).toBeNull();
+    expect(screen.queryByText('Duration')).toBeNull();
     expect(screen.queryByRole('img', { name: 'Final board around the deciding area' })).toBeNull();
-    expect(screen.queryByText('Deciding 5×5 area')).toBeNull();
+    expect(screen.queryByText(/Deciding.*area/i)).toBeNull();
   });
 
   it('handles Review Board minimize and reopen interaction', () => {

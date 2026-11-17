@@ -21,7 +21,6 @@ import {
   ratingImpactFor,
   yourPlayer,
 } from '../lib/game';
-import { formatDuration } from '../hooks/use-time';
 import { Avatar, Button, Modal, Pill } from './ui';
 
 const CONFETTI_COLORS = ['#fbbf24', '#f59e0b', '#fde68a', '#38bdf8', '#a78bfa', '#34d399'];
@@ -109,13 +108,6 @@ export function GameResult({
       : rematchBusy
         ? 'Starting…'
         : 'Play again';
-
-  const movesCount = Object.keys(match.board).length;
-  const matchDurationMs =
-    match.startedAt && match.finishedAt
-      ? Math.max(0, new Date(match.finishedAt).getTime() - new Date(match.startedAt).getTime())
-      : null;
-  const durationText = matchDurationMs !== null ? formatDuration(matchDurationMs) : null;
 
   // Minimized review bar so player can freely pan/inspect the board
   if (open && minimized) {
@@ -268,33 +260,6 @@ export function GameResult({
                 {opponent?.isAi ? 'Bot' : 'Playing ' + (match.youSide === 'X' ? 'O' : 'X')}
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Quick Match Metrics Tiles */}
-        <div className="mx-auto mt-2.5 sm:mt-3 grid max-w-[20rem] grid-cols-3 gap-1.5 sm:gap-2">
-          <div className="rounded-xl border border-line/60 bg-elevated/30 p-1.5 sm:p-2 text-center">
-            <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-muted">Moves</span>
-            <p className="mt-0.5 text-xs sm:text-sm font-extrabold tabular-nums text-ink">{movesCount}</p>
-          </div>
-          <div className="rounded-xl border border-line/60 bg-elevated/30 p-1.5 sm:p-2 text-center">
-            <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-muted">Duration</span>
-            <p className="mt-0.5 text-xs sm:text-sm font-extrabold tabular-nums text-ink">{durationText ?? '<1m'}</p>
-          </div>
-          <div className="rounded-xl border border-line/60 bg-elevated/30 p-1.5 sm:p-2 text-center">
-            <span className="text-[9px] sm:text-[9.5px] font-bold uppercase tracking-wider text-muted">Rating</span>
-            <p
-              className={cn(
-                'mt-0.5 text-xs sm:text-sm font-extrabold tabular-nums',
-                impact && impact > 0
-                  ? 'text-emerald-500'
-                  : impact && impact < 0
-                    ? 'text-rose-500'
-                    : 'text-muted',
-              )}
-            >
-              {impact !== null && impact !== 0 ? (impact > 0 ? `+${impact}` : `${impact}`) : '±0'}
-            </p>
           </div>
         </div>
 
