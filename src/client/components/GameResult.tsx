@@ -267,7 +267,7 @@ export function GameResult({
 
 
         {/* Deciding Area Mini Board */}
-        <FinalBoard match={match} />
+        <FinalBoard match={match} onReview={() => setMinimized(true)} />
 
         {/* Bot Parting Shot / Taunt */}
         {taunt ? (
@@ -332,8 +332,8 @@ function FinalStoneMark({ value, isWinning }: { value: 'X' | 'O'; isWinning?: bo
       <svg
         viewBox="0 0 100 100"
         className={cn(
-          'h-3.5 w-3.5 stroke-[16] stroke-accent drop-shadow-[0_0_4px_rgba(37,99,235,0.7)]',
-          isWinning && 'stroke-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.9)]',
+          'h-5 w-5 sm:h-5.5 sm:w-5.5 stroke-[14] stroke-accent drop-shadow-[0_0_6px_rgba(59,130,246,0.65)]',
+          isWinning && 'stroke-amber-500 dark:stroke-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]',
         )}
         strokeLinecap="round"
         aria-hidden
@@ -347,8 +347,8 @@ function FinalStoneMark({ value, isWinning }: { value: 'X' | 'O'; isWinning?: bo
     <svg
       viewBox="0 0 100 100"
       className={cn(
-        'h-3.5 w-3.5 stroke-[14] stroke-danger drop-shadow-[0_0_4px_rgba(239,68,68,0.7)] fill-none',
-        isWinning && 'stroke-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.9)]',
+        'h-5 w-5 sm:h-5.5 sm:w-5.5 stroke-[13] stroke-danger drop-shadow-[0_0_6px_rgba(239,68,68,0.65)] fill-none',
+        isWinning && 'stroke-amber-500 dark:stroke-amber-400 drop-shadow-[0_0_8px_rgba(245,158,11,0.9)]',
       )}
       aria-hidden
     >
@@ -357,7 +357,7 @@ function FinalStoneMark({ value, isWinning }: { value: 'X' | 'O'; isWinning?: bo
   );
 }
 
-function FinalBoard({ match }: { match: PublicMatchState }) {
+function FinalBoard({ match, onReview }: { match: PublicMatchState; onReview?: () => void }) {
   const occupied = Object.keys(match.board).map(Number);
   if (occupied.length === 0) return null;
 
@@ -384,27 +384,21 @@ function FinalBoard({ match }: { match: PublicMatchState }) {
 
   return (
     <div className="mx-auto mt-3 max-w-[20rem]">
-      <div className="mb-1 flex items-center justify-between px-1 text-[10px] font-semibold text-muted">
-        <span>Deciding 5×5 area</span>
-        {winningLine ? (
-          <span className="text-amber-500 font-bold">5 in a row</span>
-        ) : (
-          <span>{occupied.length} total moves</span>
-        )}
-      </div>
       <div
-        className="mx-auto grid w-[10rem] grid-cols-5 gap-1 rounded-2xl border border-line/80 bg-elevated/60 p-1.5 shadow-sm"
+        className="mx-auto grid w-[12.5rem] sm:w-[13.5rem] grid-cols-5 gap-1.5 rounded-3xl border border-line/80 bg-elevated/40 p-2 sm:p-2.5 shadow-sm backdrop-blur-xs transition-transform hover:scale-[1.02] cursor-pointer"
         role="img"
-        aria-label="Final board around the deciding area"
+        aria-label="Final board showing the deciding 5-in-a-row area"
+        onClick={onReview}
+        title="Inspect full board"
       >
         {cells.map(({ cell, value }) => (
           <span
             key={cell}
             className={cn(
-              'relative flex aspect-square items-center justify-center rounded-lg border text-xs font-black leading-none transition-all',
+              'relative flex aspect-square items-center justify-center rounded-xl sm:rounded-2xl border transition-all',
               winningCells.has(cell)
-                ? 'border-amber-400/80 bg-amber-400/20 text-amber-500 dark:text-amber-300 ring-1 ring-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,0.45)]'
-                : cn('border-line/60', value ? 'bg-surface shadow-xs' : 'bg-surface/30'),
+                ? 'border-2 border-amber-400/90 bg-amber-400/20 text-amber-500 dark:text-amber-300 ring-2 ring-amber-400/40 shadow-[0_0_12px_rgba(251,191,36,0.55)]'
+                : cn('border-line/50', value ? 'bg-surface shadow-xs' : 'bg-surface/30'),
             )}
           >
             <span className="sr-only">{value ?? ''}</span>

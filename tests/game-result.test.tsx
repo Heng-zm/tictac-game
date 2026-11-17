@@ -188,7 +188,7 @@ describe('GameResult Component', () => {
     expect(document.querySelector('.result-confetti')).toBeNull();
   });
 
-  it('renders deciding area mini-board with winning line highlighted', () => {
+  it('renders deciding area mini-board with winning line highlighted and clean layout', () => {
     const match = createSampleMatch();
     render(
       <GameResult
@@ -202,10 +202,15 @@ describe('GameResult Component', () => {
 
     expect(screen.queryByText('Moves')).toBeNull();
     expect(screen.queryByText('Duration')).toBeNull();
-    const miniBoard = screen.getByRole('img', { name: 'Final board around the deciding area' });
+    expect(screen.queryByText('Deciding 5×5 area')).toBeNull();
+
+    const miniBoard = screen.getByRole('img', { name: /Final board showing the deciding 5-in-a-row area/i });
     expect(miniBoard).toBeTruthy();
-    expect(screen.getByText('Deciding 5×5 area')).toBeTruthy();
-    expect(screen.getByText('5 in a row')).toBeTruthy();
+
+    // Clicking mini-board minimizes result modal to inspect the full board
+    fireEvent.click(miniBoard);
+    expect(screen.queryByRole('dialog', { name: 'Game result' })).toBeNull();
+    expect(screen.getByRole('region', { name: 'Match outcome summary' })).toBeTruthy();
   });
 
   it('handles Review Board minimize and reopen interaction', () => {
