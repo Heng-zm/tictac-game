@@ -1,24 +1,19 @@
 import { useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  Check,
   Eye,
   Flag,
-  History,
   Home,
   Minus,
   RotateCcw,
-  Share2,
   Swords,
   Trophy,
   X,
 } from 'lucide-react';
 import type { PublicMatchState } from '../../shared/game-types';
-import { decodeCell, encodeCell } from '../../shared/game-types';
 import { cn } from '../lib/cn';
 import {
   describeOutcome,
-  findWinningLine,
   finishReasonCopy,
   isRatedMatch,
   modeLabel,
@@ -62,7 +57,7 @@ export function GameResult({
   rematchBusy,
   onRematch,
   onHome,
-  onHistory,
+  onHistory: _onHistory,
 }: {
   match: PublicMatchState;
   open: boolean;
@@ -71,10 +66,9 @@ export function GameResult({
   rematchBusy: boolean;
   onRematch: () => void;
   onHome: () => void;
-  onHistory: () => void;
+  onHistory?: () => void;
 }) {
   const [minimized, setMinimized] = useState(false);
-  const [copied, setCopied] = useState(false);
 
   const outcome = describeOutcome(match);
   const you = yourPlayer(match);
@@ -122,19 +116,6 @@ export function GameResult({
       ? Math.max(0, new Date(match.finishedAt).getTime() - new Date(match.startedAt).getTime())
       : null;
   const durationText = matchDurationMs !== null ? formatDuration(matchDurationMs) : null;
-
-  const handleShare = async () => {
-    const text = `🎮 Tic Tac Toe (5-in-a-Row)\n${outcome === 'win' ? '🏆 Victory' : outcome === 'loss' ? '💀 Defeat' : '🤝 Draw'} vs ${opponentName}!\n⚡ ${movesCount} moves · ${modeLabel(match.mode)}\nPlay at: https://t.me/TicTacToeGameBot`;
-    try {
-      if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(text);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-      }
-    } catch {
-      // Ignore clipboard write failures in unsupported WebViews
-    }
-  };
 
   // Minimized review bar so player can freely pan/inspect the board
   if (open && minimized) {
@@ -317,8 +298,6 @@ export function GameResult({
           </div>
         </div>
 
-        {/* Deciding Area Mini Board */}
-        <FinalBoard match={match} />
 
         {/* Bot Parting Shot / Taunt */}
         {taunt ? (
@@ -361,19 +340,8 @@ export function GameResult({
             >
               Review Board
             </Button>
-            <Button
-              variant="secondary"
-              icon={copied ? Check : Share2}
-              onClick={handleShare}
-              title="Share match summary"
-            >
-              {copied ? 'Copied!' : 'Share'}
-            </Button>
             <Button variant="secondary" icon={Home} onClick={onHome}>
               Home
-            </Button>
-            <Button variant="secondary" icon={History} onClick={onHistory}>
-              History
             </Button>
           </div>
         </div>
@@ -383,97 +351,5 @@ export function GameResult({
         ) : null}
       </div>
     </Modal>
-  );
-}
-
-const FINAL_BOARD_RADIUS = 2;
-
-function FinalStoneMark({ value, isWinning }: { value: 'X' | 'O'; isWinning?: boolean }) {
-  if (value === 'X') {
-    return (
-      <svg
-        viewBox="0 0 100 100"
-        className={cn(
-          'h-3.5 w-3.5 stroke-[16] stroke-accent drop-shadow-[0_0_4px_rgba(37,99,235,0.7)]',
-          isWinning && 'stroke-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.9)]',
-        )}
-        strokeLinecap="round"
-        aria-hidden
-      >
-        <line x1="22" y1="22" x2="78" y2="78" />
-        <line x1="78" y1="22" x2="22" y2="78" />
-      </svg>
-    );
-  }
-  return (
-    <svg
-      viewBox="0 0 100 100"
-      className={cn(
-        'h-3.5 w-3.5 stroke-[14] stroke-danger drop-shadow-[0_0_4px_rgba(239,68,68,0.7)] fill-none',
-        isWinning && 'stroke-amber-400 drop-shadow-[0_0_6px_rgba(251,191,36,0.9)]',
-      )}
-      aria-hidden
-    >
-      <circle cx="50" cy="50" r="28" />
-    </svg>
-  );
-}
-
-function FinalBoard({ match }: { match: PublicMatchState }) {
-  const occupied = Object.keys(match.board).map(Number);
-  if (occupied.length === 0) return null;
-
-  const winningLine = findWinningLine(match.board);
-  const winningCells = new Set<number>(winningLine ?? []);
-  const average = occupied.reduce(
-    (sum, cell) => {
-      const { x, y } = decodeCell(cell);
-      return { x: sum.x + x, y: sum.y + y };
-    },
-    { x: 0, y: 0 },
-  );
-  const focusCell =
-    winningLine?.[Math.floor(winningLine.length / 2)] ??
-    encodeCell(Math.round(average.x / occupied.length), Math.round(average.y / occupied.length));
-  const focus = decodeCell(focusCell);
-  const span = FINAL_BOARD_RADIUS * 2 + 1;
-  const cells = Array.from({ length: span * span }, (_, index) => {
-    const x = focus.x + (index % span) - FINAL_BOARD_RADIUS;
-    const y = focus.y + Math.floor(index / span) - FINAL_BOARD_RADIUS;
-    const cell = encodeCell(x, y);
-    return { cell, value: match.board[cell] };
-  });
-
-  return (
-    <div className="mx-auto mt-3 max-w-[20rem]">
-      <div className="mb-1 flex items-center justify-between px-1 text-[10px] font-semibold text-muted">
-        <span>Deciding 5×5 area</span>
-        {winningLine ? (
-          <span className="text-amber-500 font-bold">5 in a row</span>
-        ) : (
-          <span>{occupied.length} total moves</span>
-        )}
-      </div>
-      <div
-        className="mx-auto grid w-[10rem] grid-cols-5 gap-1 rounded-2xl border border-line/80 bg-elevated/60 p-1.5 shadow-sm"
-        role="img"
-        aria-label="Final board around the deciding area"
-      >
-        {cells.map(({ cell, value }) => (
-          <span
-            key={cell}
-            className={cn(
-              'relative flex aspect-square items-center justify-center rounded-lg border text-xs font-black leading-none transition-all',
-              winningCells.has(cell)
-                ? 'border-amber-400/80 bg-amber-400/20 text-amber-500 dark:text-amber-300 ring-1 ring-amber-400/50 shadow-[0_0_8px_rgba(251,191,36,0.45)]'
-                : cn('border-line/60', value ? 'bg-surface shadow-xs' : 'bg-surface/30'),
-            )}
-          >
-            <span className="sr-only">{value ?? ''}</span>
-            {value ? <FinalStoneMark value={value} isWinning={winningCells.has(cell)} /> : null}
-          </span>
-        ))}
-      </div>
-    </div>
   );
 }

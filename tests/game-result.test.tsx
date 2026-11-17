@@ -190,7 +190,7 @@ describe('GameResult Component', () => {
     expect(document.querySelector('.result-confetti')).toBeNull();
   });
 
-  it('renders deciding area mini-board with winning line highlighted', () => {
+  it('renders quick match metrics tiles without deciding area mini-board', () => {
     const match = createSampleMatch();
     render(
       <GameResult
@@ -199,14 +199,14 @@ describe('GameResult Component', () => {
         rematchBusy={false}
         onRematch={vi.fn()}
         onHome={vi.fn()}
-        onHistory={vi.fn()}
       />,
     );
 
-    const miniBoard = screen.getByRole('img', { name: 'Final board around the deciding area' });
-    expect(miniBoard).toBeTruthy();
-    expect(screen.getByText('Deciding 5×5 area')).toBeTruthy();
-    expect(screen.getByText('5 in a row')).toBeTruthy();
+    expect(screen.getByText('Moves')).toBeTruthy();
+    expect(screen.getByText('Duration')).toBeTruthy();
+    expect(screen.getByText('Rating')).toBeTruthy();
+    expect(screen.queryByRole('img', { name: 'Final board around the deciding area' })).toBeNull();
+    expect(screen.queryByText('Deciding 5×5 area')).toBeNull();
   });
 
   it('handles Review Board minimize and reopen interaction', () => {
@@ -240,10 +240,9 @@ describe('GameResult Component', () => {
     expect(screen.getByRole('dialog', { name: 'Game result' })).toBeTruthy();
   });
 
-  it('triggers onRematch, onHome, onHistory handlers', () => {
+  it('triggers onRematch and onHome handlers and confirms Share and History are removed', () => {
     const onRematch = vi.fn();
     const onHome = vi.fn();
-    const onHistory = vi.fn();
 
     const match = createSampleMatch();
     render(
@@ -253,7 +252,6 @@ describe('GameResult Component', () => {
         rematchBusy={false}
         onRematch={onRematch}
         onHome={onHome}
-        onHistory={onHistory}
       />,
     );
 
@@ -263,28 +261,7 @@ describe('GameResult Component', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Home' }));
     expect(onHome).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByRole('button', { name: 'History' }));
-    expect(onHistory).toHaveBeenCalledOnce();
-  });
-
-  it('handles share button click and copies match summary', async () => {
-    const match = createSampleMatch();
-    render(
-      <GameResult
-        match={match}
-        open={true}
-        rematchBusy={false}
-        onRematch={vi.fn()}
-        onHome={vi.fn()}
-        onHistory={vi.fn()}
-      />,
-    );
-
-    const shareBtn = screen.getByRole('button', { name: /Share/i });
-    fireEvent.click(shareBtn);
-
-    expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-      expect.stringContaining('🎮 Tic Tac Toe (5-in-a-Row)'),
-    );
+    expect(screen.queryByRole('button', { name: 'Share' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'History' })).toBeNull();
   });
 });

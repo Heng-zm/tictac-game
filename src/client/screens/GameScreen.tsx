@@ -670,7 +670,6 @@ export function GameScreen({
         rematchBusy={rematchBusy}
         onRematch={() => void rematch()}
         onHome={() => void leaveGame('/')}
-        onHistory={() => void leaveGame('/profile/history')}
       />
 
       <Modal
