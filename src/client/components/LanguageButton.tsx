@@ -118,7 +118,7 @@ export function LanguageButton({
               onClick={() => void handleSelectLanguage(opt.code)}
               aria-pressed={isSelected}
               className={cn(
-                'group flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-all duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+                'group flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-[transform,opacity,border-color,background-color,box-shadow] duration-200 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
                 isSelected
                   ? 'bg-elevated text-ink shadow-xs ring-1 ring-accent/30 font-bold'
                   : 'text-muted hover:bg-elevated/50 hover:text-ink',
@@ -127,7 +127,7 @@ export function LanguageButton({
               <CircularFlag
                 code={opt.code}
                 size={size === 'sm' ? 'xs' : 'sm'}
-                style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+                style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden', transform: 'translate3d(0, 0, 0)' }}
                 className={cn(
                   'transition-transform duration-200 will-change-transform',
                   isSelected && flipping && 'animate-flag-flip',
@@ -151,14 +151,14 @@ export function LanguageButton({
         aria-label={toggleAriaLabel}
         title={toggleAriaLabel}
         className={cn(
-          'group inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-bold text-ink shadow-xs transition-all duration-200 hover:border-accent/40 hover:bg-elevated active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+          'group inline-flex items-center gap-2 rounded-full border border-line bg-surface px-2.5 py-1 text-xs font-bold text-ink shadow-xs transition-[transform,opacity,border-color,background-color,box-shadow] duration-200 hover:border-accent/40 hover:bg-elevated active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
           size === 'sm' && 'h-8 px-2 text-[11px]',
           size === 'lg' && 'h-10 px-3 text-sm',
           className,
         )}
       >
         <span
-          style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+          style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden', transform: 'translate3d(0, 0, 0)' }}
           className={cn(
             'inline-flex items-center justify-center will-change-transform',
             flipping && 'animate-flag-flip',
@@ -186,13 +186,13 @@ export function LanguageButton({
       aria-label={toggleAriaLabel}
       title={toggleAriaLabel}
       className={cn(
-        'group relative inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-surface p-0.5 shadow-xs transition-all duration-200 hover:border-accent/50 hover:bg-elevated hover:shadow-soft active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
+        'group relative inline-flex shrink-0 items-center justify-center rounded-full border border-line bg-surface p-0.5 shadow-xs transition-[transform,opacity,border-color,background-color,box-shadow] duration-200 hover:border-accent/50 hover:bg-elevated hover:shadow-soft active:scale-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
         buttonDimension,
         className,
       )}
     >
       <span
-        style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden' }}
+        style={{ transformStyle: 'preserve-3d', backfaceVisibility: 'hidden', transform: 'translate3d(0, 0, 0)' }}
         className={cn(
           'inline-flex items-center justify-center will-change-transform',
           flipping && 'animate-flag-flip',

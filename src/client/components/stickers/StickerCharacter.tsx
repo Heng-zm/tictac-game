@@ -6,7 +6,7 @@ interface StickerCharacterProps {
   id: StickerId;
   size?: number;
   className?: string;
-  animate?: boolean;
+  animate?: boolean | 'hover';
 }
 
 export const StickerCharacter = memo(function StickerCharacter({
@@ -17,7 +17,7 @@ export const StickerCharacter = memo(function StickerCharacter({
 }: StickerCharacterProps) {
   const reactId = useId();
   const idPrefix = `stk_${reactId.replace(/[^a-zA-Z0-9_-]/g, '_')}`;
-  const animClass = animate ? 'sticker-animated' : 'sticker-static';
+  const animClass = animate === true ? 'sticker-animated' : animate === 'hover' ? 'sticker-hover-animate' : 'sticker-static';
 
   return (
     <div
@@ -31,7 +31,7 @@ export const StickerCharacter = memo(function StickerCharacter({
         height={size}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        className="w-full h-full overflow-visible drop-shadow-sm"
+        className="w-full h-full overflow-visible"
       >
         {renderDefs(id, idPrefix)}
 

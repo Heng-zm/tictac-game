@@ -335,26 +335,31 @@ export function MatchmakingScreen({
                 <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-accent/20" aria-hidden />
 
                 {/* Pulsing Expanding Waves */}
-                <span className="absolute inset-0 rounded-full border border-accent/30 animate-pulse-ring" />
                 <span
-                  className="absolute inset-0 rounded-full border border-accent/20 animate-pulse-ring"
-                  style={{ animationDelay: '0.9s' }}
+                  className="absolute inset-0 rounded-full border border-accent/30 animate-pulse-ring will-change-transform"
+                  style={{ transform: 'translate3d(0, 0, 0)' }}
+                />
+                <span
+                  className="absolute inset-0 rounded-full border border-accent/20 animate-pulse-ring will-change-transform"
+                  style={{ animationDelay: '0.9s', transform: 'translate3d(0, 0, 0)' }}
                 />
 
-                {/* Sweeping Radar Scanner Beam */}
+                {/* Sweeping Radar Scanner Beam (GPU composited) */}
                 <div
-                  className="pointer-events-none absolute inset-0 rounded-full animate-radar-sweep opacity-85"
+                  className="pointer-events-none absolute inset-0 rounded-full animate-radar-sweep opacity-85 will-change-transform"
                   style={{
                     background:
                       'conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 270deg, rgba(37,99,235,0.03) 300deg, rgba(37,99,235,0.38) 360deg)',
+                    transform: 'translate3d(0, 0, 0)',
+                    backfaceVisibility: 'hidden',
                   }}
                   aria-hidden
                 />
 
                 {/* Searching Opponent Radar Blip */}
                 <div
-                  className="pointer-events-none absolute top-5 right-5 sm:top-7 sm:right-7 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(37,99,235,0.9)] animate-ping"
-                  style={{ animationDuration: '2.4s' }}
+                  className="pointer-events-none absolute top-5 right-5 sm:top-7 sm:right-7 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(37,99,235,0.9)] animate-ping will-change-transform"
+                  style={{ animationDuration: '2.4s', transform: 'translate3d(0, 0, 0)' }}
                   aria-hidden
                 />
                 <div

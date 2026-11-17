@@ -117,7 +117,7 @@ export function Card({ className, interactive, children, ...rest }: CardProps) {
   return (
     <div
       className={cn(
-        'panel rounded-2xl transition-all duration-200',
+        'panel rounded-2xl transition-[transform,opacity,border-color,background-color,box-shadow] duration-200',
         interactive && 'hover:border-accent/40 hover:shadow-soft active:scale-[0.99] cursor-pointer',
         className,
       )}

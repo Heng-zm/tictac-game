@@ -114,15 +114,16 @@ const StoneCell = memo(function StoneCell({
   return (
     <div
       className={cn(
-        'pointer-events-none absolute flex items-center justify-center transition-all duration-200 ease-out [contain:layout_style]',
-        isPending && 'opacity-85 scale-95',
+        'pointer-events-none absolute flex items-center justify-center [contain:layout_style_paint]',
+        isPending && 'opacity-85 scale-95 transition-transform duration-200 ease-out',
       )}
       style={{
         left: `${x * CELL_SIZE}px`,
         top: `${y * CELL_SIZE}px`,
         width: `${CELL_SIZE}px`,
         height: `${CELL_SIZE}px`,
-        transform: 'translate(-50%, -50%)',
+        transform: 'translate3d(-50%, -50%, 0)',
+        willChange: isPending || isLast ? 'transform, opacity' : undefined,
       }}
     >
       {isWinning ? (
@@ -812,16 +813,20 @@ export const Board = memo(function Board({
             backgroundImage:
               'linear-gradient(to right, rgb(var(--app-muted-rgb) / 0.22) 1px, transparent 1px), linear-gradient(to bottom, rgb(var(--app-muted-rgb) / 0.22) 1px, transparent 1px)',
             backgroundSize: `${CELL_SIZE}px ${CELL_SIZE}px`,
+            backfaceVisibility: 'hidden',
           }}
         />
 
         {/* Stones live in a single transformed layer. Panning changes this
             layer's transform only; React never re-renders per pointermove. */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center [contain:layout_style]">
           <div
             ref={worldRef}
             className="relative h-0 w-0 origin-top-left will-change-transform"
-            style={{ transform: 'translate3d(0px, 0px, 0) scale(1)' }}
+            style={{
+              transform: 'translate3d(0px, 0px, 0) scale(1)',
+              backfaceVisibility: 'hidden',
+            }}
           >
             {winningBeam ? (
               <div

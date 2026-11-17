@@ -142,7 +142,7 @@ export function ReactionPicker({
       {/* Floating Tray Bottom Sheet */}
       <div
         ref={trayRef}
-        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 shadow-2xl backdrop-blur-md transition-transform animate-sheet-up sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:px-4 sm:pb-5 sm:pt-3"
+        className="relative z-10 mx-auto w-full max-w-lg rounded-t-3xl border-t border-line bg-surface/95 px-3 pb-[calc(env(safe-area-inset-bottom)+12px)] pt-2.5 shadow-2xl backdrop-blur-md transition-transform animate-sheet-up will-change-transform sm:mb-4 sm:max-w-2xl sm:rounded-3xl sm:border sm:px-4 sm:pb-5 sm:pt-3"
       >
         {/* Grab Handle */}
         <div className="mx-auto mb-2.5 h-1 w-10 rounded-full bg-muted/30 sm:hidden" />
@@ -267,7 +267,7 @@ export function ReactionPicker({
                 title={label}
               >
                 <div className="h-10 w-10 xs:h-12 xs:w-12 flex items-center justify-center transition-transform duration-200 group-hover:scale-115">
-                  <StickerCharacter id={sticker.id} size={44} animate={true} />
+                  <StickerCharacter id={sticker.id} size={44} animate={isSending ? true : 'hover'} />
                 </div>
                 <span className="mt-0.5 sm:mt-1 w-full text-center text-[9.5px] xs:text-[10px] sm:text-[10.5px] font-medium leading-tight text-ink/90 truncate">
                   {label}

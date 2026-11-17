@@ -72,8 +72,8 @@ const config: Config = {
           '100%': { opacity: '1' },
         },
         'fade-up': {
-          '0%': { opacity: '0', transform: 'translateY(8px)' },
-          '100%': { opacity: '1', transform: 'translateY(0)' },
+          '0%': { opacity: '0', transform: 'translate3d(0, 8px, 0)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0)' },
         },
         'pop-in': {
           '0%': { opacity: '0', transform: 'scale(0.92)' },
@@ -84,27 +84,27 @@ const config: Config = {
           '100%': { strokeDashoffset: '0' },
         },
         'pulse-ring': {
-          '0%': { transform: 'scale(0.7)', opacity: '0.55' },
-          '80%, 100%': { transform: 'scale(2.1)', opacity: '0' },
+          '0%': { transform: 'translate3d(0, 0, 0) scale(0.7)', opacity: '0.55' },
+          '80%, 100%': { transform: 'translate3d(0, 0, 0) scale(2.1)', opacity: '0' },
         },
         shimmer: {
           '0%': { backgroundPosition: '200% 0' },
           '100%': { backgroundPosition: '-200% 0' },
         },
         'thinking-dot': {
-          '0%, 80%, 100%': { transform: 'translateY(0)', opacity: '0.4' },
-          '40%': { transform: 'translateY(-3px)', opacity: '1' },
+          '0%, 80%, 100%': { transform: 'translate3d(0, 0, 0)', opacity: '0.4' },
+          '40%': { transform: 'translate3d(0, -3px, 0)', opacity: '1' },
         },
         'reaction-pop': {
-          '0%': { opacity: '0', transform: 'translateY(10px) scale(0.68)' },
-          '60%': { opacity: '1', transform: 'translateY(-4px) scale(1.1)' },
-          '80%': { transform: 'translateY(1.5px) scale(0.97)' },
-          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+          '0%': { opacity: '0', transform: 'translate3d(0, 10px, 0) scale(0.68)' },
+          '60%': { opacity: '1', transform: 'translate3d(0, -4px, 0) scale(1.1)' },
+          '80%': { transform: 'translate3d(0, 1.5px, 0) scale(0.97)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0) scale(1)' },
         },
         'sheet-up': {
-          '0%': { opacity: '0', transform: 'translateY(28px) scale(0.98)' },
-          '70%': { opacity: '1', transform: 'translateY(-3px) scale(1.004)' },
-          '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+          '0%': { opacity: '0', transform: 'translate3d(0, 28px, 0) scale(0.98)' },
+          '70%': { opacity: '1', transform: 'translate3d(0, -3px, 0) scale(1.004)' },
+          '100%': { opacity: '1', transform: 'translate3d(0, 0, 0) scale(1)' },
         },
         'countdown-tick': {
           '0%': { opacity: '0.1', transform: 'scale(1.42) rotate(-5deg)' },
@@ -153,8 +153,8 @@ const config: Config = {
           '100%': { transform: 'scale(1)' },
         },
         'radar-sweep': {
-          '0%': { transform: 'rotate(0deg)' },
-          '100%': { transform: 'rotate(360deg)' },
+          '0%': { transform: 'translate3d(0, 0, 0) rotate(0deg)' },
+          '100%': { transform: 'translate3d(0, 0, 0) rotate(360deg)' },
         },
         'heartbeat-urgent': {
           '0%, 100%': { transform: 'scale(1)' },
@@ -164,27 +164,27 @@ const config: Config = {
         },
         'flag-flip': {
           '0%': {
-            transform: 'perspective(280px) rotateY(0deg) scale(1)',
+            transform: 'perspective(280px) translate3d(0, 0, 0) rotateY(0deg) scale(1)',
             filter: 'brightness(1)',
           },
           '48%': {
-            transform: 'perspective(280px) rotateY(90deg) scale(0.92)',
+            transform: 'perspective(280px) translate3d(0, 0, 0) rotateY(90deg) scale(0.92)',
             filter: 'brightness(1.12)',
           },
           '52%': {
-            transform: 'perspective(280px) rotateY(-90deg) scale(0.92)',
+            transform: 'perspective(280px) translate3d(0, 0, 0) rotateY(-90deg) scale(0.92)',
             filter: 'brightness(1.12)',
           },
           '78%': {
-            transform: 'perspective(280px) rotateY(8deg) scale(1.03)',
+            transform: 'perspective(280px) translate3d(0, 0, 0) rotateY(8deg) scale(1.03)',
             filter: 'brightness(1.02)',
           },
           '90%': {
-            transform: 'perspective(280px) rotateY(-2.5deg) scale(0.99)',
+            transform: 'perspective(280px) translate3d(0, 0, 0) rotateY(-2.5deg) scale(0.99)',
             filter: 'brightness(1)',
           },
           '100%': {
-            transform: 'perspective(280px) rotateY(0deg) scale(1)',
+            transform: 'perspective(280px) translate3d(0, 0, 0) rotateY(0deg) scale(1)',
             filter: 'brightness(1)',
           },
         },

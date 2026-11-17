@@ -238,12 +238,11 @@ export function GameScreen({
     },
     [board, match, matchStarting, pendingCell, pushToast, submitMove, yourTurn],
   );
-  const handleCell = useCallback(
-    (cell: number) => {
-      void playCell(cell);
-    },
-    [playCell],
-  );
+  const playCellRef = useRef(playCell);
+  playCellRef.current = playCell;
+  const handleCell = useCallback((cell: number) => {
+    void playCellRef.current(cell);
+  }, []);
 
   async function rematch(): Promise<void> {
     if (!match) return;
@@ -728,7 +727,11 @@ function TurnClock({
     <div className="flex min-w-[62px] sm:min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
       <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center">
         {urgent && !muted ? (
-          <span className="pointer-events-none absolute inset-0.5 rounded-full border border-danger/60 animate-ping opacity-40" aria-hidden />
+          <span
+            className="pointer-events-none absolute inset-0.5 rounded-full border border-danger/60 animate-ping opacity-40 will-change-transform"
+            style={{ transform: 'translate3d(0, 0, 0)' }}
+            aria-hidden
+          />
         ) : null}
         <svg viewBox="0 0 64 64" className="absolute inset-0 h-full w-full -rotate-90" aria-hidden>
           <circle

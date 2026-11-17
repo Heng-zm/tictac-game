@@ -476,3 +476,21 @@
 .sticker-static * {
   animation: none !important;
 }
+
+
+/* Optimization: Stickers in pickers remain paused until hovered, active, or focused */
+.sticker-hover-animate * {
+  animation-play-state: paused;
+}
+.group:hover .sticker-hover-animate *,
+.group:active .sticker-hover-animate *,
+.group:focus-visible .sticker-hover-animate *,
+.sticker-hover-animate:hover *,
+.sticker-hover-animate:active * {
+  animation-play-state: running;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sticker-hover-animate * {
+    animation: none !important;
+  }
+}
