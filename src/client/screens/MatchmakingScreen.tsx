@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Bot,
   Check,
@@ -28,6 +28,12 @@ export function MatchmakingScreen({
 }) {
   const { profile, config, connection, queue, match, pendingInvite, joinQueue } = client;
   const isKm = isKhmer(profile?.languageCode);
+
+  const playerName = useMemo(() => {
+    if (!profile?.firstName) return isKm ? 'អ្នក' : 'You';
+    return `${profile.firstName}${profile.lastName ? ` ${profile.lastName}` : ''}`;
+  }, [profile?.firstName, profile?.lastName, isKm]);
+  const playerRating = profile?.stats?.rating ?? 1200;
 
   const [autoFallback, setAutoFallback] = useState(profile?.stats ? profile.autoAiFallback : false);
   const [localError, setLocalError] = useState<string | null>(null);
@@ -323,83 +329,80 @@ export function MatchmakingScreen({
               <div className="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 xs:h-48 xs:w-48 rounded-full bg-indigo-500/15 blur-3xl" aria-hidden />
 
               {/* Matchup Duel Stage */}
-              <div className="relative mx-auto my-1 w-full max-w-sm rounded-2xl border border-line/70 bg-surface/50 p-3.5 xs:p-4 sm:p-5 shadow-glass backdrop-blur-xl">
-                {/* Connecting duel energy beam in the background */}
-                <div
-                  className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 -translate-y-4 bg-gradient-to-r from-accent/30 via-accent/60 to-accent/30"
-                  aria-hidden
-                />
-
-                <div className="relative flex items-center justify-between gap-2 xs:gap-3 sm:gap-4">
-                  {/* Left Player: You */}
-                  <div className="flex flex-1 flex-col items-center text-center">
-                    <div className="relative">
-                      <div className="rounded-full p-0.5 bg-gradient-to-b from-accent/40 via-accent/20 to-transparent shadow-glow-sm">
-                        <Avatar
-                          name={profile?.firstName || (isKm ? 'អ្នក' : 'You')}
-                          photoUrl={profile?.photoUrl}
-                          size="lg"
-                          ring
-                        />
-                      </div>
-                      <span
-                        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-black text-white shadow-xs ring-2 ring-surface"
-                        title="You (X)"
-                      >
-                        ✕
+              <div className="relative mx-auto w-full max-w-sm rounded-2xl border border-line/60 bg-elevated/40 p-3.5 xs:p-4 sm:p-5 backdrop-blur-sm shadow-xs">
+                <div className="flex items-start justify-between gap-2 sm:gap-4">
+                  {/* Left: You */}
+                  <div className="flex flex-1 min-w-0 flex-col items-center text-center">
+                    <div className="relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center">
+                      <Avatar
+                        name={playerName}
+                        photoUrl={profile?.photoUrl}
+                        size="lg"
+                        className="h-14 w-14 sm:h-16 sm:w-16 text-lg sm:text-xl shadow-glow-sm ring-2 ring-accent/50 ring-offset-2 ring-offset-surface"
+                      />
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
+                        <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-surface shadow-xs" />
                       </span>
                     </div>
                     <p className="mt-2 text-xs sm:text-sm font-bold text-ink truncate max-w-[5.25rem] sm:max-w-[6.5rem]">
-                      {profile?.firstName || (isKm ? 'អ្នក' : 'You')}
+                      {playerName}
                     </p>
-                    <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10.5px] sm:text-xs font-bold text-accent tabular-nums">
-                      ⚡ {profile?.stats?.rating ?? 1200}
-                    </span>
+                    <Pill tone="accent" className="mt-1 text-[10px] sm:text-[11px] tabular-nums font-bold">
+                      ⚡ {playerRating}
+                    </Pill>
                   </div>
 
-                  {/* Center Clash Badge & Energy Pulse */}
-                  <div className="relative flex shrink-0 flex-col items-center justify-center px-1">
-                    <div className="relative flex h-11 w-11 sm:h-13 sm:w-13 items-center justify-center">
+                  {/* Center: VS & Clash */}
+                  <div className="flex flex-col items-center justify-center shrink-0 px-1">
+                    <div className="relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center">
                       {/* Concentric Pulse Waves */}
                       <span
-                        className="absolute inset-0 rounded-full border border-accent/30 animate-pulse-ring will-change-transform"
+                        className="pointer-events-none absolute inset-0 rounded-full border border-accent/35 animate-pulse-ring will-change-transform"
                         style={{ transform: 'translate3d(0, 0, 0)' }}
                       />
                       <span
-                        className="absolute inset-0 rounded-full border border-indigo-500/25 animate-pulse-ring will-change-transform"
-                        style={{ animationDelay: '1s', transform: 'translate3d(0, 0, 0)' }}
+                        className="pointer-events-none absolute inset-0 rounded-full border border-indigo-500/25 animate-pulse-ring will-change-transform"
+                        style={{ animationDelay: '1.1s', transform: 'translate3d(0, 0, 0)' }}
                       />
 
-                      {/* Glowing VS Badge */}
-                      <div className="relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-gradient-to-br from-accent via-blue-600 to-indigo-600 font-black text-xs sm:text-sm text-white shadow-glow tracking-wider">
+                      {/* Glowing VS Emblem */}
+                      <div className="relative flex h-10 w-10 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-gradient-to-br from-accent via-blue-600 to-indigo-600 font-black text-xs sm:text-sm text-white shadow-glow tracking-wider">
                         VS
                       </div>
                     </div>
-                    <div className="mt-1 flex items-center gap-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted">
-                      <Swords className="h-2.5 w-2.5 text-accent" aria-hidden />
+                    <p className="mt-2 text-xs sm:text-sm font-bold text-accent/90 inline-flex items-center gap-1">
+                      <Swords className="h-3 w-3" aria-hidden />
                       <span>1v1</span>
-                    </div>
+                    </p>
+                    <Pill tone="neutral" className="mt-1 text-[10px] sm:text-[11px] font-semibold text-muted">
+                      {isKm ? 'ចំណាត់ថ្នាក់' : 'Ranked'}
+                    </Pill>
                   </div>
 
-                  {/* Right Player: Searching Opponent */}
-                  <div className="flex flex-1 flex-col items-center text-center">
-                    <div className="relative">
-                      <div className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-accent/40 bg-gradient-to-r from-accent/5 via-accent/20 to-accent/5 bg-[length:200%_100%] animate-shimmer shadow-inner overflow-hidden">
-                        <Search className="h-6 w-6 text-accent animate-pulse-subtle" aria-hidden />
-                      </div>
+                  {/* Right: Challenger (Searching) */}
+                  <div className="flex flex-1 min-w-0 flex-col items-center text-center">
+                    <div className="relative flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center">
+                      {/* Soft outer pulse wave */}
                       <span
-                        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-line text-[10px] font-black text-muted shadow-xs ring-2 ring-surface"
-                        title="Opponent (O)"
-                      >
-                        ◯
+                        className="pointer-events-none absolute inset-0 rounded-full border border-accent/20 animate-pulse-ring will-change-transform"
+                        style={{ animationDelay: '0.6s', transform: 'translate3d(0, 0, 0)' }}
+                      />
+                      <div className="relative flex h-full w-full items-center justify-center rounded-full border-2 border-dashed border-accent/50 bg-gradient-to-br from-accent/10 via-indigo-500/5 to-transparent shadow-inner">
+                        <Search className="h-6 w-6 sm:h-7 sm:w-7 text-accent animate-pulse-subtle" aria-hidden />
+                      </div>
+                      {/* Live Searching Beacon */}
+                      <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
+                        <span className="relative inline-flex h-3.5 w-3.5 rounded-full bg-accent ring-2 ring-surface shadow-xs" />
                       </span>
                     </div>
-                    <p className="mt-2 text-xs sm:text-sm font-bold text-ink/75 truncate max-w-[5.25rem] sm:max-w-[6.5rem]">
+                    <p className="mt-2 text-xs sm:text-sm font-bold text-ink/80 truncate max-w-[5.25rem] sm:max-w-[6.5rem]">
                       {isKm ? 'គូប្រកួត' : 'Challenger'}
                     </p>
-                    <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-elevated px-2 py-0.5 text-[10.5px] sm:text-xs font-semibold text-muted tabular-nums">
-                      ~{profile?.stats?.rating ?? 1200}
-                    </span>
+                    <Pill tone="neutral" className="mt-1 text-[10px] sm:text-[11px] tabular-nums font-semibold text-muted">
+                      ~{playerRating}
+                    </Pill>
                   </div>
                 </div>
               </div>
