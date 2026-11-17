@@ -4,6 +4,7 @@ import { cn } from '../../lib/cn';
 
 export interface DisplayChatMessage {
   messageId: string;
+  matchId?: string;
   senderSide: Side;
   isYou: boolean;
   text: string;

@@ -723,6 +723,7 @@ export function playVoiceAudio(
   let isStopped = false;
   let activeSource: AudioBufferSourceNode | null = null;
   let fallbackAudio: HTMLAudioElement | null = null;
+  let cleanupFallbackListeners: (() => void) | null = null;
   let animFrameId: number | null = null;
 
   const stopAll = () => {
@@ -740,9 +741,12 @@ export function playVoiceAudio(
       activeSource = null;
     }
     if (fallbackAudio) {
+      cleanupFallbackListeners?.();
+      cleanupFallbackListeners = null;
       try {
         fallbackAudio.pause();
         fallbackAudio.currentTime = 0;
+        fallbackAudio.src = '';
       } catch {
         // Ignored
       }
@@ -767,14 +771,24 @@ export function playVoiceAudio(
       };
 
       const handleEnded = () => {
+        cleanupFallbackListeners?.();
+        cleanupFallbackListeners = null;
         if (isStopped) return;
         onStateChange?.({ isPlaying: false, progress: 1.0 });
         playRogerBeep();
       };
 
       const handleError = () => {
+        cleanupFallbackListeners?.();
+        cleanupFallbackListeners = null;
         if (isStopped) return;
         onStateChange?.({ isPlaying: false, progress: 0 });
+      };
+
+      cleanupFallbackListeners = () => {
+        audio.removeEventListener('timeupdate', handleTimeUpdate);
+        audio.removeEventListener('ended', handleEnded);
+        audio.removeEventListener('error', handleError);
       };
 
       audio.addEventListener('timeupdate', handleTimeUpdate);
@@ -782,6 +796,8 @@ export function playVoiceAudio(
       audio.addEventListener('error', handleError);
 
       audio.play().catch(() => {
+        cleanupFallbackListeners?.();
+        cleanupFallbackListeners = null;
         onStateChange?.({ isPlaying: false, progress: 0 });
       });
     } catch {

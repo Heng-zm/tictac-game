@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn';
 
 export interface DisplayReaction {
   reactionId: string;
+  matchId?: string;
   senderSide: 'X' | 'O';
   isYou: boolean;
   stickerId: StickerId;

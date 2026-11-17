@@ -297,20 +297,32 @@ export function GameScreen({
   );
 
   const youReaction = useMemo(
-    () => client.reactions.filter((r) => r.isYou).slice(-1)[0] ?? null,
-    [client.reactions],
+    () =>
+      client.reactions
+        .filter((r) => r.isYou && (!r.matchId || r.matchId === match?.id))
+        .slice(-1)[0] ?? null,
+    [client.reactions, match?.id],
   );
   const opponentReaction = useMemo(
-    () => client.reactions.filter((r) => !r.isYou).slice(-1)[0] ?? null,
-    [client.reactions],
+    () =>
+      client.reactions
+        .filter((r) => !r.isYou && (!r.matchId || r.matchId === match?.id))
+        .slice(-1)[0] ?? null,
+    [client.reactions, match?.id],
   );
   const youChat = useMemo(
-    () => client.chatMessages.filter((message) => message.isYou).slice(-1)[0] ?? null,
-    [client.chatMessages],
+    () =>
+      client.chatMessages
+        .filter((message) => message.isYou && (!message.matchId || message.matchId === match?.id))
+        .slice(-1)[0] ?? null,
+    [client.chatMessages, match?.id],
   );
   const opponentChat = useMemo(
-    () => client.chatMessages.filter((message) => !message.isYou).slice(-1)[0] ?? null,
-    [client.chatMessages],
+    () =>
+      client.chatMessages
+        .filter((message) => !message.isYou && (!message.matchId || message.matchId === match?.id))
+        .slice(-1)[0] ?? null,
+    [client.chatMessages, match?.id],
   );
 
 
@@ -509,6 +521,7 @@ export function GameScreen({
                 if (match.status === 'ACTIVE') {
                   setForfeitOpen(true);
                 } else {
+                  void client.leaveMatch(match.id);
                   navigate('/');
                 }
               }}

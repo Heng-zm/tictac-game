@@ -23,6 +23,7 @@ import type { DisplayChatMessage } from '../components/stickers/ChatOverlay';
 
 export interface DisplayReaction {
   reactionId: string;
+  matchId?: string;
   senderSide: Side;
   isYou: boolean;
   stickerId: StickerId;
@@ -475,6 +476,9 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
 
     socket.on('match:found', ({ match: found }) => {
       if (!active) return;
+      voicePlaybackRef.current?.stop();
+      voicePlaybackRef.current = null;
+      setIncomingVoice(null);
       setMatch(found);
       setQueue(null);
       // A found match means the invitation has been accepted. Forget the old
@@ -606,6 +610,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       const isYou = currentMatch.youSide === event.senderSide;
       const newReaction: DisplayReaction = {
         reactionId: event.reactionId,
+        matchId: event.matchId,
         senderSide: event.senderSide,
         isYou,
         stickerId: event.stickerId,
@@ -629,6 +634,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       if (!currentMatch || currentMatch.id !== event.matchId) return;
       const newMessage: DisplayChatMessage = {
         messageId: event.messageId,
+        matchId: event.matchId,
         senderSide: event.senderSide,
         isYou: currentMatch.youSide === event.senderSide,
         text: event.text,
@@ -740,6 +746,14 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       const result = await request<{ matchId: string }>((ack) => {
         socket.emit('ai:start', { difficulty, side }, ack);
       });
+      voicePlaybackRef.current?.stop();
+      voicePlaybackRef.current = null;
+      setIncomingVoice(null);
+      setReactions([]);
+      setChatMessages([]);
+      setLastMove(null);
+      setLastRejection(null);
+      setOpponentGraceEndsAt(null);
       setQueue(null);
       return result.matchId;
     },
@@ -791,14 +805,29 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     [clearInviteState, requireSocket],
   );
 
-  const joinMatch = useCallback(async (matchId: string): Promise<PublicMatchState> => {
-    const socket = requireSocket();
-    const result = await request<MatchJoinResult>((ack) => {
-      socket.emit('match:join', { matchId }, ack);
-    });
-    setMatch(result.match);
-    return result.match;
-  }, [requireSocket]);
+  const joinMatch = useCallback(
+    async (matchId: string): Promise<PublicMatchState> => {
+      const socket = requireSocket();
+      const result = await request<MatchJoinResult>((ack) => {
+        socket.emit('match:join', { matchId }, ack);
+      });
+      voicePlaybackRef.current?.stop();
+      voicePlaybackRef.current = null;
+      setIncomingVoice(null);
+      setReactions([]);
+      setChatMessages([]);
+      setLastRejection(null);
+      setOpponentGraceEndsAt(null);
+      setMatch(result.match);
+      setLastMove(
+        result.match.lastMove
+          ? { cell: result.match.lastMove.cell, side: result.match.lastMove.side, actionId: '', at: Date.now() }
+          : null,
+      );
+      return result.match;
+    },
+    [requireSocket],
+  );
 
   const submitMove = useCallback(
     async (matchId: string, cell: number, actionId: string): Promise<PublicMatchState> => {
@@ -828,8 +857,15 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
       await request<{ left: true }>((ack) => {
         socket.emit('match:leave', { matchId }, ack);
       });
+      voicePlaybackRef.current?.stop();
+      voicePlaybackRef.current = null;
       setMatch((current) => (current?.id === matchId ? null : current));
       setOpponentGraceEndsAt(null);
+      setReactions([]);
+      setChatMessages([]);
+      setLastMove(null);
+      setLastRejection(null);
+      setIncomingVoice(null);
     },
     [requireSocket],
   );
@@ -980,15 +1016,27 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
     if (socket) {
       socket.disconnect();
     }
+    voicePlaybackRef.current?.stop();
+    voicePlaybackRef.current = null;
+    clearCreatedInvite();
+    clearPendingInvite();
     setProfile(null);
     setMatch(null);
     setQueue(null);
-    setCreatedInvite(null);
-    setPendingInvite(null);
+    setLastMove(null);
+    setLastRejection(null);
+    setOpponentGraceEndsAt(null);
+    setReactions([]);
+    setChatMessages([]);
+    setIncomingVoice(null);
+    setToasts([]);
+    const timers = toastTimers.current;
+    for (const timer of timers.values()) window.clearTimeout(timer);
+    timers.clear();
     setBootErrorCode('AUTH_REQUIRED');
     setBootError(null);
     setPhase('auth-required');
-  }, []);
+  }, [clearCreatedInvite, clearPendingInvite]);
 
   return {
     phase,
