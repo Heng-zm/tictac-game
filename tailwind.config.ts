@@ -152,10 +152,6 @@ const config: Config = {
           '80%': { transform: 'scale(0.96)' },
           '100%': { transform: 'scale(1)' },
         },
-        'radar-sweep': {
-          '0%': { transform: 'translate3d(0, 0, 0) rotate(0deg)' },
-          '100%': { transform: 'translate3d(0, 0, 0) rotate(360deg)' },
-        },
         'heartbeat-urgent': {
           '0%, 100%': { transform: 'scale(1)' },
           '15%': { transform: 'scale(1.12)' },
@@ -208,7 +204,6 @@ const config: Config = {
         'pulse-glow': 'pulse-glow 2s ease-in-out infinite',
         'shake-subtle': 'shake-subtle 400ms ease-in-out both',
         'scale-bounce': 'scale-bounce 360ms cubic-bezier(0.34, 1.56, 0.64, 1) both',
-        'radar-sweep': 'radar-sweep 2.8s linear infinite',
         'heartbeat-urgent': 'heartbeat-urgent 1.2s ease-in-out infinite',
         'flag-flip': 'flag-flip 420ms cubic-bezier(0.25, 1, 0.5, 1) both',
       },

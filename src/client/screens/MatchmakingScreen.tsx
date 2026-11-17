@@ -16,7 +16,7 @@ import { errorMessage } from '../lib/api';
 import { formatDuration, useCountdown, useElapsed } from '../hooks/use-time';
 import { isKhmer } from '../lib/language';
 import { hapticImpact, hapticSelection } from '../lib/telegram';
-import { Button, Card, Pill, ScreenHeader, Toggle } from '../components/ui';
+import { Avatar, Button, Card, Pill, ScreenHeader, Toggle } from '../components/ui';
 import { Page } from '../components/Layout';
 
 export function MatchmakingScreen({
@@ -316,64 +316,91 @@ export function MatchmakingScreen({
       ) : (
         <div className="md:flex md:min-h-[calc(var(--app-vh)-11rem)] md:flex-col md:justify-center">
           <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)] md:items-start md:gap-4">
-            {/* Tactical Radar Card */}
+            {/* Matchmaking Arena Card */}
             <Card className="relative overflow-hidden p-4 xs:p-5 sm:p-7 shadow-glass backdrop-blur-2xl border-line/80">
               {/* Background ambient radial aura */}
-              <div className="pointer-events-none absolute -right-8 -top-8 h-32 w-32 xs:h-44 xs:w-44 rounded-full bg-accent/15 blur-3xl" aria-hidden />
-              <div className="pointer-events-none absolute -left-8 -bottom-8 h-32 w-32 xs:h-44 xs:w-44 rounded-full bg-[#24A1DE]/15 blur-3xl" aria-hidden />
+              <div className="pointer-events-none absolute -right-10 -top-10 h-36 w-36 xs:h-48 xs:w-48 rounded-full bg-accent/15 blur-3xl" aria-hidden />
+              <div className="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 xs:h-48 xs:w-48 rounded-full bg-indigo-500/15 blur-3xl" aria-hidden />
 
-              {/* High-Tech Tactical Radar Scope */}
-              <div className="relative mx-auto flex h-32 w-32 xs:h-36 xs:w-36 sm:h-40 sm:w-40 lg:h-44 lg:w-44 items-center justify-center">
-                {/* Concentric Range Rings */}
-                <span className="absolute inset-0 rounded-full border border-accent/25 bg-accent/5 shadow-inner" />
-                <span className="absolute inset-2.5 xs:inset-3 sm:inset-4 rounded-full border border-dashed border-accent/20" />
-                <span className="absolute inset-5 xs:inset-6 sm:inset-8 rounded-full border border-accent/15" />
-                <span className="absolute inset-7.5 xs:inset-9 sm:inset-12 rounded-full border border-accent/10" />
-
-                {/* Reticle Crosshairs */}
-                <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-accent/20" aria-hidden />
-                <div className="pointer-events-none absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-accent/20" aria-hidden />
-
-                {/* Pulsing Expanding Waves */}
-                <span
-                  className="absolute inset-0 rounded-full border border-accent/30 animate-pulse-ring will-change-transform"
-                  style={{ transform: 'translate3d(0, 0, 0)' }}
-                />
-                <span
-                  className="absolute inset-0 rounded-full border border-accent/20 animate-pulse-ring will-change-transform"
-                  style={{ animationDelay: '0.9s', transform: 'translate3d(0, 0, 0)' }}
-                />
-
-                {/* Sweeping Radar Scanner Beam (GPU composited) */}
+              {/* Matchup Duel Stage */}
+              <div className="relative mx-auto my-1 w-full max-w-sm rounded-2xl border border-line/70 bg-surface/50 p-3.5 xs:p-4 sm:p-5 shadow-glass backdrop-blur-xl">
+                {/* Connecting duel energy beam in the background */}
                 <div
-                  className="pointer-events-none absolute inset-0 rounded-full animate-radar-sweep opacity-85 will-change-transform"
-                  style={{
-                    background:
-                      'conic-gradient(from 0deg at 50% 50%, transparent 0deg, transparent 270deg, rgba(37,99,235,0.03) 300deg, rgba(37,99,235,0.38) 360deg)',
-                    transform: 'translate3d(0, 0, 0)',
-                    backfaceVisibility: 'hidden',
-                  }}
+                  className="pointer-events-none absolute inset-x-8 top-1/2 h-0.5 -translate-y-4 bg-gradient-to-r from-accent/30 via-accent/60 to-accent/30"
                   aria-hidden
                 />
 
-                {/* Searching Opponent Radar Blip */}
-                <div
-                  className="pointer-events-none absolute top-5 right-5 sm:top-7 sm:right-7 h-2.5 w-2.5 rounded-full bg-accent shadow-[0_0_8px_rgba(37,99,235,0.9)] animate-ping will-change-transform"
-                  style={{ animationDuration: '2.4s', transform: 'translate3d(0, 0, 0)' }}
-                  aria-hidden
-                />
-                <div
-                  className="pointer-events-none absolute bottom-6 left-6 sm:bottom-9 sm:left-8 h-2 w-2 rounded-full bg-[#e11d48] shadow-[0_0_8px_rgba(225,29,72,0.8)] animate-pulse"
-                  aria-hidden
-                />
+                <div className="relative flex items-center justify-between gap-2 xs:gap-3 sm:gap-4">
+                  {/* Left Player: You */}
+                  <div className="flex flex-1 flex-col items-center text-center">
+                    <div className="relative">
+                      <div className="rounded-full p-0.5 bg-gradient-to-b from-accent/40 via-accent/20 to-transparent shadow-glow-sm">
+                        <Avatar
+                          name={profile?.firstName || (isKm ? 'អ្នក' : 'You')}
+                          photoUrl={profile?.photoUrl}
+                          size="lg"
+                          ring
+                        />
+                      </div>
+                      <span
+                        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-accent text-[10px] font-black text-white shadow-xs ring-2 ring-surface"
+                        title="You (X)"
+                      >
+                        ✕
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs sm:text-sm font-bold text-ink truncate max-w-[5.25rem] sm:max-w-[6.5rem]">
+                      {profile?.firstName || (isKm ? 'អ្នក' : 'You')}
+                    </p>
+                    <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10.5px] sm:text-xs font-bold text-accent tabular-nums">
+                      ⚡ {profile?.stats?.rating ?? 1200}
+                    </span>
+                  </div>
 
-                {/* Center Core Scope Icon */}
-                <div className="relative flex h-13 w-13 xs:h-14 xs:w-14 sm:h-16 sm:w-16 items-center justify-center rounded-xl sm:rounded-2xl border border-accent/50 bg-surface/90 text-accent shadow-glow backdrop-blur-md">
-                  <Search className="h-5 w-5 sm:h-7 sm:w-7 text-accent animate-pulse-subtle drop-shadow-[0_0_8px_rgba(37,99,235,0.6)]" aria-hidden />
-                  <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5 sm:h-3 sm:w-3">
-                    <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
-                    <span className="relative inline-flex h-2.5 w-2.5 sm:h-3 sm:w-3 rounded-full bg-accent ring-2 ring-surface" />
-                  </span>
+                  {/* Center Clash Badge & Energy Pulse */}
+                  <div className="relative flex shrink-0 flex-col items-center justify-center px-1">
+                    <div className="relative flex h-11 w-11 sm:h-13 sm:w-13 items-center justify-center">
+                      {/* Concentric Pulse Waves */}
+                      <span
+                        className="absolute inset-0 rounded-full border border-accent/30 animate-pulse-ring will-change-transform"
+                        style={{ transform: 'translate3d(0, 0, 0)' }}
+                      />
+                      <span
+                        className="absolute inset-0 rounded-full border border-indigo-500/25 animate-pulse-ring will-change-transform"
+                        style={{ animationDelay: '1s', transform: 'translate3d(0, 0, 0)' }}
+                      />
+
+                      {/* Glowing VS Badge */}
+                      <div className="relative flex h-9 w-9 sm:h-11 sm:w-11 items-center justify-center rounded-full bg-gradient-to-br from-accent via-blue-600 to-indigo-600 font-black text-xs sm:text-sm text-white shadow-glow tracking-wider">
+                        VS
+                      </div>
+                    </div>
+                    <div className="mt-1 flex items-center gap-1 text-[9px] sm:text-[10px] font-bold uppercase tracking-wider text-muted">
+                      <Swords className="h-2.5 w-2.5 text-accent" aria-hidden />
+                      <span>1v1</span>
+                    </div>
+                  </div>
+
+                  {/* Right Player: Searching Opponent */}
+                  <div className="flex flex-1 flex-col items-center text-center">
+                    <div className="relative">
+                      <div className="relative flex h-14 w-14 items-center justify-center rounded-full border-2 border-dashed border-accent/40 bg-gradient-to-r from-accent/5 via-accent/20 to-accent/5 bg-[length:200%_100%] animate-shimmer shadow-inner overflow-hidden">
+                        <Search className="h-6 w-6 text-accent animate-pulse-subtle" aria-hidden />
+                      </div>
+                      <span
+                        className="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-surface border border-line text-[10px] font-black text-muted shadow-xs ring-2 ring-surface"
+                        title="Opponent (O)"
+                      >
+                        ◯
+                      </span>
+                    </div>
+                    <p className="mt-2 text-xs sm:text-sm font-bold text-ink/75 truncate max-w-[5.25rem] sm:max-w-[6.5rem]">
+                      {isKm ? 'គូប្រកួត' : 'Challenger'}
+                    </p>
+                    <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-elevated px-2 py-0.5 text-[10.5px] sm:text-xs font-semibold text-muted tabular-nums">
+                      ~{profile?.stats?.rating ?? 1200}
+                    </span>
+                  </div>
                 </div>
               </div>
 
