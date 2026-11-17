@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import {
   BarChart3,
   Bot,
@@ -27,11 +27,14 @@ import { Avatar, Button, Card, EmptyState, IconButton, Modal, Pill, ScreenHeader
 import { RankBadge, RankProgress } from '../components/RankBadge';
 import { Page } from '../components/Layout';
 import { modeShortLabel } from '../lib/game';
-import { EditProfileModal } from '../components/EditProfileModal';
 import { LanguageButton } from '../components/LanguageButton';
 import { useAnimatedNumber } from '../hooks/use-animated-number';
 import { useSoundSettings } from '../hooks/use-sound-settings';
 import { useTelegramBackHandler } from '../hooks/use-hash-route';
+
+const EditProfileModal = lazy(() =>
+  import('../components/EditProfileModal').then((m) => ({ default: m.EditProfileModal })),
+);
 
 type ProfileTab = 'overview' | 'history' | 'settings';
 
@@ -224,20 +227,24 @@ export function ProfileScreen({
         </div>
       </div>
 
-      <EditProfileModal
-        open={isEditModalOpen}
-        onClose={() => setIsEditModalOpen(false)}
-        profile={profile}
-        onSave={async (data) => {
-          await client.updateProfile(data);
-          client.pushToast({
-            type: 'success',
-            title: isKm ? 'កែសម្រួលព័ត៌មានជោគជ័យ' : 'Profile updated',
-            message: isKm ? 'ព័ត៌មានគណនីត្រូវបានផ្លាស់ប្តូរ' : 'Your profile has been updated.',
-          });
-        }}
-        languageCode={profile.languageCode}
-      />
+      {isEditModalOpen ? (
+        <Suspense fallback={null}>
+          <EditProfileModal
+            open={isEditModalOpen}
+            onClose={() => setIsEditModalOpen(false)}
+            profile={profile}
+            onSave={async (data) => {
+              await client.updateProfile(data);
+              client.pushToast({
+                type: 'success',
+                title: isKm ? 'កែសម្រួលព័ត៌មានជោគជ័យ' : 'Profile updated',
+                message: isKm ? 'ព័ត៌មានគណនីត្រូវបានផ្លាស់ប្តូរ' : 'Your profile has been updated.',
+              });
+            }}
+            languageCode={profile.languageCode}
+          />
+        </Suspense>
+      ) : null}
     </Page>
   );
 }

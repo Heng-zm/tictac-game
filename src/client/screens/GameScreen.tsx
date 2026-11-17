@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bot,
@@ -33,11 +33,14 @@ import { formatDuration, useCountdown } from '../hooks/use-time';
 import { Avatar, Button, Card, EmptyState, IconButton, Modal, ScreenHeader, Spinner } from '../components/ui';
 import { Page } from '../components/Layout';
 import { Board } from '../components/Board';
-import { GameResult } from '../components/GameResult';
 import { ReactionPicker } from '../components/stickers/ReactionPicker';
 import { ReactionOverlay } from '../components/stickers/ReactionOverlay';
 import { ChatOverlay } from '../components/stickers/ChatOverlay';
 import { WalkieTalkieButton } from '../components/voice/WalkieTalkieButton';
+
+const GameResult = lazy(() =>
+  import('../components/GameResult').then((m) => ({ default: m.GameResult })),
+);
 
 export function GameScreen({
   client,
@@ -676,14 +679,18 @@ export function GameScreen({
         </div>
       ) : null}
 
-      <GameResult
-        match={match}
-        open={match.status === 'FINISHED' || match.status === 'ABANDONED'}
-        taunt={match.mode === 'AI' ? opponentChat?.text ?? null : null}
-        rematchBusy={rematchBusy}
-        onRematch={() => void rematch()}
-        onHome={() => void leaveGame('/')}
-      />
+      {match.status === 'FINISHED' || match.status === 'ABANDONED' ? (
+        <Suspense fallback={null}>
+          <GameResult
+            match={match}
+            open={true}
+            taunt={match.mode === 'AI' ? opponentChat?.text ?? null : null}
+            rematchBusy={rematchBusy}
+            onRematch={() => void rematch()}
+            onHome={() => void leaveGame('/')}
+          />
+        </Suspense>
+      ) : null}
 
       <Modal
         open={forfeitOpen}

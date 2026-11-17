@@ -1,14 +1,18 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, type CSSProperties, type ReactNode } from 'react';
 import { useGameClient } from './hooks/use-game-client';
 import { useHashRoute, useTelegramBackButton } from './hooks/use-hash-route';
-import { AuthGate } from './screens/AuthGate';
-import { HomeScreen } from './screens/HomeScreen';
 import { BottomNav, ConnectionBanner } from './components/Layout';
 import { ActiveGameBar } from './components/ActiveGameBar';
 import { DynamicBackground } from './components/DynamicBackground';
 import { Spinner, ToastViewport } from './components/ui';
 import { isKhmer } from './lib/language';
 
+const AuthGate = lazy(() =>
+  import('./screens/AuthGate').then((m) => ({ default: m.AuthGate })),
+);
+const HomeScreen = lazy(() =>
+  import('./screens/HomeScreen').then((m) => ({ default: m.HomeScreen })),
+);
 const MatchmakingScreen = lazy(() =>
   import('./screens/MatchmakingScreen').then((m) => ({ default: m.MatchmakingScreen })),
 );
@@ -91,13 +95,15 @@ export default function App() {
 
   if (client.phase !== 'ready') {
     return (
-      <AuthGate
-        phase={client.phase}
-        error={client.bootError}
-        code={client.bootErrorCode}
-        config={client.config}
-        onRetry={client.retryBoot}
-      />
+      <Suspense fallback={<ScreenFallback />}>
+        <AuthGate
+          phase={client.phase}
+          error={client.bootError}
+          code={client.bootErrorCode}
+          config={client.config}
+          onRetry={client.retryBoot}
+        />
+      </Suspense>
     );
   }
 
