@@ -137,6 +137,59 @@ describe('GameResult Component', () => {
     expect(screen.getByText(/Five in a row for your opponent\./i)).toBeTruthy();
   });
 
+  it('celebrates a win with confetti and the winning card animation', () => {
+    render(
+      <GameResult
+        match={createSampleMatch()}
+        open={true}
+        rematchBusy={false}
+        onRematch={vi.fn()}
+        onHome={vi.fn()}
+        onHistory={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector('.result-card--win')).toBeTruthy();
+    expect(document.querySelector('.result-card--defeat')).toBeNull();
+    expect(document.querySelectorAll('.result-confetti__piece')).toHaveLength(26);
+  });
+
+  it('plays the defeat jolt and ring on a loss', () => {
+    render(
+      <GameResult
+        match={createSampleMatch({ winnerSide: 'O', result: 'O_WINS' })}
+        open={true}
+        rematchBusy={false}
+        onRematch={vi.fn()}
+        onHome={vi.fn()}
+        onHistory={vi.fn()}
+      />,
+    );
+
+    expect(document.querySelector('.result-card--defeat')).toBeTruthy();
+    expect(document.querySelector('.result-defeat-ring')).toBeTruthy();
+    expect(document.querySelector('.result-defeat-mark')).toBeTruthy();
+    expect(document.querySelector('.result-confetti')).toBeNull();
+  });
+
+  it('keeps a draw neutral', () => {
+    render(
+      <GameResult
+        match={createSampleMatch({ result: 'DRAW', winnerSide: null, finishReason: 'DRAW' })}
+        open={true}
+        rematchBusy={false}
+        onRematch={vi.fn()}
+        onHome={vi.fn()}
+        onHistory={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Draw')).toBeTruthy();
+    expect(document.querySelector('.result-card--win')).toBeNull();
+    expect(document.querySelector('.result-card--defeat')).toBeNull();
+    expect(document.querySelector('.result-confetti')).toBeNull();
+  });
+
   it('renders deciding area mini-board with winning line highlighted', () => {
     const match = createSampleMatch();
     render(

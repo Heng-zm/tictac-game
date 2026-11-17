@@ -13,6 +13,11 @@ export const STICKER_IDS = [
   'rematch_invite',
   'mocking',
   'smug_tease',
+  'heart_love',
+  'shy_peek',
+  'cute_pout',
+  'cat_cheer',
+  'sleepy_yawn',
 ] as const;
 
 export type StickerId = (typeof STICKER_IDS)[number];
@@ -168,6 +173,56 @@ export const STICKER_REGISTRY: Record<StickerId, StickerDefinition> = {
     label: {
       en: 'Is that all you got?',
       km: 'មានតែប៉ុណ្ណឹងទេ?',
+    },
+    durationMs: 3200,
+  },
+  heart_love: {
+    id: 'heart_love',
+    name: 'Heart Eyes Love',
+    category: 'emotion',
+    label: {
+      en: 'So lovely!',
+      km: 'ស្រលាញ់ណាស់!',
+    },
+    durationMs: 3200,
+  },
+  shy_peek: {
+    id: 'shy_peek',
+    name: 'Shy Blush Peek',
+    category: 'emotion',
+    label: {
+      en: 'Aww, so shy!',
+      km: 'អៀនណាស់!',
+    },
+    durationMs: 3000,
+  },
+  cute_pout: {
+    id: 'cute_pout',
+    name: 'Cute Cheeks Pout',
+    category: 'emotion',
+    label: {
+      en: 'Hmph, no fair!',
+      km: 'ខឹងហើយ!',
+    },
+    durationMs: 3000,
+  },
+  cat_cheer: {
+    id: 'cat_cheer',
+    name: 'Cute Kitty Cheer',
+    category: 'chat',
+    label: {
+      en: 'Nya! You got this!',
+      km: 'តស៊ូឡើង! ញ៉ាវ!',
+    },
+    durationMs: 3000,
+  },
+  sleepy_yawn: {
+    id: 'sleepy_yawn',
+    name: 'Sleepy Nightcap',
+    category: 'tactics',
+    label: {
+      en: 'Zzz... Still waiting!',
+      km: 'ងងុយគេងហើយ... រង់ចាំយូរ!',
     },
     durationMs: 3200,
   },

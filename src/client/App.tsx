@@ -173,7 +173,12 @@ export default function App() {
       ) : null}
       <main id="main-content" tabIndex={-1} className="outline-none">
         <Suspense fallback={<ScreenFallback />}>
-          <div key={route.name} className="screen-transition">
+          <div
+            key={route.name}
+            className={
+              route.name === 'game' ? 'screen-transition screen-transition--fade' : 'screen-transition'
+            }
+          >
             {screen}
           </div>
         </Suspense>

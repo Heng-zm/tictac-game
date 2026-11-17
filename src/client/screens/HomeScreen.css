@@ -4,8 +4,11 @@
 
 .home-screen {
   --home-border: rgb(var(--app-border-rgb) / 0.85);
-  --home-surface: rgb(var(--app-surface-rgb) / 0.86);
-  --home-elevated: rgb(var(--app-elevated-rgb) / 0.82);
+  --home-surface: rgb(var(--app-surface-rgb) / 0.9);
+  --home-elevated: rgb(var(--app-elevated-rgb) / 0.86);
+  /* Shared frost radius: every blurred surface composites the animated ambient
+     background, so keep this small enough for low-end phones. */
+  --home-frost: blur(10px);
   --home-ink: rgb(var(--app-text-rgb));
   --home-muted: rgb(var(--app-muted-rgb));
   --home-accent: rgb(var(--app-accent-rgb));
@@ -31,8 +34,8 @@
 
 :root[data-theme='dark'] .home-screen {
   --home-border: rgb(var(--app-border-rgb) / 0.85);
-  --home-surface: rgb(var(--app-surface-rgb) / 0.78);
-  --home-elevated: rgb(var(--app-elevated-rgb) / 0.75);
+  --home-surface: rgb(var(--app-surface-rgb) / 0.82);
+  --home-elevated: rgb(var(--app-elevated-rgb) / 0.79);
   --home-accent-soft: rgb(var(--app-accent-rgb) / 0.14);
   --home-accent-border: rgb(var(--app-accent-rgb) / 0.35);
   --home-success-soft: rgb(var(--app-success-rgb) / 0.13);
@@ -254,8 +257,8 @@
   border: 1px solid var(--home-border);
   border-radius: 18px;
   background: var(--home-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: var(--home-frost);
+  -webkit-backdrop-filter: var(--home-frost);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -433,8 +436,8 @@
   border-radius: 24px;
   background: linear-gradient(140deg, var(--home-accent-soft), var(--home-surface) 52%, var(--home-surface));
   box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset, var(--home-shadow);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: var(--home-frost);
+  -webkit-backdrop-filter: var(--home-frost);
 }
 
 .home-scoreboard-glow {
@@ -469,7 +472,8 @@
   mask-image: radial-gradient(circle at 55% 45%, #000, transparent 72%);
 }
 
-.home-scoreboard > * {
+.home-scoreboard-top,
+.home-score-stats {
   position: relative;
   z-index: 1;
 }
@@ -609,8 +613,8 @@
   border: 1px solid var(--home-border);
   border-radius: 20px;
   background: var(--home-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: var(--home-frost);
+  -webkit-backdrop-filter: var(--home-frost);
   color: inherit;
   text-align: left;
   cursor: pointer;
@@ -634,15 +638,23 @@
   );
   transform: translateX(-120%);
   pointer-events: none;
-  opacity: 0.5;
-  animation: shimmer-sweep 4.2s ease-in-out infinite;
+  opacity: 0;
   transition: opacity 200ms ease;
+}
+
+/* Idle sheen only where a cursor exists: a permanent repaint loop on every tile
+   is wasted work on touch phones, which have no hover state to reward. */
+@media (hover: hover) and (pointer: fine) {
+  .home-mode-shimmer {
+    opacity: 0.35;
+    animation: shimmer-sweep 7.5s ease-in-out infinite;
+  }
 }
 
 .home-mode:hover:not(:disabled) .home-mode-shimmer,
 .home-mode:focus-visible:not(:disabled) .home-mode-shimmer {
   opacity: 1;
-  animation-duration: 2s;
+  animation: shimmer-sweep 2s ease-in-out infinite;
 }
 
 .home-mode--accent {
@@ -790,8 +802,8 @@
   border: 1px solid var(--home-border);
   border-radius: 22px;
   background: var(--home-surface);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: var(--home-frost);
+  -webkit-backdrop-filter: var(--home-frost);
   box-shadow: var(--home-shadow);
 }
 

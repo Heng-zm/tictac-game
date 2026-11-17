@@ -1,0 +1,478 @@
+/* --- Springy, bouncy keyframe motions --- */
+@keyframes st-victory-jump {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  14% { transform: translateY(3.5px) scale(1.12, 0.88); }
+  42% { transform: translateY(-16px) scale(0.9, 1.14); }
+  60% { transform: translateY(-13px) scale(1.02, 0.98); }
+  78% { transform: translateY(1.5px) scale(1.08, 0.92); }
+  90% { transform: translateY(-2px) scale(0.98, 1.02); }
+}
+@keyframes st-crown-sway {
+  0%, 100% { transform: rotate(-6deg) translateY(0); }
+  50% { transform: rotate(6deg) translateY(-3px); }
+}
+@keyframes st-trophy-shine {
+  0%, 100% { transform: rotate(-4deg) scale(1); }
+  50% { transform: rotate(4deg) scale(1.14); }
+}
+@keyframes st-sparkle-twinkle {
+  0%, 100% { transform: scale(0.4) rotate(0deg); opacity: 0.25; }
+  50% { transform: scale(1.3) rotate(60deg); opacity: 1; }
+}
+
+@keyframes st-greet-sway {
+  0%, 100% { transform: rotate(-4deg) translateY(0); }
+  50% { transform: rotate(4deg) translateY(-3px); }
+}
+@keyframes st-wave-springy {
+  0%, 100% { transform: rotate(0deg); }
+  18% { transform: rotate(-36deg); }
+  36% { transform: rotate(26deg); }
+  54% { transform: rotate(-28deg); }
+  72% { transform: rotate(18deg); }
+  88% { transform: rotate(-8deg); }
+}
+@keyframes st-wave-arc {
+  0% { opacity: 0; transform: scale(0.5); }
+  35% { opacity: 1; transform: scale(1); }
+  75% { opacity: 0.75; transform: scale(1.4); }
+  100% { opacity: 0; transform: scale(1.75); }
+}
+
+@keyframes st-laugh-belly {
+  0%, 100% { transform: translateY(0) rotate(-4deg) scale(1, 1); }
+  25% { transform: translateY(-6px) rotate(4deg) scale(0.94, 1.06); }
+  50% { transform: translateY(1.5px) rotate(-3deg) scale(1.07, 0.93); }
+  75% { transform: translateY(-5px) rotate(3deg) scale(0.96, 1.04); }
+}
+@keyframes st-tear-arc-l {
+  0% { transform: translate(0, 0) scale(0); opacity: 0; }
+  25% { transform: translate(-10px, -6px) scale(1.2); opacity: 1; }
+  65% { transform: translate(-20px, 8px) scale(0.9); opacity: 0.85; }
+  100% { transform: translate(-28px, 20px) scale(0.3); opacity: 0; }
+}
+@keyframes st-tear-arc-r {
+  0% { transform: translate(0, 0) scale(0); opacity: 0; }
+  25% { transform: translate(10px, -6px) scale(1.2); opacity: 1; }
+  65% { transform: translate(20px, 8px) scale(0.9); opacity: 0.85; }
+  100% { transform: translate(28px, 20px) scale(0.3); opacity: 0; }
+}
+@keyframes st-tongue-laugh {
+  0%, 100% { transform: translateY(0) scaleY(1); }
+  50% { transform: translateY(-3px) scaleY(1.35); }
+}
+
+@keyframes st-shock-gasp {
+  0%, 100% { transform: translateY(0) scale(1); }
+  10% { transform: translateY(-10px) scale(0.86, 1.18); }
+  20%, 40%, 60%, 80% { transform: translateY(-1px) translateX(-3px) scale(1); }
+  30%, 50%, 70%, 90% { transform: translateY(-1px) translateX(3px) scale(1); }
+}
+@keyframes st-exclamation-jump {
+  0%, 100% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-10px) scale(1.3); }
+  50% { transform: translateY(1.5px) scale(0.92); }
+  75% { transform: translateY(-2px) scale(1.06); }
+}
+@keyframes st-sweat-fall {
+  0% { transform: translateY(0) scale(0.5); opacity: 0; }
+  25% { transform: translateY(3px) scale(1.1); opacity: 1; }
+  75% { transform: translateY(15px) scale(0.9); opacity: 0.85; }
+  100% { transform: translateY(22px) scale(0.3); opacity: 0; }
+}
+@keyframes st-hands-tremble {
+  0%, 100% { transform: translate(0, 0); }
+  25% { transform: translate(-2px, 1.5px); }
+  75% { transform: translate(2px, -1.5px); }
+}
+
+@keyframes st-sob-heave {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  28% { transform: translateY(6px) scale(1.08, 0.92); }
+  58% { transform: translateY(-6px) scale(0.94, 1.06); }
+  82% { transform: translateY(2px) scale(1.03, 0.97); }
+}
+@keyframes st-tear-stream {
+  0% { transform: translateY(0) scaleY(0.4); opacity: 0; }
+  25% { transform: translateY(5px) scaleY(1.25); opacity: 1; }
+  75% { transform: translateY(18px) scaleY(1.1); opacity: 0.85; }
+  100% { transform: translateY(26px) scaleY(0.4); opacity: 0; }
+}
+@keyframes st-mouth-quiver {
+  0%, 100% { transform: scaleX(1) scaleY(1); }
+  25% { transform: scaleX(0.88) scaleY(1.14) translateY(1px); }
+  75% { transform: scaleX(1.12) scaleY(0.88) translateY(-1px); }
+}
+
+@keyframes st-rage-vibe {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  18% { transform: translate(-3px, 2px) rotate(-2.5deg) scale(1.02); }
+  36% { transform: translate(3px, -2px) rotate(2.5deg) scale(0.98); }
+  54% { transform: translate(-2.5px, -1.5px) rotate(-2deg) scale(1.02); }
+  72% { transform: translate(2.5px, 1.5px) rotate(2deg) scale(0.98); }
+  88% { transform: translate(-1.5px, 1px) rotate(-1deg) scale(1.01); }
+}
+@keyframes st-steam-jet-l {
+  0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 0.7; }
+  100% { transform: translate(-18px, -18px) scale(1.5); opacity: 0; }
+}
+@keyframes st-steam-jet-r {
+  0% { transform: translate(0, 0) scale(0.3); opacity: 0; }
+  25% { opacity: 1; }
+  75% { opacity: 0.7; }
+  100% { transform: translate(18px, -18px) scale(1.5); opacity: 0; }
+}
+@keyframes st-anger-mark-pulse {
+  0%, 100% { transform: scale(0.85) rotate(0deg); }
+  45% { transform: scale(1.4) rotate(16deg); }
+  70% { transform: scale(0.95) rotate(-4deg); }
+}
+
+@keyframes st-ponder-drift {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-6px) rotate(-3deg); }
+}
+@keyframes st-gear-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+@keyframes st-question-bob {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-4px) scale(1.22); }
+}
+@keyframes st-chin-tap {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  40% { transform: translateY(-3px) rotate(-8deg); }
+  70% { transform: translateY(0) rotate(0deg); }
+}
+
+@keyframes st-applause-bop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  45% { transform: translateY(-5px) scale(1.04, 0.96); }
+}
+@keyframes st-hand-clap-l {
+  0%, 100% { transform: translate(0, 0) rotate(-18deg); }
+  45% { transform: translate(9px, -2px) rotate(8deg); }
+}
+@keyframes st-hand-clap-r {
+  0%, 100% { transform: translate(0, 0) rotate(18deg); }
+  45% { transform: translate(-9px, -2px) rotate(-8deg); }
+}
+@keyframes st-clap-spark {
+  0%, 35% { transform: scale(0); opacity: 0; }
+  45% { transform: scale(1.4); opacity: 1; }
+  75% { transform: scale(1.8); opacity: 0; }
+  100% { transform: scale(0); opacity: 0; }
+}
+@keyframes st-star-eye-twinkle {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.25) rotate(30deg); }
+}
+
+@keyframes st-reverent-bow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  35% { transform: translateY(8px) rotate(7deg); }
+  65% { transform: translateY(8px) rotate(7deg); }
+  85% { transform: translateY(1.5px) rotate(1deg); }
+}
+@keyframes st-aura-radiate {
+  0%, 100% { transform: scale(0.9); opacity: 0.4; }
+  50% { transform: scale(1.15); opacity: 0.95; }
+}
+
+@keyframes st-tease-bob {
+  0%, 100% { transform: rotate(-7deg) translateY(0); }
+  50% { transform: rotate(7deg) translateY(-5px); }
+}
+@keyframes st-tongue-flutter {
+  0%, 100% { transform: rotate(-10deg) scaleY(1); }
+  50% { transform: rotate(10deg) scaleY(1.3); }
+}
+@keyframes st-wink-burst {
+  0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.6; }
+  50% { transform: scale(1.45) rotate(50deg); opacity: 1; }
+}
+
+@keyframes st-proud-nod {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  28% { transform: translateY(4px) rotate(2deg); }
+  55% { transform: translateY(-4px) rotate(-1.5deg); }
+  78% { transform: translateY(1px) rotate(0deg); }
+}
+@keyframes st-thumb-pump {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  35%, 65% { transform: translate(3.5px, -3.5px) scale(1.2); }
+}
+@keyframes st-thumb-radiance {
+  0%, 100% { opacity: 0.15; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+@keyframes st-medal-gleam {
+  0%, 100% { transform: rotate(0deg) scale(1); }
+  50% { transform: rotate(14deg) scale(1.18); }
+}
+
+@keyframes st-boxer-shuffle {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  25% { transform: translateY(-8px) scale(0.94, 1.06); }
+  50% { transform: translateY(0) scale(1.06, 0.94); }
+  75% { transform: translateY(-4px) scale(0.97, 1.03); }
+}
+@keyframes st-punch-left {
+  0%, 100% { transform: translate(0, 0); }
+  22% { transform: translate(-6px, -5px) scale(1.25); }
+  45% { transform: translate(0, 0); }
+}
+@keyframes st-punch-right {
+  0%, 50%, 100% { transform: translate(0, 0); }
+  72% { transform: translate(6px, -5px) scale(1.25); }
+}
+@keyframes st-headband-stream {
+  0%, 100% { transform: rotate(0deg) skewX(0deg); }
+  50% { transform: rotate(-18deg) skewX(-14deg); }
+}
+@keyframes st-swords-glow {
+  0%, 100% { transform: scale(1); opacity: 0.75; }
+  50% { transform: scale(1.12); opacity: 1; }
+}
+
+@keyframes st-mock-sway {
+  0%, 100% { transform: translateY(0) rotate(-5deg); }
+  50% { transform: translateY(-4px) rotate(5deg); }
+}
+@keyframes st-mock-wag-l {
+  0%, 100% { transform: rotate(-20deg); }
+  50% { transform: rotate(20deg); }
+}
+@keyframes st-mock-wag-r {
+  0%, 100% { transform: rotate(20deg); }
+  50% { transform: rotate(-20deg); }
+}
+@keyframes st-mock-tongue {
+  0%, 100% { transform: rotate(-14deg) scaleY(1); }
+  50% { transform: rotate(14deg) scaleY(1.35); }
+}
+
+@keyframes st-smug-bob {
+  0%, 100% { transform: translateY(0) rotate(2.5deg); }
+  50% { transform: translateY(-5px) rotate(-3.5deg); }
+}
+@keyframes st-finger-wag {
+  0%, 100% { transform: rotate(-22deg); }
+  50% { transform: rotate(22deg); }
+}
+@keyframes st-smug-sparkle {
+  0%, 100% { transform: scale(0.5) rotate(0deg); opacity: 0.35; }
+  50% { transform: scale(1.35) rotate(50deg); opacity: 1; }
+}
+
+@keyframes st-love-sway {
+  0%, 100% { transform: translateY(0) rotate(-3.5deg) scale(1, 1); }
+  25% { transform: translateY(-5px) rotate(2.5deg) scale(0.96, 1.04); }
+  50% { transform: translateY(0) rotate(3.5deg) scale(1.03, 0.97); }
+  75% { transform: translateY(-3px) rotate(-2deg) scale(0.98, 1.02); }
+}
+@keyframes st-heart-throb {
+  0%, 100% { transform: scale(1); }
+  14% { transform: scale(1.32); }
+  28% { transform: scale(1.06); }
+  42% { transform: scale(1.24); }
+  56% { transform: scale(1); }
+}
+@keyframes st-float-heart-1 {
+  0%, 100% { transform: translate(0, 0) scale(0.7) rotate(-10deg); opacity: 0.75; }
+  50% { transform: translate(-4px, -10px) scale(1) rotate(-2deg); opacity: 1; }
+}
+@keyframes st-float-heart-2 {
+  0%, 100% { transform: translate(0, 0) scale(0.8) rotate(10deg); opacity: 0.8; }
+  50% { transform: translate(4px, -11px) scale(1.1) rotate(4deg); opacity: 1; }
+}
+@keyframes st-float-heart-3 {
+  0%, 100% { transform: translate(0, 0) scale(0.6) rotate(0deg); opacity: 0.65; }
+  50% { transform: translate(3px, -9px) scale(0.9) rotate(7deg); opacity: 1; }
+}
+
+@keyframes st-shy-sway {
+  0%, 100% { transform: translateY(0) rotate(-2.5deg); }
+  50% { transform: translateY(2.5px) rotate(2.5deg); }
+}
+@keyframes st-shy-hands {
+  0%, 100% { transform: translateY(0); }
+  45% { transform: translateY(4px); }
+  60% { transform: translateY(4px); }
+  85% { transform: translateY(0); }
+}
+@keyframes st-blush-pulse {
+  0%, 100% { opacity: 0.7; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.18); }
+}
+
+@keyframes st-pout-huff {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  25% { transform: translateY(2.5px) scale(1.06, 0.94); }
+  50% { transform: translateY(-5px) scale(0.95, 1.05); }
+  75% { transform: translateY(1.5px) scale(1.03, 0.97); }
+}
+@keyframes st-pout-steam {
+  0% { transform: translate(0, 0) scale(0.25); opacity: 0; }
+  35% { transform: translate(-5px, -4px) scale(1); opacity: 1; }
+  70% { transform: translate(-12px, -10px) scale(1.25); opacity: 0.75; }
+  100% { transform: translate(-18px, -14px) scale(1.45); opacity: 0; }
+}
+
+@keyframes st-cat-hop {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  18% { transform: translateY(3.5px) scale(1.08, 0.92); }
+  48% { transform: translateY(-10px) scale(0.93, 1.07); }
+  72% { transform: translateY(-2px) scale(1.01, 0.99); }
+}
+@keyframes st-paw-cheer-l {
+  0%, 100% { transform: translateY(0) rotate(-10deg) scale(1); }
+  50% { transform: translateY(-7px) rotate(10deg) scale(1.12); }
+}
+@keyframes st-paw-cheer-r {
+  0%, 100% { transform: translateY(-7px) rotate(10deg) scale(1.12); }
+  50% { transform: translateY(0) rotate(-10deg) scale(1); }
+}
+@keyframes st-cat-ear-twitch {
+  0%, 80%, 100% { transform: rotate(0deg); }
+  85% { transform: rotate(-10deg); }
+  90% { transform: rotate(8deg); }
+  95% { transform: rotate(-4deg); }
+}
+
+@keyframes st-sleep-breathe {
+  0%, 100% { transform: translateY(0) scale(1, 1); }
+  50% { transform: translateY(2.5px) scale(1.04, 0.96); }
+}
+@keyframes st-snore-bubble-pulse {
+  0%, 100% { transform: scale(0.25); opacity: 0.15; }
+  45% { transform: scale(1.2); opacity: 0.9; }
+  75% { transform: scale(1); opacity: 0.75; }
+  92% { transform: scale(1.3); opacity: 0; }
+}
+@keyframes st-zzz-drift-1 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.25; }
+  50% { transform: translate(-4px, -6px); opacity: 1; }
+}
+@keyframes st-zzz-drift-2 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+  50% { transform: translate(-5px, -7px); opacity: 0.95; }
+}
+@keyframes st-zzz-drift-3 {
+  0%, 100% { transform: translate(0, 0); opacity: 0.15; }
+  50% { transform: translate(-6px, -8px); opacity: 0.9; }
+}
+@keyframes st-pompom-sway {
+  0%, 100% { transform: rotate(-8deg); }
+  50% { transform: rotate(16deg); }
+}
+
+/* --- Class mappings --- */
+.st-victory-actor { transform-origin: 50% 75%; animation: st-victory-jump 0.85s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+.st-crown { transform-origin: 50% 100%; animation: st-crown-sway 0.85s ease-in-out infinite; }
+.st-trophy { transform-origin: 12px 12px; animation: st-trophy-shine 0.85s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-sparkle-1 { transform-origin: 50% 50%; animation: st-sparkle-twinkle 1.1s ease-in-out infinite; }
+.st-sparkle-2 { transform-origin: 50% 50%; animation: st-sparkle-twinkle 1.1s ease-in-out infinite 0.55s; }
+
+.st-greet-body { transform-origin: 50% 80%; animation: st-greet-sway 1.2s ease-in-out infinite; }
+.st-wave-hand { transform-origin: 15% 85%; animation: st-wave-springy 0.75s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+.st-wave-ring { transform-origin: 85% 35%; animation: st-wave-arc 0.75s ease-out infinite; }
+
+.st-laugh-body { transform-origin: 50% 65%; animation: st-laugh-belly 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite; }
+.st-tear-l { transform-origin: 0 0; animation: st-tear-arc-l 0.8s ease-out infinite; }
+.st-tear-r { transform-origin: 0 0; animation: st-tear-arc-r 0.8s ease-out infinite 0.4s; }
+.st-tongue-laugh { transform-origin: 50% 100%; animation: st-tongue-laugh 0.36s ease-in-out infinite; }
+
+.st-shock-body { transform-origin: 50% 55%; animation: st-shock-gasp 0.65s cubic-bezier(0.25, 1, 0.5, 1) infinite; }
+.st-exclamation { transform-origin: 6.75px 14px; animation: st-exclamation-jump 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-sweat-drop { animation: st-sweat-fall 0.9s ease-in infinite; }
+.st-hands-tremble { animation: st-hands-tremble 0.2s ease-in-out infinite; }
+
+.st-cry-body { transform-origin: 50% 80%; animation: st-sob-heave 1.2s ease-in-out infinite; }
+.st-cry-tear-l { animation: st-tear-stream 0.9s ease-in infinite; }
+.st-cry-tear-r { animation: st-tear-stream 0.9s ease-in infinite 0.45s; }
+.st-quiver-mouth { transform-origin: 50% 50%; animation: st-mouth-quiver 0.3s ease-in-out infinite; }
+
+.st-rage-body { transform-origin: 50% 55%; animation: st-rage-vibe 0.22s linear infinite; }
+.st-steam-l { transform-origin: 20% 35%; animation: st-steam-jet-l 0.75s ease-out infinite; }
+.st-steam-r { transform-origin: 80% 35%; animation: st-steam-jet-r 0.75s ease-out infinite 0.35s; }
+.st-anger-mark { transform-origin: 0 0; animation: st-anger-mark-pulse 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+
+.st-think-body { transform-origin: 50% 75%; animation: st-ponder-drift 2s ease-in-out infinite; }
+.st-gear { transform-origin: 75% 22%; animation: st-gear-spin 3.5s linear infinite; }
+.st-question { transform-origin: 50% 50%; animation: st-question-bob 1s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+.st-chin-hand { transform-origin: 6px 4px; animation: st-chin-tap 1s cubic-bezier(0.34, 1.4, 0.64, 1) infinite; }
+
+.st-clap-body { transform-origin: 50% 75%; animation: st-applause-bop 0.42s ease-in-out infinite; }
+.st-clap-l { transform-origin: 30% 75%; animation: st-hand-clap-l 0.42s cubic-bezier(0.3, 0, 0.2, 1) infinite; }
+.st-clap-r { transform-origin: 70% 75%; animation: st-hand-clap-r 0.42s cubic-bezier(0.3, 0, 0.2, 1) infinite; }
+.st-clap-spark { transform-origin: 50% 70%; animation: st-clap-spark 0.42s ease-out infinite; }
+.st-star-eye { transform-origin: 0 0; animation: st-star-eye-twinkle 0.85s ease-in-out infinite; }
+
+.st-bow-body { transform-origin: 50% 85%; animation: st-reverent-bow 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.st-aura { transform-origin: 50% 55%; animation: st-aura-radiate 1.6s ease-in-out infinite; }
+
+.st-tease-body { transform-origin: 50% 70%; animation: st-tease-bob 0.5s ease-in-out infinite; }
+.st-tease-tongue { transform-origin: 4px 0px; animation: st-tongue-flutter 0.3s ease-in-out infinite; }
+.st-wink-star { transform-origin: 72% 46%; animation: st-wink-burst 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+
+.st-gg-body { transform-origin: 50% 75%; animation: st-proud-nod 1.4s ease-in-out infinite; }
+.st-thumb { transform-origin: 7px 10px; animation: st-thumb-pump 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-thumb-aura { transform-origin: 75% 55%; animation: st-thumb-radiance 0.7s ease-in-out infinite; }
+.st-gg-medal { transform-origin: 12px 12px; animation: st-medal-gleam 1.4s ease-in-out infinite; }
+
+.st-rematch-body { transform-origin: 50% 75%; animation: st-boxer-shuffle 0.65s cubic-bezier(0.25, 0.8, 0.5, 1) infinite; }
+.st-punch-l { transform-origin: 6px 6px; animation: st-punch-left 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-punch-r { transform-origin: 6px 6px; animation: st-punch-right 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-headband { transform-origin: 20% 45%; animation: st-headband-stream 0.65s ease-in-out infinite; }
+.st-swords { transform-origin: 50% 50%; animation: st-swords-glow 0.65s ease-in-out infinite; }
+
+.st-mock-dance { transform-origin: 50% 75%; animation: st-mock-sway 0.55s ease-in-out infinite; }
+.st-mock-hand-l { transform-origin: 8px 8px; animation: st-mock-wag-l 0.4s ease-in-out infinite; }
+.st-mock-hand-r { transform-origin: 2px 8px; animation: st-mock-wag-r 0.4s ease-in-out infinite; }
+.st-mock-tongue { transform-origin: 4px 0px; animation: st-mock-tongue 0.35s ease-in-out infinite; }
+
+.st-smug-head { transform-origin: 50% 75%; animation: st-smug-bob 1.4s ease-in-out infinite; }
+.st-finger-wag { transform-origin: 0 0; animation: st-finger-wag 0.55s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.st-smug-sparkle { transform-origin: 72% 46%; animation: st-smug-sparkle 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+
+.st-heart-love-body { transform-origin: 50% 75%; animation: st-love-sway 1.5s ease-in-out infinite; }
+.st-heart-eye-l { transform-origin: 0 0; animation: st-heart-throb 1s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-heart-eye-r { transform-origin: 0 0; animation: st-heart-throb 1s cubic-bezier(0.34, 1.56, 0.64, 1) infinite 0.15s; }
+.st-float-heart-1 { transform-origin: 0 0; animation: st-float-heart-1 1.8s ease-in-out infinite; }
+.st-float-heart-2 { transform-origin: 0 0; animation: st-float-heart-2 2s ease-in-out infinite 0.3s; }
+.st-float-heart-3 { transform-origin: 0 0; animation: st-float-heart-3 1.7s ease-in-out infinite 0.6s; }
+
+.st-shy-body { transform-origin: 50% 75%; animation: st-shy-sway 1.6s ease-in-out infinite; }
+.st-shy-hands { transform-origin: 50% 64px; animation: st-shy-hands 1.6s cubic-bezier(0.25, 0.8, 0.5, 1) infinite; }
+.st-blush-glow { transform-origin: 50% 58px; animation: st-blush-pulse 1.2s ease-in-out infinite; }
+.st-shy-sparkle { transform-origin: 76px 42px; animation: st-sparkle-twinkle 1.4s ease-in-out infinite; }
+
+.st-pout-body { transform-origin: 50% 75%; animation: st-pout-huff 1.2s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-pout-cloud { transform-origin: 26px 44px; animation: st-pout-steam 1.4s ease-out infinite; }
+
+.st-cat-body { transform-origin: 50% 75%; animation: st-cat-hop 0.6s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
+.st-cat-ear-l { transform-origin: 26px 35px; animation: st-cat-ear-twitch 2.8s ease-in-out infinite; }
+.st-cat-ear-r { transform-origin: 74px 35px; animation: st-cat-ear-twitch 2.8s ease-in-out infinite 0.2s; }
+.st-cat-paw-l { transform-origin: 0 0; animation: st-paw-cheer-l 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+.st-cat-paw-r { transform-origin: 0 0; animation: st-paw-cheer-r 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) infinite; }
+
+.st-sleepy-body { transform-origin: 50% 75%; animation: st-sleep-breathe 2.4s ease-in-out infinite; }
+.st-snore-bubble { transform-origin: 53px 60px; animation: st-snore-bubble-pulse 2.4s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
+.st-zzz-1 { animation: st-zzz-drift-1 2.4s ease-in-out infinite; }
+.st-zzz-2 { animation: st-zzz-drift-2 2.4s ease-in-out infinite 0.4s; }
+.st-zzz-3 { animation: st-zzz-drift-3 2.4s ease-in-out infinite 0.8s; }
+.st-pompom { transform-origin: 86px 52px; animation: st-pompom-sway 2.4s ease-in-out infinite; }
+
+/* Accessibility overrides */
+@media (prefers-reduced-motion: reduce) {
+  .sticker-animated * {
+    animation: none !important;
+  }
+}
+.sticker-static * {
+  animation: none !important;
+}

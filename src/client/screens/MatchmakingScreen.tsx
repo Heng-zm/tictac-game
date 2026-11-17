@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Bot,
+  Check,
   Clock3,
   RefreshCw,
   Search,
@@ -41,7 +42,17 @@ export function MatchmakingScreen({
   const elapsed = useElapsed(startedAt);
   const fallbackRemaining = useCountdown(queue?.fallbackAt ?? null, undefined, client.clockOffsetMs);
   const maxWaitMs = config?.queueMaxWaitMs ?? 0;
-  const searchProgress = maxWaitMs > 0 ? Math.min(1, elapsed / maxWaitMs) : 0;
+  const fallbackWaitMs = config?.queueAiTimeoutMs ?? 0;
+  // When auto-play is armed the wait actually ends at the bot countdown, not at
+  // the (much longer) queue limit, so the bar has to fill towards that instead.
+  // Otherwise it sits near 0% for the whole 10 seconds and then jumps straight
+  // to the fallback offer.
+  const botFallbackProgress =
+    autoFallback && fallbackRemaining !== null && fallbackWaitMs > 0
+      ? Math.min(1, Math.max(0, 1 - fallbackRemaining / fallbackWaitMs))
+      : null;
+  const searchProgress =
+    botFallbackProgress ?? (maxWaitMs > 0 ? Math.min(1, elapsed / maxWaitMs) : 0);
 
   const timeLeftLabel =
     autoFallback && fallbackRemaining !== null
@@ -194,9 +205,10 @@ export function MatchmakingScreen({
   const expired = queue?.state === 'expired' || queue?.state === 'error';
   const fallbackReady =
     Boolean(queue && (queue.fallbackAvailable || fallbackRemaining === 0)) && !expired && !fallbackDismissed;
+  const waiting = !activeMatch && !pendingInvite && !expired && !connectionLost;
 
   return (
-    <Page width="medium">
+    <Page width={waiting ? 'wide' : 'medium'}>
       <ScreenHeader
         title={isKm ? 'ប្រកួតរហ័ស' : 'Quick match'}
         subtitle={isKm ? 'គិតពិន្ទុ ELO · គូប្រកួតចៃដន្យ' : 'Rated · random opponent'}
@@ -302,16 +314,16 @@ export function MatchmakingScreen({
           </div>
         </Card>
       ) : (
-        <>
-          <div className="md:grid md:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] md:items-start md:gap-3.5">
+        <div className="md:flex md:min-h-[calc(var(--app-vh)-11rem)] md:flex-col md:justify-center">
+          <div className="md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,0.82fr)] md:items-start md:gap-4">
             {/* Tactical Radar Card */}
-            <Card className="relative overflow-hidden p-6 sm:p-7 shadow-glass backdrop-blur-2xl border-line/80">
+            <Card className="relative overflow-hidden p-5 sm:p-7 shadow-glass backdrop-blur-2xl border-line/80">
               {/* Background ambient radial aura */}
               <div className="pointer-events-none absolute -right-12 -top-12 h-44 w-44 rounded-full bg-accent/15 blur-3xl" aria-hidden />
               <div className="pointer-events-none absolute -left-12 -bottom-12 h-44 w-44 rounded-full bg-[#24A1DE]/15 blur-3xl" aria-hidden />
 
               {/* High-Tech Tactical Radar Scope */}
-              <div className="relative mx-auto flex h-40 w-40 items-center justify-center">
+              <div className="relative mx-auto flex h-36 w-36 items-center justify-center sm:h-40 sm:w-40 lg:h-44 lg:w-44">
                 {/* Concentric Range Rings */}
                 <span className="absolute inset-0 rounded-full border border-accent/25 bg-accent/5 shadow-inner" />
                 <span className="absolute inset-4 rounded-full border border-dashed border-accent/20" />
@@ -361,7 +373,7 @@ export function MatchmakingScreen({
               </div>
 
               {/* Status Header & Elapsed Timer */}
-              <div className="mt-5 text-center">
+              <div className="mt-4 text-center sm:mt-5">
                 <h2 aria-live="polite" className="text-xl font-black tracking-tight text-ink sm:text-2xl">
                   {queue
                     ? isKm ? 'កំពុងស្វែងរកគូប្រកួត' : 'Finding an opponent'
@@ -372,7 +384,7 @@ export function MatchmakingScreen({
                     <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-accent opacity-75" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-accent" />
                   </span>
-                  <span>
+                  <span className="tabular-nums">
                     {joining
                       ? isKm ? 'កំពុងភ្ជាប់ទៅកាន់ប្រព័ន្ធស្វែងរក…' : 'Connecting to matchmaking…'
                       : isKm ? `ស្វែងរកបាន ${formatDuration(elapsed)}` : `Searching for ${formatDuration(elapsed)}`}
@@ -380,12 +392,12 @@ export function MatchmakingScreen({
                 </div>
 
                 {/* Status Badges */}
-                <div className="mt-3.5 flex items-center justify-center gap-2">
-                  <Pill tone="accent" className="font-semibold shadow-xs">
+                <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                  <Pill tone="accent" className="shadow-xs">
                     <Users className="h-3 w-3" aria-hidden />
                     {isKm ? `${queue?.waitingPlayers ?? 1} នាក់ក្នុងជួរ` : `${queue?.waitingPlayers ?? 1} in queue`}
                   </Pill>
-                  <Pill className="font-semibold shadow-xs">
+                  <Pill className="tabular-nums shadow-xs">
                     <Clock3 className="h-3 w-3" aria-hidden />
                     {timeLeftLabel}
                   </Pill>
@@ -394,12 +406,16 @@ export function MatchmakingScreen({
                 {/* Smooth Continuous Wait Progress Bar */}
                 <div
                   role="progressbar"
-                  aria-label="Matchmaking search progress"
+                  aria-label={
+                    botFallbackProgress !== null
+                      ? 'Time until a bot match starts'
+                      : 'Matchmaking search progress'
+                  }
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={Math.round(searchProgress * 100)}
-                  aria-valuetext={`${Math.round(searchProgress * 100)}% of the maximum wait used`}
-                  className="mx-auto mt-3.5 h-2.5 max-w-[15rem] overflow-hidden rounded-full bg-elevated p-0.5 border border-line/70 shadow-inner"
+                  aria-valuetext={`${Math.round(searchProgress * 100)}% of the wait completed`}
+                  className="mx-auto mt-3 h-2.5 max-w-[15rem] overflow-hidden rounded-full bg-elevated p-0.5 border border-line/70 shadow-inner"
                 >
                   <div
                     className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-accent shadow-glow transition-[width] duration-1000 ease-linear"
@@ -408,32 +424,34 @@ export function MatchmakingScreen({
                 </div>
 
                 {/* Quick Secondary Actions */}
-                <div className="mt-5 grid grid-cols-2 gap-2 border-t border-line/60 pt-3.5">
-                  <Button
-                    size="sm"
-                    icon={Bot}
-                    variant="secondary"
-                    disabled={joining}
-                    onClick={() => void playBot()}
-                    className="font-semibold shadow-xs hover:border-accent/40"
-                  >
-                    {isKm ? 'លេង Bot' : 'Play Bot'}
-                  </Button>
-                  <Button
-                    size="sm"
-                    icon={UserPlus}
-                    variant="secondary"
-                    disabled={joining}
-                    onClick={inviteFriend}
-                    className="font-semibold shadow-xs hover:border-accent/40"
-                  >
-                    {isKm ? 'អញ្ជើញមិត្តភក្តិ' : 'Invite friend'}
-                  </Button>
+                <div className="mx-auto mt-4 max-w-xs border-t border-line/60 pt-3">
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      size="sm"
+                      icon={Bot}
+                      variant="secondary"
+                      disabled={joining}
+                      onClick={() => void playBot()}
+                      className="font-semibold shadow-xs hover:border-accent/40"
+                    >
+                      {isKm ? 'លេង Bot' : 'Play Bot'}
+                    </Button>
+                    <Button
+                      size="sm"
+                      icon={UserPlus}
+                      variant="secondary"
+                      disabled={joining}
+                      onClick={inviteFriend}
+                      className="font-semibold shadow-xs hover:border-accent/40"
+                    >
+                      {isKm ? 'អញ្ជើញមិត្តភក្តិ' : 'Invite friend'}
+                    </Button>
+                  </div>
                 </div>
               </div>
 
               {localError ? (
-                <div role="alert" className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-center animate-shake">
+                <div role="alert" className="mt-4 rounded-xl border border-danger/20 bg-danger/5 p-3 text-center animate-shake-subtle">
                   <p className="text-xs font-semibold text-danger">{localError}</p>
                   <Button size="sm" variant="secondary" className="mt-2" onClick={() => void retry()}>
                     {isKm ? 'ព្យាយាមម្តងទៀត' : 'Try again'}
@@ -445,10 +463,10 @@ export function MatchmakingScreen({
             {/* Sidebar Cards */}
             <div className="mt-3.5 space-y-3 md:mt-0">
               {/* Auto Bot Fallback Card */}
-              <Card className="p-4 shadow-glass backdrop-blur-xl border-line/80">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <div className="flex items-center gap-2">
+              <Card className="p-4 sm:p-5 shadow-glass backdrop-blur-xl border-line/80">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
                       <p className="text-sm font-bold text-ink">
                         {isKm ? 'លេងជាមួយ Bot ស្វ័យប្រវត្តិ' : 'Auto-play a bot'}
                       </p>
@@ -458,7 +476,7 @@ export function MatchmakingScreen({
                         </Pill>
                       ) : null}
                     </div>
-                    <p className="mt-1 text-[11px] leading-relaxed text-muted">
+                    <p className="mt-1 text-[11px] leading-relaxed text-muted tabular-nums">
                       {isKm
                         ? `ប្រសិនគ្មានអ្នកលេងបន្ទាប់ពី ${formatDuration(config?.queueAiTimeoutMs ?? 0)} នឹងចាប់ផ្តើមជាមួយ Bot ស្វ័យប្រវត្តិ។`
                         : `After ${formatDuration(config?.queueAiTimeoutMs ?? 0)}, start a bot game automatically.`}
@@ -474,7 +492,7 @@ export function MatchmakingScreen({
 
               {/* Bot Fallback Ready Card */}
               {fallbackReady ? (
-                <Card className="border-accent/30 bg-accent/[0.04] p-4.5 shadow-glass backdrop-blur-xl animate-fade-up">
+                <Card className="border-accent/30 bg-accent/[0.04] p-4 sm:p-5 shadow-glass backdrop-blur-xl animate-fade-up">
                   <div className="flex items-start gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-accent shadow-xs">
                       <Bot className="h-5 w-5" aria-hidden />
@@ -490,7 +508,7 @@ export function MatchmakingScreen({
                       </p>
                     </div>
                   </div>
-                  <div className="mt-3.5 grid grid-cols-2 gap-2">
+                  <div className="mt-3 grid grid-cols-2 gap-2">
                     <Button size="sm" icon={Bot} className="font-bold shadow-sm" onClick={() => void playBot()}>
                       {isKm ? 'លេងជាមួយ Bot' : 'Play bot'}
                     </Button>
@@ -500,11 +518,30 @@ export function MatchmakingScreen({
                   </div>
                 </Card>
               ) : null}
+
+              {/* Queue reassurance — desktop only. On phones the same two lines
+                  live under the cancel button so the screen stays one page tall. */}
+              <Card className="hidden p-4 sm:p-5 md:block shadow-glass backdrop-blur-xl border-line/80">
+                <ul className="space-y-2">
+                  <li className="flex items-start gap-2 text-[11px] leading-relaxed text-muted">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+                    <span>{isKm ? 'ការចាកចេញពីជួរគឺឥតគិតថ្លៃ' : 'Leaving the queue is free.'}</span>
+                  </li>
+                  <li className="flex items-start gap-2 text-[11px] leading-relaxed text-muted">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-accent" aria-hidden />
+                    <span>
+                      {isKm
+                        ? 'ពិន្ទុនឹងត្រូវគិតលុះត្រាតែការប្រកួតចាប់ផ្តើម'
+                        : 'Your rating only moves once a game actually begins.'}
+                    </span>
+                  </li>
+                </ul>
+              </Card>
             </div>
           </div>
 
           {/* Cancel Search Footer */}
-          <div className="mt-5 flex flex-col items-center gap-2">
+          <div className="mt-5 flex flex-col items-center gap-2 md:mt-7">
             <Button
               variant="ghost"
               icon={X}
@@ -514,13 +551,13 @@ export function MatchmakingScreen({
             >
               {isKm ? 'បោះបង់ការស្វែងរក' : 'Cancel search'}
             </Button>
-            <p className="max-w-xs text-center text-[10.5px] leading-relaxed text-muted">
+            <p className="max-w-xs text-center text-[10.5px] leading-relaxed text-muted md:hidden">
               {isKm
                 ? 'ការចាកចេញពីជួរគឺឥតគិតថ្លៃ។ ពិន្ទុនឹងត្រូវគិតលុះត្រាតែការប្រកួតចាប់ផ្តើម។'
                 : 'Leaving the queue is free. You are only rated once a game actually begins.'}
             </p>
           </div>
-        </>
+        </div>
       )}
     </Page>
   );

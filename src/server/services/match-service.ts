@@ -685,6 +685,11 @@ export class MatchService {
       laughing: ['laughing', 'teasing'],
       mocking: ['frustrated', 'smug_tease', 'laughing'],
       smug_tease: ['thinking', 'teasing', 'clapping'],
+      heart_love: ['heart_love', 'shy_peek', 'respect'],
+      shy_peek: ['heart_love', 'teasing', 'greeting'],
+      cute_pout: ['laughing', 'heart_love', 'teasing'],
+      cat_cheer: ['clapping', 'cat_cheer', 'victory'],
+      sleepy_yawn: ['thinking', 'shocked', 'teasing'],
     };
 
     const choices = botReplies[userStickerId];

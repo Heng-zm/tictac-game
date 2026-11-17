@@ -6,6 +6,31 @@ export interface AnimatedNumberOptions {
   animateOnMount?: boolean;
 }
 
+const DEFAULT_DURATION_MS = 900;
+const MAX_DECIMALS = 3;
+
+function resolveDuration(optionsOrDuration?: number | AnimatedNumberOptions): number {
+  const rawDuration =
+    typeof optionsOrDuration === 'number'
+      ? optionsOrDuration
+      : optionsOrDuration?.durationMs ?? DEFAULT_DURATION_MS;
+  if (!Number.isFinite(rawDuration)) return DEFAULT_DURATION_MS;
+  return Math.max(1, rawDuration);
+}
+
+/** Decimal places needed to render `value`, so decimal targets do not snap at the end. */
+function decimalsOf(value: number): number {
+  if (!Number.isFinite(value) || Number.isInteger(value)) return 0;
+  const fraction = Math.abs(value).toString().split('.')[1] ?? '';
+  return Math.min(fraction.length, MAX_DECIMALS);
+}
+
+function roundTo(value: number, decimals: number): number {
+  if (decimals === 0) return Math.round(value);
+  const factor = 10 ** decimals;
+  return Math.round(value * factor) / factor;
+}
+
 /**
  * Smoothly animates a numeric value to a target value using quartic ease-out.
  * Automatically respects prefers-reduced-motion.
@@ -15,10 +40,7 @@ export function useAnimatedNumber(
   optionsOrDuration?: number | AnimatedNumberOptions,
 ): number {
   const safeTarget = Number.isFinite(target) ? target : 0;
-  const durationMs =
-    typeof optionsOrDuration === 'number'
-      ? optionsOrDuration
-      : optionsOrDuration?.durationMs ?? 900;
+  const durationMs = resolveDuration(optionsOrDuration);
   const animateOnMount =
     typeof optionsOrDuration === 'object' && optionsOrDuration.animateOnMount !== undefined
       ? optionsOrDuration.animateOnMount
@@ -67,6 +89,10 @@ export function useAnimatedNumber(
       return;
     }
 
+    // Keep the animation on the same precision as the values it moves between, so a
+    // decimal target (e.g. a 63.6% win rate) does not flicker between integers and snap.
+    const decimals = Math.max(decimalsOf(startValueRef.current), decimalsOf(safeTarget));
+
     const animate = (timestamp: number) => {
       if (startTimeRef.current === null) {
         startTimeRef.current = timestamp;
@@ -76,7 +102,8 @@ export function useAnimatedNumber(
       const progress = Math.min(1, elapsed / durationMs);
       // Quartic ease out: 1 - (1 - progress)^4
       const ease = 1 - Math.pow(1 - progress, 4);
-      const current = Math.round(startValueRef.current + (targetRef.current - startValueRef.current) * ease);
+      const interpolated = startValueRef.current + (targetRef.current - startValueRef.current) * ease;
+      const current = roundTo(interpolated, decimals);
 
       currentValueRef.current = current;
       setDisplayValue(current);

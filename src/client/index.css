@@ -210,6 +210,23 @@
   will-change: opacity, transform;
 }
 
+/* Immersive screens own the viewport with position: fixed. Any transform (or
+   will-change: transform) on the wrapper becomes their containing block and
+   collapses them, so those routes may only fade. */
+.screen-transition--fade {
+  animation: screen-fade 200ms ease both;
+  will-change: opacity;
+}
+
+@keyframes screen-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes screen-slide-fade {
   0% {
     opacity: 0;
@@ -728,6 +745,130 @@
 
 .animate-rank-aura {
   animation: rank-aura-breathe 2.8s ease-in-out infinite;
+}
+
+/* Result feedback: confetti burst for a win, a jolt for a loss ------------- */
+
+.result-confetti {
+  position: fixed;
+  inset: 0;
+  z-index: 61;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.result-confetti__piece {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  width: 7px;
+  height: 11px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: result-confetti-fly 1100ms cubic-bezier(0.17, 0.84, 0.28, 1)
+    var(--confetti-delay, 0ms) both;
+}
+
+@keyframes result-confetti-fly {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--confetti-tilt, 0deg)) scale(0.4);
+  }
+  12% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(
+        calc(-50% + var(--confetti-x, 0px)),
+        calc(-50% + var(--confetti-y, 0px))
+      )
+      rotate(calc(var(--confetti-tilt, 0deg) + var(--confetti-spin, 180deg))) scale(0.85);
+  }
+}
+
+.result-card--win {
+  animation: result-card-win 520ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes result-card-win {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  60% {
+    opacity: 1;
+    transform: translateY(-3px) scale(1.012);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.result-card--defeat {
+  animation: result-card-defeat 480ms cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes result-card-defeat {
+  0% {
+    opacity: 0;
+    transform: translateY(14px) translateX(-6px);
+  }
+  28% {
+    opacity: 1;
+    transform: translateY(0) translateX(-6px);
+  }
+  44% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+  76% {
+    transform: translateX(2px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.result-defeat-ring {
+  animation: result-defeat-ring 720ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes result-defeat-ring {
+  0% {
+    opacity: 0.9;
+    transform: scale(0.65);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.9);
+  }
+}
+
+.result-defeat-mark {
+  animation: result-defeat-mark 460ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes result-defeat-mark {
+  0% {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.92);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

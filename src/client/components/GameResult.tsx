@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, type CSSProperties } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Check,
   Eye,
@@ -27,6 +28,32 @@ import {
 } from '../lib/game';
 import { formatDuration } from '../hooks/use-time';
 import { Avatar, Button, Modal, Pill } from './ui';
+
+const CONFETTI_COLORS = ['#fbbf24', '#f59e0b', '#fde68a', '#38bdf8', '#a78bfa', '#34d399'];
+const CONFETTI_PIECES = 26;
+
+/** One-shot confetti burst over the result dialog. Portaled so the dialog's
+ *  scroll container cannot clip it, and CSS-driven so reduced-motion wins. */
+function WinConfetti() {
+  return createPortal(
+    <div className="result-confetti" aria-hidden>
+      {Array.from({ length: CONFETTI_PIECES }, (_, index) => {
+        const angle = (index / CONFETTI_PIECES) * Math.PI * 2;
+        const distance = 120 + ((index * 47) % 180);
+        const style = {
+          '--confetti-x': `${Math.round(Math.cos(angle) * distance)}px`,
+          '--confetti-y': `${Math.round(Math.sin(angle) * distance * 0.8 + 40)}px`,
+          '--confetti-tilt': `${(index % 5) * 22 - 44}deg`,
+          '--confetti-spin': `${(index % 2 === 0 ? 1 : -1) * (200 + (index % 4) * 120)}deg`,
+          '--confetti-delay': `${(index % 6) * 20}ms`,
+          backgroundColor: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+        } as CSSProperties;
+        return <span key={index} className="result-confetti__piece" style={style} />;
+      })}
+    </div>,
+    document.body,
+  );
+}
 
 export function GameResult({
   match,
@@ -166,7 +193,16 @@ export function GameResult({
   }
 
   return (
-    <Modal open={open && !minimized} dismissible={false} ariaLabel="Game result">
+    <Modal
+      open={open && !minimized}
+      dismissible={false}
+      ariaLabel="Game result"
+      className={cn(
+        outcome === 'win' && 'result-card--win',
+        outcome === 'loss' && 'result-card--defeat',
+      )}
+    >
+      {outcome === 'win' ? <WinConfetti /> : null}
       <div className="-mt-1 text-center">
         {/* Outcome Emblem Badge */}
         <div
@@ -191,7 +227,13 @@ export function GameResult({
           ) : outcome === 'abandoned' ? (
             <Flag className="h-8 w-8" aria-hidden />
           ) : (
-            <X className="h-8 w-8 animate-pop-in" aria-hidden />
+            <>
+              <span
+                className="result-defeat-ring pointer-events-none absolute -inset-2 rounded-full border border-danger/45"
+                aria-hidden
+              />
+              <X className="result-defeat-mark h-8 w-8" aria-hidden />
+            </>
           )}
         </div>
 

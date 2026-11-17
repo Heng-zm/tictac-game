@@ -1,5 +1,6 @@
 import { memo, useId } from 'react';
 import type { StickerId } from '../../../shared/stickers';
+import './stickers.css';
 
 interface StickerCharacterProps {
   id: StickerId;
@@ -32,391 +33,98 @@ export const StickerCharacter = memo(function StickerCharacter({
         xmlns="http://www.w3.org/2000/svg"
         className="w-full h-full overflow-visible drop-shadow-sm"
       >
-        <defs>
-          <radialGradient id={`${idPrefix}-body`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#60A5FA" />
-            <stop offset="45%" stopColor="#3B82F6" />
-            <stop offset="100%" stopColor="#1D4ED8" />
-          </radialGradient>
-          <radialGradient id={`${idPrefix}-highlight`} cx="30%" cy="25%" r="35%">
-            <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.75" />
-            <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={`${idPrefix}-body-red`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#F87171" />
-            <stop offset="45%" stopColor="#EF4444" />
-            <stop offset="100%" stopColor="#B91C1C" />
-          </radialGradient>
-          <radialGradient id={`${idPrefix}-gold`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#FDE047" />
-            <stop offset="60%" stopColor="#EAB308" />
-            <stop offset="100%" stopColor="#CA8A04" />
-          </radialGradient>
-          <radialGradient id={`${idPrefix}-aura`} cx="50%" cy="50%" r="50%">
-            <stop offset="0%" stopColor="#FCD34D" stopOpacity="0.6" />
-            <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
-          </radialGradient>
-          <radialGradient id={`${idPrefix}-glove-red`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#F87171" />
-            <stop offset="50%" stopColor="#EF4444" />
-            <stop offset="100%" stopColor="#991B1B" />
-          </radialGradient>
-          <radialGradient id={`${idPrefix}-glove-blue`} cx="35%" cy="30%" r="70%">
-            <stop offset="0%" stopColor="#60A5FA" />
-            <stop offset="50%" stopColor="#3B82F6" />
-            <stop offset="100%" stopColor="#1D4ED8" />
-          </radialGradient>
-        </defs>
-
-        <style>{`
-          /* --- Springy, bouncy keyframe motions --- */
-          @keyframes st-victory-jump {
-            0%, 100% { transform: translateY(0) scale(1, 1); }
-            15% { transform: translateY(4px) scale(1.08, 0.92); }
-            45% { transform: translateY(-13px) scale(0.92, 1.08); }
-            65% { transform: translateY(0) scale(1.06, 0.94); }
-            80% { transform: translateY(-3px) scale(0.98, 1.02); }
-          }
-          @keyframes st-crown-sway {
-            0%, 100% { transform: rotate(-5deg) translateY(0); }
-            50% { transform: rotate(5deg) translateY(-2px); }
-          }
-          @keyframes st-trophy-shine {
-            0%, 100% { transform: rotate(-3deg) scale(1); }
-            50% { transform: rotate(3deg) scale(1.08); }
-          }
-          @keyframes st-sparkle-twinkle {
-            0%, 100% { transform: scale(0.5) rotate(0deg); opacity: 0.35; }
-            50% { transform: scale(1.25) rotate(45deg); opacity: 1; }
-          }
-
-          @keyframes st-greet-sway {
-            0%, 100% { transform: rotate(-3deg) translateY(0); }
-            50% { transform: rotate(3deg) translateY(-2px); }
-          }
-          @keyframes st-wave-springy {
-            0%, 100% { transform: rotate(0deg); }
-            20% { transform: rotate(-32deg); }
-            40% { transform: rotate(22deg); }
-            60% { transform: rotate(-24deg); }
-            80% { transform: rotate(14deg); }
-          }
-          @keyframes st-wave-arc {
-            0%, 100% { opacity: 0; transform: scale(0.6); }
-            40% { opacity: 0.9; transform: scale(1); }
-            80% { opacity: 0; transform: scale(1.3); }
-          }
-
-          @keyframes st-laugh-belly {
-            0%, 100% { transform: translateY(0) rotate(-4deg) scale(1, 1); }
-            25% { transform: translateY(-5px) rotate(4deg) scale(0.95, 1.05); }
-            50% { transform: translateY(0) rotate(-4deg) scale(1.06, 0.94); }
-            75% { transform: translateY(-4px) rotate(3deg) scale(0.97, 1.03); }
-          }
-          @keyframes st-tear-arc-l {
-            0% { transform: translate(0, 0) scale(0); opacity: 0; }
-            30% { transform: translate(-8px, -4px) scale(1.15); opacity: 1; }
-            70% { transform: translate(-16px, 6px) scale(0.9); opacity: 0.8; }
-            100% { transform: translate(-22px, 16px) scale(0.4); opacity: 0; }
-          }
-          @keyframes st-tear-arc-r {
-            0% { transform: translate(0, 0) scale(0); opacity: 0; }
-            30% { transform: translate(8px, -4px) scale(1.15); opacity: 1; }
-            70% { transform: translate(16px, 6px) scale(0.9); opacity: 0.8; }
-            100% { transform: translate(22px, 16px) scale(0.4); opacity: 0; }
-          }
-          @keyframes st-tongue-laugh {
-            0%, 100% { transform: translateY(0) scaleY(1); }
-            50% { transform: translateY(-2px) scaleY(1.25); }
-          }
-
-          @keyframes st-shock-gasp {
-            0%, 100% { transform: translateY(0) scale(1); }
-            12% { transform: translateY(-8px) scale(0.88, 1.14); }
-            25%, 45%, 65%, 85% { transform: translateY(-2px) translateX(-2.5px) scale(1); }
-            35%, 55%, 75%, 95% { transform: translateY(-2px) translateX(2.5px) scale(1); }
-          }
-          @keyframes st-exclamation-jump {
-            0%, 100% { transform: translateY(0) scale(1); }
-            30% { transform: translateY(-7px) scale(1.25); }
-            50% { transform: translateY(1px) scale(0.95); }
-          }
-          @keyframes st-sweat-fall {
-            0% { transform: translateY(0) scale(0.6); opacity: 0; }
-            30% { transform: translateY(2px) scale(1); opacity: 1; }
-            75% { transform: translateY(12px) scale(0.9); opacity: 0.8; }
-            100% { transform: translateY(18px) scale(0.4); opacity: 0; }
-          }
-          @keyframes st-hands-tremble {
-            0%, 100% { transform: translate(0, 0); }
-            25% { transform: translate(-1.5px, 1px); }
-            75% { transform: translate(1.5px, -1px); }
-          }
-
-          @keyframes st-sob-heave {
-            0%, 100% { transform: translateY(0) scale(1, 1); }
-            30% { transform: translateY(5px) scale(1.06, 0.94); }
-            60% { transform: translateY(-5px) scale(0.95, 1.05); }
-            85% { transform: translateY(2px) scale(1.02, 0.98); }
-          }
-          @keyframes st-tear-stream {
-            0% { transform: translateY(0) scaleY(0.5); opacity: 0; }
-            25% { transform: translateY(4px) scaleY(1.2); opacity: 1; }
-            75% { transform: translateY(16px) scaleY(1.1); opacity: 0.85; }
-            100% { transform: translateY(24px) scaleY(0.5); opacity: 0; }
-          }
-          @keyframes st-mouth-quiver {
-            0%, 100% { transform: scaleX(1) scaleY(1); }
-            30% { transform: scaleX(0.9) scaleY(1.1) translateY(0.5px); }
-            70% { transform: scaleX(1.1) scaleY(0.9) translateY(-0.5px); }
-          }
-
-          @keyframes st-rage-vibe {
-            0%, 100% { transform: translate(0, 0) rotate(0deg); }
-            20% { transform: translate(-2.5px, 1.5px) rotate(-2deg); }
-            40% { transform: translate(2.5px, -1.5px) rotate(2deg); }
-            60% { transform: translate(-2px, -1px) rotate(-1.5deg); }
-            80% { transform: translate(2px, 1px) rotate(1.5deg); }
-          }
-          @keyframes st-steam-jet-l {
-            0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
-            30% { opacity: 0.95; }
-            75% { opacity: 0.65; }
-            100% { transform: translate(-15px, -15px) scale(1.4); opacity: 0; }
-          }
-          @keyframes st-steam-jet-r {
-            0% { transform: translate(0, 0) scale(0.4); opacity: 0; }
-            30% { opacity: 0.95; }
-            75% { opacity: 0.65; }
-            100% { transform: translate(15px, -15px) scale(1.4); opacity: 0; }
-          }
-          @keyframes st-anger-mark-pulse {
-            0%, 100% { transform: scale(0.85) rotate(0deg); }
-            50% { transform: scale(1.35) rotate(14deg); }
-          }
-
-          @keyframes st-ponder-drift {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-5px) rotate(-2.5deg); }
-          }
-          @keyframes st-gear-spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          @keyframes st-question-bob {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-3px) scale(1.2); }
-          }
-          @keyframes st-chin-tap {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            50% { transform: translateY(-2px) rotate(-6deg); }
-          }
-
-          @keyframes st-applause-bop {
-            0%, 100% { transform: translateY(0) scale(1, 1); }
-            50% { transform: translateY(-4px) scale(1.03, 0.97); }
-          }
-          @keyframes st-hand-clap-l {
-            0%, 100% { transform: translate(0, 0) rotate(-16deg); }
-            45% { transform: translate(8px, -2px) rotate(6deg); }
-          }
-          @keyframes st-hand-clap-r {
-            0%, 100% { transform: translate(0, 0) rotate(16deg); }
-            45% { transform: translate(-8px, -2px) rotate(-6deg); }
-          }
-          @keyframes st-clap-spark {
-            0%, 35% { transform: scale(0); opacity: 0; }
-            45% { transform: scale(1.3); opacity: 1; }
-            75% { transform: scale(1.6); opacity: 0; }
-            100% { transform: scale(0); opacity: 0; }
-          }
-          @keyframes st-star-eye-twinkle {
-            0%, 100% { transform: scale(1) rotate(0deg); }
-            50% { transform: scale(1.2) rotate(24deg); }
-          }
-
-          @keyframes st-reverent-bow {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            38% { transform: translateY(7px) rotate(6deg); }
-            62% { transform: translateY(7px) rotate(6deg); }
-            88% { transform: translateY(1px) rotate(1deg); }
-          }
-          @keyframes st-aura-radiate {
-            0%, 100% { transform: scale(0.92); opacity: 0.45; }
-            50% { transform: scale(1.12); opacity: 0.9; }
-          }
-
-          @keyframes st-tease-bob {
-            0%, 100% { transform: rotate(-6deg) translateY(0); }
-            50% { transform: rotate(6deg) translateY(-4px); }
-          }
-          @keyframes st-tongue-flutter {
-            0%, 100% { transform: rotate(-9deg) scaleY(1); }
-            50% { transform: rotate(9deg) scaleY(1.25); }
-          }
-          @keyframes st-wink-burst {
-            0%, 100% { transform: scale(0.7) rotate(0deg); opacity: 0.7; }
-            50% { transform: scale(1.4) rotate(45deg); opacity: 1; }
-          }
-
-          @keyframes st-proud-nod {
-            0%, 100% { transform: translateY(0) rotate(0deg); }
-            30% { transform: translateY(3.5px) rotate(1.5deg); }
-            55% { transform: translateY(-3px) rotate(-1deg); }
-            78% { transform: translateY(1px) rotate(0deg); }
-          }
-          @keyframes st-thumb-pump {
-            0%, 100% { transform: translate(0, 0) scale(1); }
-            40%, 65% { transform: translate(3px, -3px) scale(1.16); }
-          }
-          @keyframes st-thumb-radiance {
-            0%, 100% { opacity: 0.2; transform: scale(0.85); }
-            50% { opacity: 1; transform: scale(1.25); }
-          }
-          @keyframes st-medal-gleam {
-            0%, 100% { transform: rotate(0deg) scale(1); }
-            50% { transform: rotate(12deg) scale(1.15); }
-          }
-
-          @keyframes st-boxer-shuffle {
-            0%, 100% { transform: translateY(0) scale(1, 1); }
-            25% { transform: translateY(-7px) scale(0.95, 1.05); }
-            50% { transform: translateY(0) scale(1.05, 0.95); }
-            75% { transform: translateY(-4px) scale(0.98, 1.02); }
-          }
-          @keyframes st-punch-left {
-            0%, 100% { transform: translate(0, 0); }
-            25% { transform: translate(-5px, -4px) scale(1.2); }
-            45% { transform: translate(0, 0); }
-          }
-          @keyframes st-punch-right {
-            0%, 50%, 100% { transform: translate(0, 0); }
-            75% { transform: translate(5px, -4px) scale(1.2); }
-          }
-          @keyframes st-headband-stream {
-            0%, 100% { transform: rotate(0deg) skewX(0deg); }
-            50% { transform: rotate(-15deg) skewX(-12deg); }
-          }
-          @keyframes st-swords-glow {
-            0%, 100% { opacity: 0.65; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.08); }
-          }
-
-          @keyframes st-mock-sway {
-            0%, 100% { transform: rotate(-7deg) translateY(0); }
-            50% { transform: rotate(7deg) translateY(-3px); }
-          }
-          @keyframes st-mock-wag-l {
-            0%, 100% { transform: rotate(-18deg); }
-            50% { transform: rotate(18deg); }
-          }
-          @keyframes st-mock-wag-r {
-            0%, 100% { transform: rotate(18deg); }
-            50% { transform: rotate(-18deg); }
-          }
-          @keyframes st-mock-tongue {
-            0%, 100% { transform: rotate(-12deg) scaleY(1); }
-            50% { transform: rotate(12deg) scaleY(1.3); }
-          }
-
-          @keyframes st-smug-bob {
-            0%, 100% { transform: translateY(0) rotate(2deg); }
-            50% { transform: translateY(-4px) rotate(-3deg); }
-          }
-          @keyframes st-finger-wag {
-            0%, 100% { transform: translate(66px, 64px) rotate(-18deg); }
-            50% { transform: translate(66px, 64px) rotate(18deg); }
-          }
-          @keyframes st-smug-sparkle {
-            0%, 100% { transform: scale(0.6) rotate(0deg); opacity: 0.4; }
-            50% { transform: scale(1.3) rotate(45deg); opacity: 1; }
-          }
-
-          /* --- Class mappings --- */
-          .st-victory-actor { transform-origin: 50% 75%; animation: st-victory-jump 0.85s cubic-bezier(0.28, 0.84, 0.42, 1) infinite; }
-          .st-crown { transform-origin: 50% 100%; animation: st-crown-sway 0.85s ease-in-out infinite; }
-          .st-trophy { transform-origin: 50% 100%; animation: st-trophy-shine 0.85s ease-in-out infinite; }
-          .st-sparkle-1 { transform-origin: 50% 50%; animation: st-sparkle-twinkle 1.1s ease-in-out infinite; }
-          .st-sparkle-2 { transform-origin: 50% 50%; animation: st-sparkle-twinkle 1.1s ease-in-out infinite 0.55s; }
-
-          .st-greet-body { transform-origin: 50% 80%; animation: st-greet-sway 1.2s ease-in-out infinite; }
-          .st-wave-hand { transform-origin: 15% 85%; animation: st-wave-springy 0.75s ease-in-out infinite; }
-          .st-wave-ring { transform-origin: 85% 35%; animation: st-wave-arc 0.75s ease-out infinite; }
-
-          .st-laugh-body { transform-origin: 50% 65%; animation: st-laugh-belly 0.36s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite; }
-          .st-tear-l { transform-origin: 25% 45%; animation: st-tear-arc-l 0.8s ease-out infinite; }
-          .st-tear-r { transform-origin: 75% 45%; animation: st-tear-arc-r 0.8s ease-out infinite 0.4s; }
-          .st-tongue-laugh { transform-origin: 50% 100%; animation: st-tongue-laugh 0.36s ease-in-out infinite; }
-
-          .st-shock-body { transform-origin: 50% 55%; animation: st-shock-gasp 0.65s cubic-bezier(0.25, 1, 0.5, 1) infinite; }
-          .st-exclamation { transform-origin: 50% 100%; animation: st-exclamation-jump 0.65s ease-out infinite; }
-          .st-sweat-drop { animation: st-sweat-fall 0.9s ease-in infinite; }
-          .st-hands-tremble { animation: st-hands-tremble 0.2s ease-in-out infinite; }
-
-          .st-cry-body { transform-origin: 50% 80%; animation: st-sob-heave 1.2s ease-in-out infinite; }
-          .st-cry-tear-l { animation: st-tear-stream 0.9s ease-in infinite; }
-          .st-cry-tear-r { animation: st-tear-stream 0.9s ease-in infinite 0.45s; }
-          .st-quiver-mouth { transform-origin: 50% 50%; animation: st-mouth-quiver 0.3s ease-in-out infinite; }
-
-          .st-rage-body { transform-origin: 50% 55%; animation: st-rage-vibe 0.25s linear infinite; }
-          .st-steam-l { transform-origin: 20% 35%; animation: st-steam-jet-l 0.75s ease-out infinite; }
-          .st-steam-r { transform-origin: 80% 35%; animation: st-steam-jet-r 0.75s ease-out infinite 0.35s; }
-          .st-anger-mark { transform-origin: 50% 50%; animation: st-anger-mark-pulse 0.5s ease-in-out infinite; }
-
-          .st-think-body { transform-origin: 50% 75%; animation: st-ponder-drift 2s ease-in-out infinite; }
-          .st-gear { transform-origin: 75% 22%; animation: st-gear-spin 3.5s linear infinite; }
-          .st-question { transform-origin: 50% 50%; animation: st-question-bob 1s ease-in-out infinite; }
-          .st-chin-hand { transform-origin: 50% 50%; animation: st-chin-tap 1s ease-in-out infinite; }
-
-          .st-clap-body { transform-origin: 50% 75%; animation: st-applause-bop 0.42s ease-in-out infinite; }
-          .st-clap-l { transform-origin: 30% 75%; animation: st-hand-clap-l 0.42s cubic-bezier(0.3, 0, 0.2, 1) infinite; }
-          .st-clap-r { transform-origin: 70% 75%; animation: st-hand-clap-r 0.42s cubic-bezier(0.3, 0, 0.2, 1) infinite; }
-          .st-clap-spark { transform-origin: 50% 70%; animation: st-clap-spark 0.42s ease-out infinite; }
-          .st-star-eye { transform-origin: 50% 50%; animation: st-star-eye-twinkle 0.85s ease-in-out infinite; }
-
-          .st-bow-body { transform-origin: 50% 85%; animation: st-reverent-bow 1.6s cubic-bezier(0.4, 0, 0.2, 1) infinite; }
-          .st-aura { transform-origin: 50% 55%; animation: st-aura-radiate 1.6s ease-in-out infinite; }
-
-          .st-tease-body { transform-origin: 50% 70%; animation: st-tease-bob 0.5s ease-in-out infinite; }
-          .st-tease-tongue { transform-origin: 50% 0%; animation: st-tongue-flutter 0.3s ease-in-out infinite; }
-          .st-wink-star { transform-origin: 72% 46%; animation: st-wink-burst 0.8s ease-in-out infinite; }
-
-          .st-gg-body { transform-origin: 50% 75%; animation: st-proud-nod 1.4s ease-in-out infinite; }
-          .st-thumb { transform-origin: 65% 65%; animation: st-thumb-pump 0.7s cubic-bezier(0.2, 0.8, 0.4, 1) infinite; }
-          .st-thumb-aura { transform-origin: 75% 55%; animation: st-thumb-radiance 0.7s ease-in-out infinite; }
-          .st-gg-medal { transform-origin: 75% 20%; animation: st-medal-gleam 1.4s ease-in-out infinite; }
-
-          .st-rematch-body { transform-origin: 50% 75%; animation: st-boxer-shuffle 0.65s cubic-bezier(0.25, 0.8, 0.5, 1) infinite; }
-          .st-punch-l { transform-origin: 30% 65%; animation: st-punch-left 0.65s ease-in-out infinite; }
-          .st-punch-r { transform-origin: 70% 65%; animation: st-punch-right 0.65s ease-in-out infinite; }
-          .st-headband { transform-origin: 20% 45%; animation: st-headband-stream 0.65s ease-in-out infinite; }
-          .st-swords { transform-origin: 50% 50%; animation: st-swords-glow 0.65s ease-in-out infinite; }
-
-          .st-mock-dance { transform-origin: 50% 75%; animation: st-mock-sway 0.55s ease-in-out infinite; }
-          .st-mock-hand-l { transform-origin: 100% 50%; animation: st-mock-wag-l 0.4s ease-in-out infinite; }
-          .st-mock-hand-r { transform-origin: 0% 50%; animation: st-mock-wag-r 0.4s ease-in-out infinite; }
-          .st-mock-tongue { transform-origin: 50% 0%; animation: st-mock-tongue 0.35s ease-in-out infinite; }
-
-          .st-smug-head { transform-origin: 50% 75%; animation: st-smug-bob 1.4s ease-in-out infinite; }
-          .st-finger-wag { transform-origin: 0 0; animation: st-finger-wag 0.55s ease-in-out infinite; }
-          .st-smug-sparkle { transform-origin: 72% 46%; animation: st-smug-sparkle 0.9s ease-in-out infinite; }
-
-          /* Accessibility overrides */
-          @media (prefers-reduced-motion: reduce) {
-            .sticker-animated * {
-              animation: none !important;
-            }
-          }
-          .sticker-static * {
-            animation: none !important;
-          }
-        `}</style>
+        {renderDefs(id, idPrefix)}
 
         {renderStickerGraphics(id, idPrefix)}
       </svg>
     </div>
   );
 });
+
+function renderDefs(id: StickerId, p: string) {
+  const needsBody = id !== 'frustrated';
+  const needsHighlight = true;
+  const needsBodyRed = id === 'frustrated';
+  const needsGold = id === 'victory' || id === 'good_game';
+  const needsAura = id === 'respect';
+  const needsGloves = id === 'rematch_invite';
+  const needsHeartRed = id === 'heart_love';
+  const needsCutePink = id === 'heart_love';
+  const needsSleepyCap = id === 'sleepy_yawn';
+
+  return (
+    <defs>
+      {needsBody && (
+        <radialGradient id={`${p}-body`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#60A5FA" />
+          <stop offset="45%" stopColor="#3B82F6" />
+          <stop offset="100%" stopColor="#1D4ED8" />
+        </radialGradient>
+      )}
+      {needsHighlight && (
+        <radialGradient id={`${p}-highlight`} cx="30%" cy="25%" r="35%">
+          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.75" />
+          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0" />
+        </radialGradient>
+      )}
+      {needsBodyRed && (
+        <radialGradient id={`${p}-body-red`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#F87171" />
+          <stop offset="45%" stopColor="#EF4444" />
+          <stop offset="100%" stopColor="#B91C1C" />
+        </radialGradient>
+      )}
+      {needsGold && (
+        <radialGradient id={`${p}-gold`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#FDE047" />
+          <stop offset="60%" stopColor="#EAB308" />
+          <stop offset="100%" stopColor="#CA8A04" />
+        </radialGradient>
+      )}
+      {needsAura && (
+        <radialGradient id={`${p}-aura`} cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#FCD34D" stopOpacity="0.6" />
+          <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+        </radialGradient>
+      )}
+      {needsGloves && (
+        <>
+          <radialGradient id={`${p}-glove-red`} cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#F87171" />
+            <stop offset="50%" stopColor="#EF4444" />
+            <stop offset="100%" stopColor="#991B1B" />
+          </radialGradient>
+          <radialGradient id={`${p}-glove-blue`} cx="35%" cy="30%" r="70%">
+            <stop offset="0%" stopColor="#60A5FA" />
+            <stop offset="50%" stopColor="#3B82F6" />
+            <stop offset="100%" stopColor="#1D4ED8" />
+          </radialGradient>
+        </>
+      )}
+      {needsHeartRed && (
+        <radialGradient id={`${p}-heart-red`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#FB7185" />
+          <stop offset="50%" stopColor="#E11D48" />
+          <stop offset="100%" stopColor="#9F1239" />
+        </radialGradient>
+      )}
+      {needsCutePink && (
+        <radialGradient id={`${p}-cute-pink`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#F472B6" />
+          <stop offset="50%" stopColor="#EC4899" />
+          <stop offset="100%" stopColor="#BE185D" />
+        </radialGradient>
+      )}
+      {needsSleepyCap && (
+        <radialGradient id={`${p}-sleepy-cap`} cx="35%" cy="30%" r="70%">
+          <stop offset="0%" stopColor="#818CF8" />
+          <stop offset="50%" stopColor="#6366F1" />
+          <stop offset="100%" stopColor="#4338CA" />
+        </radialGradient>
+      )}
+    </defs>
+  );
+}
 
 function renderStickerGraphics(id: StickerId, p: string) {
   switch (id) {
@@ -466,7 +174,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
           <path d="M45 66 Q50 72 55 66" fill="#F87171" />
 
           {/* Held Trophy Cup in Front */}
-          <g transform="translate(38, 68)" className="st-trophy">
+          <g transform="translate(38, 68)">
+            <g className="st-trophy">
             <path d="M4 2 L20 2 L18 14 Q12 18 6 14 Z" fill={`url(#${p}-gold)`} stroke="#B45309" strokeWidth="1" />
             <path d="M10 16 L14 16 L14 20 L10 20 Z" fill={`url(#${p}-gold)`} />
             <path d="M7 20 L17 20 L18 23 L6 23 Z" fill={`url(#${p}-gold)`} stroke="#B45309" strokeWidth="0.8" />
@@ -551,7 +260,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
       return (
         <g>
           {/* Exclamation marks above with bounce */}
-          <g transform="translate(44, 2)" className="st-exclamation">
+          <g transform="translate(44, 2)">
+            <g className="st-exclamation">
             <rect x="5" y="0" width="3.5" height="11" rx="1.5" fill="#EF4444" />
             <circle cx="6.75" cy="14" r="2" fill="#EF4444" />
           </g>
@@ -653,7 +363,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <line x1="55" y1="63" x2="55" y2="72" stroke="#1E293B" strokeWidth="1.2" />
 
             {/* Pulsing Comic Anger Mark on Forehead */}
-            <g transform="translate(50, 20)" className="st-anger-mark">
+            <g transform="translate(50, 20)">
+              <g className="st-anger-mark">
               <path d="M-4 -3 L2 1 M2 -3 L-4 1 M-6 -1 L4 -1 M-1 -5 L-1 3" stroke="#DC2626" strokeWidth="2.2" strokeLinecap="round" />
             </g>
           </g>
@@ -692,7 +403,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <path d="M43 65 Q50 64 57 67" stroke="#FFFFFF" strokeWidth="2.8" strokeLinecap="round" fill="none" />
 
             {/* Tapping Hand on Chin */}
-            <g transform="translate(42, 66)" className="st-chin-hand">
+            <g transform="translate(42, 66)">
+              <g className="st-chin-hand">
               <ellipse cx="6" cy="4" rx="5" ry="3.5" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
               <circle cx="3" cy="2" r="1.5" fill="#FDBA74" />
             </g>
@@ -714,11 +426,15 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
 
             {/* Joyful Star-Shaped Happy Twinkling Eyes */}
-            <g className="st-star-eye" transform="translate(38, 50)">
-              <polygon points="0,-6 2,-2 6,-1 3,2 4,6 0,4 -4,6 -3,2 -6,-1 -2,-2" fill="#FBBF24" stroke="#B45309" strokeWidth="0.8" />
+            <g transform="translate(38, 50)">
+              <g className="st-star-eye">
+                <polygon points="0,-6 2,-2 6,-1 3,2 4,6 0,4 -4,6 -3,2 -6,-1 -2,-2" fill="#FBBF24" stroke="#B45309" strokeWidth="0.8" />
+              </g>
             </g>
-            <g className="st-star-eye" transform="translate(62, 50)">
-              <polygon points="0,-6 2,-2 6,-1 3,2 4,6 0,4 -4,6 -3,2 -6,-1 -2,-2" fill="#FBBF24" stroke="#B45309" strokeWidth="0.8" />
+            <g transform="translate(62, 50)">
+              <g className="st-star-eye">
+                <polygon points="0,-6 2,-2 6,-1 3,2 4,6 0,4 -4,6 -3,2 -6,-1 -2,-2" fill="#FBBF24" stroke="#B45309" strokeWidth="0.8" />
+              </g>
             </g>
 
             {/* Cheerful Grin */}
@@ -799,7 +515,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
 
             {/* Cheeky Grin with Wagging Tongue */}
             <path d="M42 58 Q50 63 58 58" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
-            <g transform="translate(47, 59)" className="st-tease-tongue">
+            <g transform="translate(47, 59)">
+              <g className="st-tease-tongue">
               <path d="M1 0 L7 0 C7 6 1 6 1 0 Z" fill="#F472B6" stroke="#BE185D" strokeWidth="1" />
               <line x1="4" y1="0" x2="4" y2="4" stroke="#BE185D" strokeWidth="0.8" />
             </g>
@@ -811,7 +528,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
       return (
         <g>
           {/* Confident Winner Ribbon or Gold Star */}
-          <g transform="translate(70, 16)" className="st-gg-medal">
+          <g transform="translate(70, 16)">
+            <g className="st-gg-medal">
             <polygon points="12,2 15,9 22,10 17,15 18,22 12,19 6,22 7,15 2,10 9,9" fill={`url(#${p}-gold)`} stroke="#B45309" strokeWidth="1" />
             <circle cx="12" cy="12" r="3.5" fill="#FFFFFF" />
           </g>
@@ -836,7 +554,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
             </g>
 
             {/* Proud Pumping Thumbs-Up Hand in Front */}
-            <g transform="translate(62, 54)" className="st-thumb">
+            <g transform="translate(62, 54)">
+              <g className="st-thumb">
               {/* Thumb */}
               <path d="M5 2 Q7 -4 10 2 L10 10 L4 10 Z" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
               {/* Fist */}
@@ -877,13 +596,17 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <path d="M44 60 Q50 67 56 60" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
 
             {/* Left Boxing Glove (Red) throwing snappy punches */}
-            <g transform="translate(24, 62)" className="st-punch-l">
-              <circle cx="6" cy="6" r="6.5" fill={`url(#${p}-glove-red)`} stroke="#991B1B" strokeWidth="1" />
+            <g transform="translate(24, 62)">
+              <g className="st-punch-l">
+                <circle cx="6" cy="6" r="6.5" fill={`url(#${p}-glove-red)`} stroke="#991B1B" strokeWidth="1" />
+              </g>
             </g>
 
             {/* Right Boxing Glove (Blue) throwing snappy punches */}
-            <g transform="translate(64, 62)" className="st-punch-r">
-              <circle cx="6" cy="6" r="6.5" fill={`url(#${p}-glove-blue)`} stroke="#1D4ED8" strokeWidth="1" />
+            <g transform="translate(64, 62)">
+              <g className="st-punch-r">
+                <circle cx="6" cy="6" r="6.5" fill={`url(#${p}-glove-blue)`} stroke="#1D4ED8" strokeWidth="1" />
+              </g>
             </g>
           </g>
         </g>
@@ -895,13 +618,15 @@ function renderStickerGraphics(id: StickerId, p: string) {
           {/* Playful Mocking Body with Dance Sway */}
           <g className="st-mock-dance">
             {/* Left ear hand wagging */}
-            <g transform="translate(14, 38)" className="st-mock-hand-l">
+            <g transform="translate(14, 38)">
+              <g className="st-mock-hand-l">
               <path d="M6 10 C0 8 0 2 6 2 C8 2 10 4 10 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
               <circle cx="8" cy="8" r="4" fill="#93C5FD" />
             </g>
 
             {/* Right ear hand wagging */}
-            <g transform="translate(76, 38)" className="st-mock-hand-r">
+            <g transform="translate(76, 38)">
+              <g className="st-mock-hand-r">
               <path d="M4 10 C10 8 10 2 4 2 C2 2 0 4 0 8 Z" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
               <circle cx="2" cy="8" r="4" fill="#93C5FD" />
             </g>
@@ -924,7 +649,8 @@ function renderStickerGraphics(id: StickerId, p: string) {
 
             {/* Laughing Mouth with Wagging Tongue */}
             <path d="M39 58 Q50 68 61 58 Z" fill="#0F172A" />
-            <g transform="translate(46, 59)" className="st-mock-tongue">
+            <g transform="translate(46, 59)">
+              <g className="st-mock-tongue">
               <path d="M0 0 L8 0 C8 9 0 9 0 0 Z" fill="#FB7185" stroke="#BE123C" strokeWidth="1" />
               <line x1="4" y1="0" x2="4" y2="6" stroke="#BE123C" strokeWidth="0.8" />
             </g>
@@ -959,11 +685,309 @@ function renderStickerGraphics(id: StickerId, p: string) {
             <circle cx="64" cy="55" r="1.5" fill="#FFFFFF" opacity="0.8" />
 
             {/* Index Finger Wagging "No no no" */}
-            <g className="st-finger-wag">
+            <g transform="translate(66, 64)">
+              <g className="st-finger-wag">
               {/* Hand Fist */}
               <circle cx="0" cy="0" r="5" fill="#60A5FA" stroke="#1D4ED8" strokeWidth="1" />
               {/* Pointing Index Finger */}
               <path d="M-2 -1 L-2 -12 Q-1 -15 1 -15 Q3 -15 3 -12 L2 -1 Z" fill="#93C5FD" stroke="#1D4ED8" strokeWidth="1" />
+            </g>
+          </g>
+        </g>
+      );
+
+    case 'heart_love':
+      return (
+        <g>
+          {/* Floating mini hearts */}
+          <g transform="translate(26, 32)">
+            <g className="st-float-heart-1">
+            <path
+              d="M0 -3 C-2 -6 -6 -6 -6 -2.5 C-6 1.2 -1.5 4 0 6 C1.5 4 6 1.2 6 -2.5 C6 -6 2 -6 0 -3 Z"
+              fill={`url(#${p}-heart-red)`}
+            />
+          </g>
+          <g transform="translate(74, 28)">
+            <g className="st-float-heart-2">
+            <path
+              d="M0 -3.5 C-2.5 -7 -7 -7 -7 -3 C-7 1.5 -2 5 0 7 C2 5 7 1.5 7 -3 C7 -7 2.5 -7 0 -3.5 Z"
+              fill={`url(#${p}-heart-red)`}
+            />
+          </g>
+          <g transform="translate(50, 18)">
+            <g className="st-float-heart-3">
+            <path
+              d="M0 -2.5 C-1.8 -5 -5 -5 -5 -2 C-5 1 -1 3.5 0 5 C1 3.5 5 1 5 -2 C5 -5 1.8 -5 0 -2.5 Z"
+              fill={`url(#${p}-cute-pink)`}
+            />
+          </g>
+
+          {/* Main mascot body with loving sway */}
+          <g className="st-heart-love-body">
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Glowing Heart Eyes */}
+            <g transform="translate(39, 49)">
+              <g className="st-heart-eye-l">
+              <path
+                d="M0 -4 C-2.5 -8 -8 -8 -8 -3.5 C-8 1.5 -2 5 0 8 C2 5 8 1.5 8 -3.5 C8 -8 2.5 -8 0 -4 Z"
+                fill={`url(#${p}-heart-red)`}
+                stroke="#BE123C"
+                strokeWidth="1"
+              />
+              <ellipse cx="-2.5" cy="-3.5" rx="1.8" ry="1.2" fill="#FFFFFF" opacity="0.85" />
+            </g>
+            <g transform="translate(61, 49)">
+              <g className="st-heart-eye-r">
+              <path
+                d="M0 -4 C-2.5 -8 -8 -8 -8 -3.5 C-8 1.5 -2 5 0 8 C2 5 8 1.5 8 -3.5 C8 -8 2.5 -8 0 -4 Z"
+                fill={`url(#${p}-heart-red)`}
+                stroke="#BE123C"
+                strokeWidth="1"
+              />
+              <ellipse cx="-2.5" cy="-3.5" rx="1.8" ry="1.2" fill="#FFFFFF" opacity="0.85" />
+            </g>
+
+            {/* Radiant Rosy Blushing Cheeks */}
+            <ellipse cx="30" cy="58" rx="5" ry="3" fill="#FB7185" opacity="0.85" />
+            <ellipse cx="70" cy="58" rx="5" ry="3" fill="#FB7185" opacity="0.85" />
+
+            {/* Joyful open smile with cute pink tongue */}
+            <path d="M42 60 Q50 72 58 60 Z" fill="#0F172A" />
+            <path d="M45 64 Q50 71 55 64" fill="#F472B6" />
+          </g>
+        </g>
+      );
+
+    case 'shy_peek':
+      return (
+        <g>
+          {/* Sparkle specks */}
+          <polygon
+            points="76,40 77.5,43 81,43.5 78.5,45.5 79,49 76,47.5 73,49 73.5,45.5 71,43.5 74.5,43"
+            fill="#FDE047"
+            className="st-shy-sparkle"
+          />
+
+          <g className="st-shy-body">
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Big glistening anime eyes */}
+            <circle cx="38" cy="48" r="6.5" fill="#0F172A" />
+            <circle cx="36" cy="45.5" r="2.8" fill="#FFFFFF" />
+            <circle cx="41" cy="51" r="1.4" fill="#FFFFFF" />
+            <circle cx="62" cy="48" r="6.5" fill="#0F172A" />
+            <circle cx="60" cy="45.5" r="2.8" fill="#FFFFFF" />
+            <circle cx="65" cy="51" r="1.4" fill="#FFFFFF" />
+
+            {/* Blushing cheeks with diagonal blush lines */}
+            <g className="st-blush-glow">
+              <ellipse cx="30" cy="57" rx="6" ry="3.5" fill="#FB7185" />
+              <path d="M27 55 L31 59 M30 55 L34 59" stroke="#9F1239" strokeWidth="1" strokeLinecap="round" />
+              <ellipse cx="70" cy="57" rx="6" ry="3.5" fill="#FB7185" />
+              <path d="M67 55 L71 59 M70 55 L74 59" stroke="#9F1239" strokeWidth="1" strokeLinecap="round" />
+            </g>
+
+            {/* Cute shy wavy smile */}
+            <path d="M46 62 Q48 64 50 62 Q52 64 54 62" stroke="#FFFFFF" strokeWidth="2.2" strokeLinecap="round" fill="none" />
+
+            {/* Bashful paws peeking up over cheeks */}
+            <g className="st-shy-hands">
+              {/* Left paw */}
+              <circle cx="38" cy="65" r="5.5" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+              <circle cx="35" cy="61" r="2" fill="#FDBA74" stroke="#EA580C" strokeWidth="0.8" />
+              <circle cx="38.5" cy="60" r="2" fill="#FDBA74" stroke="#EA580C" strokeWidth="0.8" />
+              <circle cx="42" cy="61" r="2" fill="#FDBA74" stroke="#EA580C" strokeWidth="0.8" />
+              {/* Right paw */}
+              <circle cx="62" cy="65" r="5.5" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+              <circle cx="58" cy="61" r="2" fill="#FDBA74" stroke="#EA580C" strokeWidth="0.8" />
+              <circle cx="61.5" cy="60" r="2" fill="#FDBA74" stroke="#EA580C" strokeWidth="0.8" />
+              <circle cx="65" cy="61" r="2" fill="#FDBA74" stroke="#EA580C" strokeWidth="0.8" />
+            </g>
+          </g>
+        </g>
+      );
+
+    case 'cute_pout':
+      return (
+        <g>
+          {/* Cartoon puff of steam */}
+          <g className="st-pout-cloud">
+            <path
+              d="M20 46 Q16 42 20 38 Q24 34 28 38 Q32 38 32 43 Q33 48 27 48 Q22 50 20 46 Z"
+              fill="#FFFFFF"
+              opacity="0.9"
+            />
+          </g>
+
+          <g className="st-pout-body">
+            {/* Puffed body with chubby side cheeks */}
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <circle cx="30" cy="58" r="9" fill={`url(#${p}-body)`} />
+            <circle cx="70" cy="58" r="9" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Pouty flushed cheeks */}
+            <ellipse cx="28" cy="59" rx="5" ry="3" fill="#F43F5E" opacity="0.85" />
+            <ellipse cx="72" cy="59" rx="5" ry="3" fill="#F43F5E" opacity="0.85" />
+
+            {/* Indignant, petulant eyebrows */}
+            <path d="M35 41 L47 43" stroke="#1E293B" strokeWidth="2.5" strokeLinecap="round" />
+            <path d="M65 43 L53 41" stroke="#1E293B" strokeWidth="2.5" strokeLinecap="round" />
+
+            {/* Side-eye pouty glances */}
+            <circle cx="42" cy="48" r="5.5" fill="#0F172A" />
+            <circle cx="44.5" cy="46" r="2.2" fill="#FFFFFF" />
+            <circle cx="60" cy="48" r="5.5" fill="#0F172A" />
+            <circle cx="62.5" cy="46" r="2.2" fill="#FFFFFF" />
+
+            {/* Cute downward pouty beak '3' */}
+            <path
+              d="M48 58 Q52 55 53 59 Q54 63 49 62 Q47 61 48 58 Z"
+              fill="#F87171"
+              stroke="#E11D48"
+              strokeWidth="1"
+            />
+          </g>
+        </g>
+      );
+
+    case 'cat_cheer':
+      return (
+        <g>
+          {/* Sparkles */}
+          <polygon
+            points="14,24 15.5,27 19,27.5 16.5,29.5 17,33 14,31.5 11,33 11.5,29.5 9,27.5 12.5,27"
+            fill="#FDE047"
+            className="st-sparkle-1"
+          />
+          <polygon
+            points="86,22 87.5,25 91,25.5 88.5,27.5 89,31 86,29.5 83,31 83.5,27.5 81,25.5 84.5,25"
+            fill="#FDE047"
+            className="st-sparkle-2"
+          />
+
+          <g className="st-cat-body">
+            {/* Left Cat Ear */}
+            <g className="st-cat-ear-l">
+              <polygon points="26,35 18,14 40,26" fill={`url(#${p}-body)`} stroke="#1D4ED8" strokeWidth="1" strokeLinejoin="round" />
+              <polygon points="27,32 22,18 36,26" fill="#F472B6" />
+            </g>
+            {/* Right Cat Ear */}
+            <g className="st-cat-ear-r">
+              <polygon points="74,35 82,14 60,26" fill={`url(#${p}-body)`} stroke="#1D4ED8" strokeWidth="1" strokeLinejoin="round" />
+              <polygon points="73,32 78,18 64,26" fill="#F472B6" />
+            </g>
+
+            {/* Round Mascot Body */}
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Cheerful curved smiling anime eyes */}
+            <path d="M35 48 Q41 42 47 48" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+            <path d="M53 48 Q59 42 65 48" stroke="#FFFFFF" strokeWidth="3.5" strokeLinecap="round" fill="none" />
+
+            {/* Rosy Cheeks */}
+            <ellipse cx="32" cy="56" rx="4" ry="2.5" fill="#F472B6" opacity="0.85" />
+            <ellipse cx="68" cy="56" rx="4" ry="2.5" fill="#F472B6" opacity="0.85" />
+
+            {/* Cute Kitty Whiskers */}
+            <path d="M22 53 L10 51 M22 57 L11 58" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
+            <path d="M78 53 L90 51 M78 57 L89 58" stroke="#FFFFFF" strokeWidth="1.5" strokeLinecap="round" />
+
+            {/* Anime Kitty Mouth 'w' with tongue */}
+            <path d="M43 57 Q46.5 61 50 57 Q53.5 61 57 57" stroke="#FFFFFF" strokeWidth="2.5" strokeLinecap="round" fill="none" />
+            <path d="M48 60 Q50 63 52 60 Z" fill="#F87171" />
+
+            {/* Cheering Paws */}
+            <g transform="translate(30, 68)">
+              <g className="st-cat-paw-l">
+              <circle cx="0" cy="0" r="6" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+              <circle cx="0" cy="0" r="2.8" fill="#F472B6" />
+              <circle cx="-2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+              <circle cx="0" cy="-4.2" r="1.1" fill="#F472B6" />
+              <circle cx="2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+            </g>
+            <g transform="translate(70, 68)">
+              <g className="st-cat-paw-r">
+              <circle cx="0" cy="0" r="6" fill="#FDBA74" stroke="#EA580C" strokeWidth="1" />
+              <circle cx="0" cy="0" r="2.8" fill="#F472B6" />
+              <circle cx="-2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+              <circle cx="0" cy="-4.2" r="1.1" fill="#F472B6" />
+              <circle cx="2.5" cy="-3.5" r="1.1" fill="#F472B6" />
+            </g>
+          </g>
+        </g>
+      );
+
+    case 'sleepy_yawn':
+      return (
+        <g>
+          {/* Floating Z letters drawn cleanly with SVG paths */}
+          <path
+            d="M18 20 L26 20 L18 28 L26 28"
+            stroke="#818CF8"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            className="st-zzz-1"
+          />
+          <path
+            d="M12 12 L17 12 L12 17 L17 17"
+            stroke="#A5B4FC"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            className="st-zzz-2"
+          />
+          <path
+            d="M6 6 L9 6 L6 9 L9 9"
+            stroke="#C7D2FE"
+            strokeWidth="1.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            fill="none"
+            className="st-zzz-3"
+          />
+
+          <g className="st-sleepy-body">
+            {/* Round Mascot Body */}
+            <circle cx="50" cy="54" r="34" fill={`url(#${p}-body)`} />
+            <ellipse cx="40" cy="36" rx="16" ry="10" fill={`url(#${p}-highlight)`} />
+
+            {/* Cozy Nightcap */}
+            <path
+              d="M26 38 C 26 18, 56 12, 70 20 C 82 27, 88 42, 86 52 L 80 52 C 78 40, 72 30, 62 26 C 50 20, 34 26, 32 38 Z"
+              fill={`url(#${p}-sleepy-cap)`}
+              stroke="#3730A3"
+              strokeWidth="1"
+            />
+            {/* Cap Brim */}
+            <path d="M24 38 Q 48 30 72 38" stroke="#FFFFFF" strokeWidth="5" strokeLinecap="round" fill="none" />
+            {/* Swinging Pompom at tip */}
+            <g className="st-pompom">
+              <circle cx="86" cy="53" r="5" fill="#FDE047" stroke="#CA8A04" strokeWidth="0.8" />
+            </g>
+
+            {/* Peaceful closed curved eyelids */}
+            <path d="M36 53 Q41 58 46 53" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
+            <path d="M54 53 Q59 58 64 53" stroke="#FFFFFF" strokeWidth="3" strokeLinecap="round" fill="none" />
+
+            {/* Soft pink cheeks */}
+            <ellipse cx="32" cy="60" rx="4" ry="2.5" fill="#F472B6" opacity="0.65" />
+            <ellipse cx="68" cy="60" rx="4" ry="2.5" fill="#F472B6" opacity="0.65" />
+
+            {/* Small sleepy mouth */}
+            <ellipse cx="50" cy="62" rx="2.5" ry="1.8" fill="#1E293B" />
+
+            {/* Translucent snore bubble */}
+            <g className="st-snore-bubble">
+              <circle cx="53" cy="59" r="6.5" fill="#67E8F9" opacity="0.65" stroke="#06B6D4" strokeWidth="0.8" />
+              <ellipse cx="51.5" cy="57" rx="1.8" ry="1" fill="#FFFFFF" opacity="0.8" />
             </g>
           </g>
         </g>
