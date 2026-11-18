@@ -31,6 +31,7 @@ const CONFETTI_PIECES = 26;
 /** One-shot confetti burst over the result dialog. Portaled so the dialog's
  *  scroll container cannot clip it, and CSS-driven so reduced-motion wins. */
 function WinConfetti() {
+  if (typeof document === 'undefined' || !document.body) return null;
   return createPortal(
     <div className="result-confetti" aria-hidden>
       {Array.from({ length: CONFETTI_PIECES }, (_, index) => {

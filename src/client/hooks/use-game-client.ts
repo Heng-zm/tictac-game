@@ -162,6 +162,14 @@ function removeStoredInviteLink(invitationId: string | null | undefined): void {
   }
 }
 
+function getStoredPreferredLang(): string | null {
+  try {
+    return typeof window !== 'undefined' ? window.localStorage.getItem('ttt_preferred_lang') : null;
+  } catch {
+    return null;
+  }
+}
+
 export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClient {
   const [phase, setPhase] = useState<BootPhase>('booting');
   const [bootError, setBootError] = useState<string | null>(null);
@@ -371,7 +379,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
               // to the guest session when guest auth is enabled.
               if (!loadedConfig.devAuthEnabled) throw telegramError;
               const preferredLang =
-                (typeof window !== 'undefined' ? window.localStorage.getItem('ttt_preferred_lang') : null) ||
+                getStoredPreferredLang() ||
                 getWebApp()?.initDataUnsafe?.user?.language_code ||
                 null;
               const auth = await authenticateDev(getDeviceKey(), undefined, preferredLang);
@@ -379,7 +387,7 @@ export function useGameClient({ onMatchFound }: UseGameClientOptions): GameClien
             }
           } else if (loadedConfig.devAuthEnabled) {
             const preferredLang =
-              (typeof window !== 'undefined' ? window.localStorage.getItem('ttt_preferred_lang') : null) ||
+              getStoredPreferredLang() ||
               getWebApp()?.initDataUnsafe?.user?.language_code ||
               null;
             const auth = await authenticateDev(getDeviceKey(), undefined, preferredLang);

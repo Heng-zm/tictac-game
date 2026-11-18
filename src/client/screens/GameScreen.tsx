@@ -279,7 +279,7 @@ export function GameScreen({
     } else {
       navigate('/');
     }
-  }, [client.leaveMatch, match, navigate]);
+  }, [client, match, navigate]);
 
   async function forfeit(): Promise<void> {
     setForfeiting(true);
@@ -353,7 +353,7 @@ export function GameScreen({
         });
       }
     },
-    [client.pushToast, client.sendReaction, match],
+    [client, match],
   );
 
   const handleSendText = useCallback(
@@ -369,7 +369,7 @@ export function GameScreen({
         });
       }
     },
-    [client.pushToast, client.sendChat, match],
+    [client, match],
   );
 
   const handleSendVoice = useCallback(
@@ -385,7 +385,7 @@ export function GameScreen({
         });
       }
     },
-    [client.pushToast, client.sendVoice, match],
+    [client, match],
   );
 
   const handleVoiceError = useCallback(
