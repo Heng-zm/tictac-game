@@ -30,12 +30,18 @@ export const DynamicBackground = memo(function DynamicBackground() {
     const handlePointerMove = (event: PointerEvent) => {
       if (event.pointerType === 'touch') return;
 
-      spotlight.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
-
       if (!isVisible) {
         isVisible = true;
+        // Snap instantly to the cursor on first appearance without flying across from offscreen
+        spotlight.style.transition = 'none';
+        spotlight.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+        void spotlight.offsetHeight; // Force reflow before applying smooth transitions
+        spotlight.style.transition = 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease-out';
         spotlight.style.opacity = '1';
+        return;
       }
+
+      spotlight.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
     };
 
     const handlePointerLeave = () => {
