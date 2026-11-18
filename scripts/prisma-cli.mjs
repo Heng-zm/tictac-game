@@ -28,7 +28,11 @@ if (args.length === 0) {
 
 const child = spawn(process.execPath, [prismaCli, ...args], {
   stdio: 'inherit',
-  env: { ...process.env, DATABASE_URL: url },
+  env: {
+    ...process.env,
+    DATABASE_URL: url,
+    DIRECT_URL: directUrl || url,
+  },
 });
 
 child.on('error', (error) => {
