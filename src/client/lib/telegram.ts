@@ -290,6 +290,24 @@ export function openTelegramBot(botUsername: string, startParam?: string): boole
   return true;
 }
 
+/** Reopens the configured Mini App after Telegram authentication needs refreshing. */
+export function openTelegramMiniApp(botUsername: string, appName?: string | null): boolean {
+  const username = botUsername.replace(/^@/, '');
+  const appPath = appName ? `/${encodeURIComponent(appName)}` : '';
+  const url = `https://t.me/${encodeURIComponent(username)}${appPath}`;
+  const tg = getWebApp();
+  if (tg) {
+    try {
+      tg.openTelegramLink(url);
+      return true;
+    } catch {
+      // Fall through to a normal link.
+    }
+  }
+  window.open(url, '_blank', 'noopener,noreferrer');
+  return true;
+}
+
 export function getTelegramThemeDescription(): { theme: TelegramThemeParams; scheme: 'light' | 'dark' } {
   const tg = getWebApp();
   return {

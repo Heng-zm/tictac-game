@@ -27,7 +27,7 @@ import {
   getDeviceKey,
   startTelegramBotLogin,
 } from '../lib/api';
-import { getWebApp, openTelegramBot } from '../lib/telegram';
+import { getWebApp, openTelegramMiniApp } from '../lib/telegram';
 import { isKhmer, normalizeLanguage, type SupportedLanguage } from '../lib/language';
 import { Button, Logo, Spinner } from '../components/ui';
 import { LanguageButton } from '../components/LanguageButton';
@@ -262,7 +262,7 @@ export function AuthGate({
   }
 
   return (
-    <div className="relative flex min-h-[var(--app-vh)] flex-col items-center justify-center overflow-x-hidden px-4 py-8 text-center sm:px-6 sm:py-12">
+    <div className="relative flex min-h-[var(--app-vh)] flex-col items-center justify-start overflow-x-hidden px-4 pb-[calc(env(safe-area-inset-bottom)+2rem)] pt-[calc(env(safe-area-inset-top)+5rem)] text-center sm:justify-center sm:px-6 sm:py-12">
       {/* Background ambient lighting */}
       <div className="pointer-events-none absolute -top-28 left-1/2 h-96 w-96 -translate-x-1/2 rounded-full bg-accent/15 blur-3xl" aria-hidden />
       <div className="pointer-events-none absolute -bottom-28 left-1/3 h-96 w-96 rounded-full bg-[#24A1DE]/15 blur-3xl" aria-hidden />
@@ -276,7 +276,7 @@ export function AuthGate({
       </div>
 
       {/* Top Header Bar */}
-      <header className="absolute top-4 inset-x-4 z-20 flex items-center justify-between sm:top-6 sm:inset-x-8 max-w-2xl mx-auto">
+      <header className="absolute top-[calc(env(safe-area-inset-top)+1rem)] inset-x-4 z-20 flex items-center justify-between sm:top-6 sm:inset-x-8 max-w-2xl mx-auto">
         <div className="flex items-center gap-2 rounded-full border border-line/60 bg-surface/70 px-3 py-1 backdrop-blur-md shadow-xs">
           <Gamepad2 className="h-3.5 w-3.5 text-accent" />
           <span className="text-[11px] font-bold tracking-wider text-muted uppercase">
@@ -519,7 +519,7 @@ export function AuthGate({
               <Button
                 size="lg"
                 icon={ExternalLink}
-                onClick={() => openTelegramBot(botUsername)}
+                onClick={() => openTelegramMiniApp(botUsername, config?.botAppName)}
                 className="w-full bg-[#24A1DE] text-white hover:bg-[#2092cb] font-bold shadow-md shadow-[#24A1DE]/25"
               >
                 {isKm ? 'បើកក្នុង Telegram' : 'Open in Telegram'}

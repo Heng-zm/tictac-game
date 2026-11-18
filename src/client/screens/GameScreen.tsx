@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { lazy, memo, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowLeft,
   Bot,
@@ -270,6 +270,17 @@ export function GameScreen({
     navigate(to);
   }
 
+  const handleHeaderBack = useCallback(() => {
+    if (match?.status === 'ACTIVE') {
+      setForfeitOpen(true);
+    } else if (match) {
+      void client.leaveMatch(match.id);
+      navigate('/');
+    } else {
+      navigate('/');
+    }
+  }, [client.leaveMatch, match, navigate]);
+
   async function forfeit(): Promise<void> {
     setForfeiting(true);
     try {
@@ -342,7 +353,7 @@ export function GameScreen({
         });
       }
     },
-    [client, match],
+    [client.pushToast, client.sendReaction, match],
   );
 
   const handleSendText = useCallback(
@@ -358,7 +369,7 @@ export function GameScreen({
         });
       }
     },
-    [client, match],
+    [client.pushToast, client.sendChat, match],
   );
 
   const handleSendVoice = useCallback(
@@ -374,7 +385,12 @@ export function GameScreen({
         });
       }
     },
-    [client, match],
+    [client.pushToast, client.sendVoice, match],
+  );
+
+  const handleVoiceError = useCallback(
+    (message: string) => pushToast({ type: 'error', title: 'Microphone unavailable', message }),
+    [pushToast],
   );
 
   if (otherActive) {
@@ -520,14 +536,7 @@ export function GameScreen({
         <div className="pointer-events-auto border-b border-line/70 bg-app px-2.5 pb-2 pt-[calc(env(safe-area-inset-top)+4px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4 sm:pb-2.5 sm:pt-[calc(env(safe-area-inset-top)+6px)]">
           <div className="mx-auto w-full max-w-[720px] lg:max-w-[840px]">
             <GameHeader
-              onBack={() => {
-                if (match.status === 'ACTIVE') {
-                  setForfeitOpen(true);
-                } else {
-                  void client.leaveMatch(match.id);
-                  navigate('/');
-                }
-              }}
+              onBack={handleHeaderBack}
               mode={modeLabel(match.mode)}
               rated={isRatedMatch(match)}
               connection={connection}
@@ -628,7 +637,7 @@ export function GameScreen({
         <WalkieTalkieButton
           matchId={match.id}
           onSendVoice={handleSendVoice}
-          onError={(message) => pushToast({ type: 'error', title: 'Microphone unavailable', message })}
+          onError={handleVoiceError}
           disabled={match.status !== 'ACTIVE' && match.status !== 'FINISHED'}
         />
       </div>
@@ -725,7 +734,7 @@ export function GameScreen({
   );
 }
 
-function TurnClock({
+const TurnClock = memo(function TurnClock({
   text,
   label,
   progress,
@@ -799,9 +808,9 @@ function TurnClock({
       </span>
     </div>
   );
-}
+});
 
-function GameHeader({
+const GameHeader = memo(function GameHeader({
   onBack,
   mode,
   rated,
@@ -879,9 +888,9 @@ function GameHeader({
       </div>
     </header>
   );
-}
+});
 
-function PlayerBadge({
+const PlayerBadge = memo(function PlayerBadge({
   name,
   photoUrl,
   side,
@@ -975,7 +984,7 @@ function PlayerBadge({
       </div>
     </div>
   );
-}
+});
 
 function makeActionId(): string {
   if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
