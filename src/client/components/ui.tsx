@@ -490,14 +490,42 @@ export function SegmentedControl<T extends string>({
   ariaLabel: string;
   className?: string;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (index + 1) % options.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (index - 1 + options.length) % options.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = options.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextOption = options[nextIndex];
+      if (nextOption) {
+        onChange(nextOption.value);
+        window.requestAnimationFrame(() => {
+          const buttons = containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+          buttons?.[nextIndex]?.focus();
+        });
+      }
+    }
+  };
+
   return (
     <div
+      ref={containerRef}
       role="radiogroup"
       aria-label={ariaLabel}
       className={cn('grid gap-1 rounded-2xl border border-line/80 bg-elevated/70 p-1 backdrop-blur-sm', className)}
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
-      {options.map((option) => {
+      {options.map((option, index) => {
         const selected = option.value === value;
         return (
           <button
@@ -505,7 +533,9 @@ export function SegmentedControl<T extends string>({
             type="button"
             role="radio"
             aria-checked={selected}
+            tabIndex={selected ? 0 : -1}
             onClick={() => onChange(option.value)}
+            onKeyDown={(event) => handleKeyDown(event, index)}
             className={cn(
               'rounded-xl px-2.5 py-2 text-center text-xs font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/60',
               selected

@@ -932,6 +932,12 @@
   color: var(--home-ink);
 }
 
+.home-choice:focus-visible {
+  outline: 2px solid var(--home-accent);
+  outline-offset: -1px;
+  z-index: 1;
+}
+
 .home-choice:active {
   transform: scale(0.96);
 }

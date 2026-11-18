@@ -469,33 +469,67 @@ function ChoiceGroup<T extends string>({
   onChange: (value: T) => void;
   ariaLabel: string;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleKeyDown = (event: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
+    let nextIndex: number | null = null;
+    if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+      nextIndex = (index + 1) % options.length;
+    } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+      nextIndex = (index - 1 + options.length) % options.length;
+    } else if (event.key === 'Home') {
+      nextIndex = 0;
+    } else if (event.key === 'End') {
+      nextIndex = options.length - 1;
+    }
+
+    if (nextIndex !== null) {
+      event.preventDefault();
+      const nextOption = options[nextIndex];
+      if (nextOption) {
+        hapticSelection();
+        onChange(nextOption.value);
+        window.requestAnimationFrame(() => {
+          const buttons = containerRef.current?.querySelectorAll<HTMLButtonElement>('[role="radio"]');
+          buttons?.[nextIndex]?.focus();
+        });
+      }
+    }
+  };
+
   return (
     <div
+      ref={containerRef}
       role="radiogroup"
       aria-label={ariaLabel}
       className="home-choices"
       style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
     >
-      {options.map((option) => (
-        <button
-          key={option.value}
-          type="button"
-          role="radio"
-          aria-checked={value === option.value}
-          data-active={value === option.value ? 'true' : undefined}
-          className="home-choice"
-          onClick={() => {
-            hapticSelection();
-            onChange(option.value);
-          }}
-        >
-          {option.mark ? (
-            <span className={`home-choice-mark home-choice-mark--${option.mark}`}>{option.label}</span>
-          ) : (
-            option.label
-          )}
-        </button>
-      ))}
+      {options.map((option, index) => {
+        const isChecked = value === option.value;
+        return (
+          <button
+            key={option.value}
+            type="button"
+            role="radio"
+            aria-checked={isChecked}
+            tabIndex={isChecked ? 0 : -1}
+            data-active={isChecked ? 'true' : undefined}
+            className="home-choice"
+            onClick={() => {
+              hapticSelection();
+              onChange(option.value);
+            }}
+            onKeyDown={(event) => handleKeyDown(event, index)}
+          >
+            {option.mark ? (
+              <span className={`home-choice-mark home-choice-mark--${option.mark}`}>{option.label}</span>
+            ) : (
+              option.label
+            )}
+          </button>
+        );
+      })}
     </div>
   );
 }

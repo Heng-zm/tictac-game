@@ -28,7 +28,7 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          react: ['react', 'react-dom'],
+          react: ['react', 'react-dom', 'react/jsx-runtime'],
           socket: ['socket.io-client'],
           icons: ['lucide-react'],
         },

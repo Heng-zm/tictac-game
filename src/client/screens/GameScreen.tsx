@@ -512,7 +512,7 @@ export function GameScreen({
       : null;
 
   return (
-    <div className="fixed inset-0 z-0 overflow-hidden overscroll-none bg-app">
+    <div data-game-screen className="fixed inset-0 z-0 overflow-hidden overscroll-none bg-app">
       <div aria-live="polite" aria-atomic="true" className="sr-only">
         {yourTurn ? 'Your turn to place a stone' : `${opponent?.displayName || 'Opponent'}'s turn`}
       </div>
@@ -532,8 +532,8 @@ export function GameScreen({
         onCell={handleCell}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-20">
-        <div className="pointer-events-auto border-b border-line/70 bg-app px-2.5 pb-2 pt-[calc(env(safe-area-inset-top)+4px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4 sm:pb-2.5 sm:pt-[calc(env(safe-area-inset-top)+6px)]">
+      <div data-game-header className="pointer-events-none absolute inset-x-0 top-0 z-20">
+        <div data-game-header-panel className="pointer-events-auto border-b border-line/70 bg-app px-2.5 pb-2 pt-[calc(env(safe-area-inset-top)+4px)] shadow-[0_18px_40px_-32px_rgba(0,0,0,0.55)] sm:px-4 sm:pb-2.5 sm:pt-[calc(env(safe-area-inset-top)+6px)]">
           <div className="mx-auto w-full max-w-[720px] lg:max-w-[840px]">
             <GameHeader
               onBack={handleHeaderBack}
@@ -543,7 +543,7 @@ export function GameScreen({
               onRetry={client.reconnect}
             />
 
-            <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-2 px-0.5">
+            <div data-game-player-row className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:gap-2 px-0.5">
               <div className="relative">
                 <PlayerBadge
                   name={you?.displayName ?? 'You'}
@@ -596,7 +596,7 @@ export function GameScreen({
             </div>
 
             {opponentDisconnected && match.status === 'ACTIVE' ? (
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-2.5 py-1.5">
+              <div data-game-notice className="mt-2 flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/5 px-2.5 py-1.5">
                 <WifiOff className="h-3.5 w-3.5 shrink-0 text-amber-600 dark:text-amber-400" aria-hidden />
                 <p className="text-[10.5px] font-medium leading-tight text-ink">
                   Opponent disconnected. Clock paused
@@ -604,7 +604,7 @@ export function GameScreen({
                 </p>
               </div>
             ) : connection !== 'online' ? (
-              <div className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-2.5 py-1.5">
+              <div data-game-notice className="mt-2 flex items-center gap-2 rounded-xl border border-line bg-elevated/60 px-2.5 py-1.5">
                 <Timer className="h-3.5 w-3.5 shrink-0 text-muted" aria-hidden />
                 <p className="text-[10.5px] font-medium leading-tight text-ink">
                   {connection === 'idle' || connection === 'connecting'
@@ -617,7 +617,7 @@ export function GameScreen({
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+12px)] sm:bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center justify-end gap-1.5 sm:gap-2 px-2.5 sm:px-4">
+      <div data-game-actions className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+12px)] sm:bottom-[calc(env(safe-area-inset-bottom)+18px)] z-20 flex items-center justify-end gap-1.5 sm:gap-2 px-2.5 sm:px-4">
         <button
           type="button"
           onClick={() => {
@@ -628,7 +628,7 @@ export function GameScreen({
             connection !== 'online' ||
             (match.status !== 'ACTIVE' && match.status !== 'FINISHED')
           }
-          className="group pointer-events-auto flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-glow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-50"
+          className="group pointer-events-auto flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-2xl border border-line bg-surface text-accent shadow-soft transition-all duration-150 hover:border-accent/40 hover:bg-elevated hover:shadow-glow-sm active:scale-90 disabled:cursor-not-allowed disabled:opacity-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70"
           title="Sticker reactions and quick chat"
           aria-label="Open sticker reactions and quick chat"
         >
@@ -752,7 +752,7 @@ const TurnClock = memo(function TurnClock({
   const offset = progress === null ? circumference : circumference * (1 - progress);
 
   return (
-    <div className="flex min-w-[62px] sm:min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
+    <div data-game-turn-clock className="flex min-w-[62px] sm:min-w-[72px] flex-col items-center text-center" role="timer" aria-label={`${label}: ${text}`}>
       <div className="relative flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center">
         {urgent && !muted ? (
           <span

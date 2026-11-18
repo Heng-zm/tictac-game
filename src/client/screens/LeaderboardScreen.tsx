@@ -238,7 +238,7 @@ export function LeaderboardScreen({
                   onClick={() => setActiveTab('all')}
                   aria-pressed={activeTab === 'all'}
                   className={cn(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
                     activeTab === 'all'
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-accent/25 border border-white/10'
                       : 'border border-line/70 bg-elevated/80 text-muted hover:bg-elevated hover:text-ink',
@@ -253,7 +253,7 @@ export function LeaderboardScreen({
                   onClick={() => setActiveTab('top10')}
                   aria-pressed={activeTab === 'top10'}
                   className={cn(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
                     activeTab === 'top10'
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-accent/25 border border-white/10'
                       : 'border border-line/70 bg-elevated/80 text-muted hover:bg-elevated hover:text-ink',
@@ -268,7 +268,7 @@ export function LeaderboardScreen({
                   onClick={() => setActiveTab('nearby')}
                   aria-pressed={activeTab === 'nearby'}
                   className={cn(
-                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95',
+                    'flex items-center gap-1.5 whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all duration-150 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/70',
                     activeTab === 'nearby'
                       ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md shadow-accent/25 border border-white/10'
                       : 'border border-line/70 bg-elevated/80 text-muted hover:bg-elevated hover:text-ink',

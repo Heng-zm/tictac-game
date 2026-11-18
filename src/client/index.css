@@ -104,6 +104,16 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  /* Universal accessible keyboard focus indicators */
+  :focus-visible {
+    outline: 2px solid rgb(var(--app-accent-rgb) / 0.85);
+    outline-offset: 2px;
+  }
+
+  :focus:not(:focus-visible) {
+    outline: none;
+  }
+
   button {
     touch-action: manipulation;
   }
@@ -881,6 +891,44 @@
   100% {
     opacity: 1;
     transform: scale(1);
+  }
+}
+
+/* Keep the live board usable when a phone is held in landscape. */
+@media (orientation: landscape) and (max-height: 520px) {
+  [data-game-screen] [data-game-header-panel] {
+    padding-top: calc(env(safe-area-inset-top) + 2px);
+    padding-bottom: 4px;
+  }
+
+  [data-game-screen] [data-game-header-panel] header {
+    padding-bottom: 4px;
+  }
+
+  [data-game-screen] [data-game-player-row] {
+    gap: 4px;
+  }
+
+  [data-game-screen] [data-game-turn-clock] {
+    min-width: 50px;
+  }
+
+  [data-game-screen] [data-game-turn-clock] > div {
+    width: 40px;
+    height: 40px;
+  }
+
+  [data-game-screen] [data-game-turn-clock] > span {
+    display: none;
+  }
+
+  [data-game-screen] [data-game-notice] {
+    margin-top: 4px;
+    padding-block: 3px;
+  }
+
+  [data-game-screen] [data-game-actions] {
+    bottom: calc(env(safe-area-inset-bottom) + 4px);
   }
 }
 

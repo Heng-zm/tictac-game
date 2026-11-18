@@ -181,13 +181,8 @@ export function getAvailableMoves(board: Board): number[] {
   const occupied = Object.keys(board);
   if (occupied.length === 0) return [encodeCell(0, 0)];
 
-  // Pre-allocate with estimated capacity (8 neighbors per stone, but many overlap)
-  const candidates = new Array<number>(occupied.length * 8);
-  let candidateCount = 0;
-
-  // Use a timestamp-based visited array instead of Set for speed
-  const visited = new Map<number, number>();
-  const visitToken = Date.now();
+  const candidates: number[] = [];
+  const visited = new Set<number>();
 
   for (const cellStr of occupied) {
     const cell = Number(cellStr);
@@ -200,16 +195,14 @@ export function getAvailableMoves(board: Board): number[] {
 
       const candidate = cell + offset;
       if (board[candidate] !== undefined) continue;
-      if (visited.get(candidate) === visitToken) continue;
+      if (visited.has(candidate)) continue;
 
-      visited.set(candidate, visitToken);
-      candidates[candidateCount++] = candidate;
+      visited.add(candidate);
+      candidates.push(candidate);
     }
   }
 
-  if (candidateCount === 0) return [encodeCell(0, 0)];
-  candidates.length = candidateCount;
-  return candidates;
+  return candidates.length === 0 ? [encodeCell(0, 0)] : candidates;
 }
 
 function validatePlacement(
