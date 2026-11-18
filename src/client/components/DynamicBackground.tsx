@@ -1,10 +1,57 @@
-import { memo } from 'react';
+import { memo, useEffect, useRef } from 'react';
+
+function prefersReducedMotion(): boolean {
+  return typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    ? window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    : false;
+}
 
 /**
- * Dynamic ambient cyber background orbs that pulse and drift softly behind the UI.
- * Pure hardware-accelerated CSS animations, completely pointer-events-none.
+ * Dynamic ambient cyber background with interactive cursor spotlight tracking
+ * on desktop devices and pure hardware-accelerated CSS drift animations.
+ * Completely pointer-events-none.
  */
 export const DynamicBackground = memo(function DynamicBackground() {
+  const spotlightRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (prefersReducedMotion() || typeof window === 'undefined') return;
+
+    // Only enable mouse spotlight on pointer devices that support hover (non-touch)
+    if (window.matchMedia && window.matchMedia('(hover: none)').matches) {
+      return;
+    }
+
+    const spotlight = spotlightRef.current;
+    if (!spotlight) return;
+
+    let isVisible = false;
+
+    const handlePointerMove = (event: PointerEvent) => {
+      if (event.pointerType === 'touch') return;
+
+      spotlight.style.transform = `translate3d(${event.clientX}px, ${event.clientY}px, 0)`;
+
+      if (!isVisible) {
+        isVisible = true;
+        spotlight.style.opacity = '1';
+      }
+    };
+
+    const handlePointerLeave = () => {
+      isVisible = false;
+      spotlight.style.opacity = '0';
+    };
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+    document.addEventListener('mouseleave', handlePointerLeave, { passive: true });
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove);
+      document.removeEventListener('mouseleave', handlePointerLeave);
+    };
+  }, []);
+
   return (
     <div
       className="pointer-events-none fixed inset-0 z-0 overflow-hidden select-none [contain:strict] [content-visibility:auto]"
@@ -29,6 +76,18 @@ export const DynamicBackground = memo(function DynamicBackground() {
           backgroundSize: '36px 36px',
           maskImage: 'radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 95%)',
           WebkitMaskImage: 'radial-gradient(ellipse 90% 80% at 50% 40%, black 40%, transparent 95%)',
+        }}
+      />
+
+      {/* Interactive cursor spotlight (desktop mouse tracking glow) */}
+      <div
+        ref={spotlightRef}
+        className="pointer-events-none absolute -top-48 -left-48 h-96 w-96 rounded-full opacity-0 will-change-[transform,opacity] blur-[85px]"
+        style={{
+          background:
+            'radial-gradient(circle, rgb(var(--app-accent-rgb) / 0.22) 0%, rgba(59, 130, 246, 0.12) 40%, transparent 70%)',
+          transform: 'translate3d(-9999px, -9999px, 0)',
+          transition: 'transform 0.18s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease-out',
         }}
       />
 
